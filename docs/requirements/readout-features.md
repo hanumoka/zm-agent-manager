@@ -105,6 +105,7 @@
 - 건강 경고 배너 (Hygiene 이슈, 미커밋 파일, CLAUDE.md 미설정)
 - **비용 예산 제안**: "Set a spending budget" — "You've spent $N this month with no budget alerts config..." + "Cost control" 버튼
 - 최근 활성 레포의 Skills/Agents/Memory/Repos 요약
+- **MCP 서버 표시**: "⚡ N MCP server" — 프로젝트에 `.mcp.json`이 있으면 MCP 서버 수 표시 (Dashboard 최하단 Recently Active 영역)
 - **워크스페이스 리스캔 알림**: "Workspace rescanned" 토스트 (리스캔 완료 시)
 
 **시간대별 인사 메시지** (확인된 4종):
