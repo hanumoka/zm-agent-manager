@@ -175,8 +175,10 @@
 | 데이터 | 소스 | 설명 |
 |--------|------|------|
 | 활성 태스크 | `~/.claude/todos/{sessionId}-*.json` | 현재 세션의 태스크 (세션 종료 시 `[]`로 초기화됨) |
-| 태스크 이력 | JSONL tool_use: TaskCreate | subject, description, activeForm |
-| 상태 변경 | JSONL tool_use: TaskUpdate | taskId, status (pending/in_progress/completed/deleted) |
+| **태스크 이력 (핵심)** | **JSONL tool_use: TaskCreate** | subject, description, activeForm — **모든 세션의 태스크 영구 이력** |
+| **상태 변경 (핵심)** | **JSONL tool_use: TaskUpdate** | taskId, status — **todos/가 비어도 이력 재구성 가능** |
+
+> **중요**: todos/ 파일은 세션 종료 시 빈 배열로 초기화되므로, JSONL의 TaskCreate/TaskUpdate가 **실질적인 주요 데이터 소스**이다. todos/는 활성 세션의 현재 상태 조회에만 사용.
 
 **출력 UI 컴포넌트**:
 | 컴포넌트 | 데이터 |
