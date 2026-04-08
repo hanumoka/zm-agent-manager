@@ -17,7 +17,11 @@
   - 문서 자동 갱신 규칙 (`doc-auto-update.md`) 생성
   - CLAUDE.md에 검증 우선/문서 동기화 핵심 원칙 추가
   - GitHub 원격 저장소 연결 및 초기 커밋 push
-- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동
+  - Readout 앱 바이너리 리버스 엔지니어링 + 웹 리서치로 22개 기능/UI 구조 분석
+  - INBOX.md에 Readout 기반 아이디어 6개 추가 (비용추적, Handoff, ToolChain, Linter, 알림, 사이드바)
+  - phase-1-mvp.md에 Readout UI 패턴 참고 메모 추가 (Dashboard/Live 분리, Skeleton, 커스텀 사이드바)
+  - zm-block-claude-dir-write.sh 훅 버그 수정 (세션 데이터만 차단, plans/settings 허용)
+- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동, 경쟁 앱 분석 반영
 - **다음 할 일**: Phase 1 MVP 개발 시작 (Electron + Vite + React 프로젝트 스캐폴딩)
 
 ## 2026-04-08 | docs 구조화 세션
