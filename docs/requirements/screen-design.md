@@ -42,9 +42,9 @@
 
 ## 2. 사이드바 구조
 
-### 2.1 사이드바 섹션 (4개 섹션, 12개 항목)
+### 2.1 사이드바 섹션 (5개 섹션, 16개 항목)
 
-Readout의 25개 항목 중 **zm-agent-manager에 필요한 기능만 선별**하여 12개로 구성.
+Readout의 25개 항목을 참고하되, zm-agent-manager 고유 기능을 포함하여 16개로 구성.
 
 ```
 Monitor
@@ -56,6 +56,12 @@ Monitor
 Tasks
   ├── 📌 Board            F11  태스크 보드 (칸반)
   └── 🔄 Workflow         F14  태스크 워크플로우 (Phase 3)
+
+Config                          ← 신규 섹션
+  ├── ⚡ Skills            F17  스킬 모니터
+  ├── 👥 Agents           F18  에이전트 모니터
+  ├── 🧠 Memory           F19  메모리 뷰어
+  └── 🔗 Hooks            F20  훅/규칙/MCP/퍼미션 (4탭)
 
 History
   ├── ▶️ Replay            F5   세션 리플레이 (Phase 2)
@@ -83,7 +89,7 @@ Manage
 
 | Phase | 활성 항목 |
 |-------|----------|
-| Phase 1 | Dashboard, Live, Sessions, Tools, Board, Settings |
+| Phase 1 | Dashboard, Live, Sessions, Tools, Board, **Skills, Agents, Memory, Hooks**, Settings |
 | Phase 2 | + Replay, Diffs, Docs, Costs |
 | Phase 3 | + Workflow, Search |
 

@@ -224,6 +224,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <span class="icon">🔄</span> Workflow
   </div>
 
+  <div class="sidebar-section">Config</div>
+  <div class="sidebar-item" onclick="showPage('skills')">
+    <span class="icon">⚡</span> Skills
+  </div>
+  <div class="sidebar-item" onclick="showPage('agents')">
+    <span class="icon">👥</span> Agents
+  </div>
+  <div class="sidebar-item" onclick="showPage('memory')">
+    <span class="icon">🧠</span> Memory
+  </div>
+  <div class="sidebar-item" onclick="showPage('hooks')">
+    <span class="icon">🔗</span> Hooks
+  </div>
+
   <div class="sidebar-section">History</div>
   <div class="sidebar-item" onclick="showPage('replay')">
     <span class="icon">▶️</span> Replay
@@ -963,6 +977,245 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
+<!-- ==================== SKILLS ==================== -->
+<div id="page-skills" class="page">
+  <div class="page-title">Skills</div>
+  <div class="page-subtitle">6 project-specific across 1 repo. 0 global. 5 plugin.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">6</div><div class="label"><span class="dot dot-blue"></span> Project</div></div>
+    <div class="stat-card"><div class="value">0</div><div class="label"><span class="dot dot-green"></span> Global</div></div>
+    <div class="stat-card"><div class="value">5</div><div class="label"><span class="dot dot-orange"></span> Plugin</div></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📁</span><span class="title">zm-agent-manager</span><span class="count">6 skills</span></div>
+  <div class="card">
+    <div class="card-title">⚡ zm-session-start</div>
+    <div class="card-subtitle">세션 시작 프로토콜 실행 - SESSION_LOG, ROADMAP, 진행 중 phase 파일을 순서대로 읽고 현재 상태를 요약</div>
+    <div class="card-meta">tools: Read, Glob &nbsp; | &nbsp; disable-model-invocation: true &nbsp; | &nbsp; 📁 .claude/skills/zm-session-start/</div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ zm-session-end</div>
+    <div class="card-subtitle">세션 종료 프로토콜 실행 - SESSION_LOG 추가, roadmap 업데이트, 이슈/아이디어 기록</div>
+    <div class="card-meta">tools: Read, Edit, Write, Glob &nbsp; | &nbsp; 📁 .claude/skills/zm-session-end/</div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ zm-validate-req</div>
+    <div class="card-subtitle">사용자 요구사항을 PRD, 정책, 로드맵 대비 교차 검증하여 충돌/모호성/오류 보고</div>
+    <div class="card-meta">tools: Read, Glob, Grep &nbsp; | &nbsp; 📁 .claude/skills/zm-validate-req/</div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ zm-phase-status</div>
+    <div class="card-subtitle">현재 로드맵 Phase 진행 상태를 체크리스트 기반으로 시각화</div>
+    <div class="card-meta">tools: Read, Glob &nbsp; | &nbsp; 📁 .claude/skills/zm-phase-status/</div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ zm-new-component</div>
+    <div class="card-subtitle">Electron 앱의 새 컴포넌트/서비스/타입 파일을 코딩 컨벤션에 맞게 생성</div>
+    <div class="card-meta">tools: Read, Write, Glob &nbsp; | &nbsp; 📁 .claude/skills/zm-new-component/</div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ zm-analyze-jsonl</div>
+    <div class="card-subtitle">Claude Code의 JSONL 세션 파일 구조를 분석하여 타입 정의 및 파싱 전략 수립에 활용</div>
+    <div class="card-meta">tools: Read, Bash, Glob, Grep &nbsp; | &nbsp; 📁 .claude/skills/zm-analyze-jsonl/</div>
+  </div>
+</div>
+
+<!-- ==================== AGENTS ==================== -->
+<div id="page-agents" class="page">
+  <div class="page-title">Agents</div>
+  <div class="page-subtitle">3 agents across 1 repo.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">3</div><div class="label"><span class="dot dot-blue"></span> Project</div></div>
+    <div class="stat-card"><div class="value">0</div><div class="label"><span class="dot dot-green"></span> Global</div></div>
+    <div class="stat-card"><div class="value">3</div><div class="label"><span class="dot dot-orange"></span> Plugin</div></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📁</span><span class="title">zm-agent-manager</span><span class="count">3 agents</span></div>
+  <div class="card" style="border-left:3px solid var(--accent-red)">
+    <div class="card-title">👤 zm-electron-expert</div>
+    <div class="card-subtitle">Electron 앱 아키텍처 전문가. 메인/렌더러/프리로드 프로세스 간 IPC 설계, 보안, 성능 최적화 질문에 답변</div>
+    <div class="card-meta">tools: Read, Glob, Grep, WebSearch, WebFetch &nbsp; | &nbsp; model: sonnet &nbsp; | &nbsp; 사용: 4회</div>
+  </div>
+  <div class="card" style="border-left:3px solid var(--accent-blue)">
+    <div class="card-title">👤 zm-jsonl-analyst</div>
+    <div class="card-subtitle">Claude Code JSONL 세션 데이터 분석 전문가. 데이터 구조 파악, 타입 정의 초안 작성, 파싱 전략 수립</div>
+    <div class="card-meta">tools: Read, Bash, Glob, Grep &nbsp; | &nbsp; model: sonnet &nbsp; | &nbsp; 사용: 2회</div>
+  </div>
+  <div class="card" style="border-left:3px solid var(--accent-yellow)">
+    <div class="card-title">👤 zm-ui-reviewer</div>
+    <div class="card-subtitle">React + Tailwind UI 코드 리뷰 전문가. 컴포넌트 구조, 접근성, 성능, 스타일링 패턴 검토</div>
+    <div class="card-meta">tools: Read, Glob, Grep &nbsp; | &nbsp; model: sonnet &nbsp; | &nbsp; 사용: 0회</div>
+  </div>
+</div>
+
+<!-- ==================== MEMORY ==================== -->
+<div id="page-memory" class="page">
+  <div class="page-title">Memory</div>
+  <div class="page-subtitle">33 lines of context across 1 project.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">33</div><div class="label"><span class="dot dot-blue"></span> Lines</div></div>
+    <div class="stat-card"><div class="value">1</div><div class="label"><span class="dot dot-green"></span> Projects</div></div>
+    <div class="stat-card"><div class="value">OK</div><div class="label"><span class="dot dot-green"></span> Health</div></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📁</span><span class="title">projects/zm-agent-manager</span><span class="count">33 lines</span></div>
+  <div class="card" style="font-size:13px;line-height:1.6">
+    <div style="font-weight:600;margin-bottom:8px">zm-agent-manager Memory</div>
+    <div style="color:var(--text-secondary)">
+      <div><strong>Project Overview</strong></div>
+      <div>- Claude Code 세션 실시간 모니터링 및 리플레이 Electron 앱</div>
+      <div>- Tech stack: Electron + TypeScript + React 18 + Vite + chokidar + Tailwind CSS</div>
+      <div>- PRD: docs/requirements/PRD.md, 프로젝트 설정: CLAUDE.md</div>
+      <div style="margin-top:8px"><strong>Docs Structure (7 categories)</strong></div>
+      <div style="font-family:monospace;font-size:12px;color:var(--text-tertiary)">
+        docs/<br>
+        ├── requirements/ &nbsp; # PRD 등 요구사항<br>
+        ├── policies/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # 코딩 컨벤션, Git, 문서 관리 규칙<br>
+        ├── sessions/ &nbsp;&nbsp;&nbsp;&nbsp; # SESSION_LOG.md<br>
+        ├── troubleshooting/<br>
+        ├── temp/<br>
+        ├── roadmap/<br>
+        └── ideas/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # INBOX.md
+      </div>
+      <div style="margin-top:8px;color:var(--text-tertiary)">... 27 more lines</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HOOKS ==================== -->
+<div id="page-hooks" class="page">
+  <div class="page-title">Hooks / Rules / MCP</div>
+
+  <div style="display:flex;gap:4px;margin-bottom:16px">
+    <button class="speed-chip active" onclick="showHookTab('hooks-tab')">Hooks</button>
+    <button class="speed-chip" onclick="showHookTab('rules-tab')">Rules</button>
+    <button class="speed-chip" onclick="showHookTab('mcp-tab')">MCP</button>
+    <button class="speed-chip" onclick="showHookTab('perms-tab')">Permissions</button>
+  </div>
+
+  <div id="hooks-tab">
+    <div class="section-header"><span class="title">PreToolUse</span><span class="count">2 hooks</span></div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">Edit|Write → zm-block-claude-dir-write.sh</div>
+          <div class="card-meta">type: command &nbsp; | &nbsp; ~/.claude/ 세션 데이터 쓰기 차단</div>
+        </div>
+        <span class="badge badge-green">✅ OK</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">Bash → zm-block-dangerous-bash.sh</div>
+          <div class="card-meta">type: command &nbsp; | &nbsp; 위험한 Bash 명령 차단</div>
+        </div>
+        <span class="badge badge-green">✅ OK</span>
+      </div>
+    </div>
+
+    <div class="section-header"><span class="title">PostToolUse</span><span class="count">1 hook</span></div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">Edit|Write → zm-lint-on-save.sh</div>
+          <div class="card-meta">type: command &nbsp; | &nbsp; src/ TypeScript 파일 자동 lint</div>
+        </div>
+        <span class="badge badge-green">✅ OK</span>
+      </div>
+    </div>
+
+    <div class="section-header"><span class="title">Stop</span><span class="count">1 hook</span></div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">문서 갱신 판단</div>
+          <div class="card-meta">type: prompt &nbsp; | &nbsp; 매 응답 종료 시 문서 갱신 필요 여부 판단</div>
+        </div>
+        <span class="badge badge-blue">🔵 prompt</span>
+      </div>
+    </div>
+
+    <div class="section-header"><span class="title">Notification</span><span class="count">1 hook</span></div>
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">macOS 알림</div>
+          <div class="card-meta">type: command &nbsp; | &nbsp; "Claude Code가 입력을 기다리고 있습니다"</div>
+        </div>
+        <span class="badge badge-green">✅ OK</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="rules-tab" style="display:none">
+    <div class="section-header"><span class="title">Rules</span><span class="count">5 files</span></div>
+    <div class="card">
+      <div class="card-title">📄 requirement-validation.md</div>
+      <div class="card-subtitle">paths: **/* — 요구사항 모호성/충돌/로드맵 이탈 감지</div>
+      <div class="card-meta">94 lines &nbsp; | &nbsp; 4단계 검증 프로토콜</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 doc-auto-update.md</div>
+      <div class="card-subtitle">paths: **/* — 작업 중 문서 자동 갱신 규칙</div>
+      <div class="card-meta">49 lines</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 main-process.md</div>
+      <div class="card-subtitle">paths: src/main/**/*.ts — 메인 프로세스 규칙</div>
+      <div class="card-meta">11 lines</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 renderer-process.md</div>
+      <div class="card-subtitle">paths: src/renderer/**/*.ts, *.tsx — 렌더러 프로세스 규칙</div>
+      <div class="card-meta">12 lines</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 shared-types.md</div>
+      <div class="card-subtitle">paths: src/shared/**/*.ts — 공유 타입 규칙</div>
+      <div class="card-meta">9 lines</div>
+    </div>
+  </div>
+
+  <div id="mcp-tab" style="display:none">
+    <div class="section-header"><span class="title">MCP Servers</span><span class="count">1 project + 0 global</span></div>
+    <div class="card" style="border-left:3px solid var(--accent-green)">
+      <div class="card-row">
+        <div>
+          <div class="card-title">📡 filesystem</div>
+          <div class="card-subtitle">npx -y @modelcontextprotocol/server-filesystem</div>
+          <div class="card-meta">scope: project (.mcp.json) &nbsp; | &nbsp; path: ~/projects/zm-agent-manager</div>
+        </div>
+        <span class="badge badge-green">Connected</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="perms-tab" style="display:none">
+    <div class="section-header"><span class="title">Permissions — Allow</span><span class="count">28 rules</span></div>
+    <div class="card" style="font-family:monospace;font-size:12px;line-height:1.8;color:var(--text-secondary)">
+      <div>Read, Glob, Grep</div>
+      <div>Bash(npm run lint), Bash(npm run build), Bash(npm run dev)</div>
+      <div>Bash(git status *), Bash(git log *), Bash(git diff *)</div>
+      <div>Bash(git branch *), Bash(git show *), Bash(git blame *)</div>
+      <div>Bash(ls *), Bash(cat ~/.claude/*), Bash(head *), Bash(tail *)</div>
+      <div>... (28 rules total)</div>
+    </div>
+
+    <div class="section-header"><span class="title">Permissions — Deny</span><span class="count">5 rules</span></div>
+    <div class="card" style="font-family:monospace;font-size:12px;line-height:1.8;color:var(--accent-red)">
+      <div>Bash(rm -rf *)</div>
+      <div>Bash(git push --force*)</div>
+      <div>Bash(git reset --hard*)</div>
+      <div>Bash(git checkout -- *)</div>
+      <div>Bash(git clean *)</div>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== SETTINGS ==================== -->
 <div id="page-settings" class="page">
   <div class="page-title">Settings</div>
@@ -1025,8 +1278,10 @@ function showPage(id) {
   // Map page to sidebar
   const map = {
     'dashboard': 0, 'live': 1, 'sessions': 2, 'session-detail': 2,
-    'tools': 3, 'board': 4, 'replay': 6, 'diffs': 7,
-    'docs': 9, 'doc-detail': 9, 'costs': 10, 'settings': 11
+    'tools': 3, 'board': 4,
+    'skills': 6, 'agents': 7, 'memory': 8, 'hooks': 9,
+    'replay': 10, 'diffs': 11,
+    'docs': 13, 'doc-detail': 13, 'costs': 14, 'settings': 15
   };
   const items = document.querySelectorAll('.sidebar-item:not(.disabled)');
   if (map[id] !== undefined && items[map[id]]) items[map[id]].classList.add('active');
@@ -1056,6 +1311,18 @@ document.querySelectorAll('.speed-chip').forEach(chip => {
     chip.classList.add('active');
   };
 });
+
+// Hook tabs
+function showHookTab(tabId) {
+  ['hooks-tab','rules-tab','mcp-tab','perms-tab'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById(tabId).style.display = 'block';
+  // Update tab buttons
+  const btns = document.querySelectorAll('#page-hooks .speed-chip');
+  btns.forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
 
 // Onboarding
 function showOnboarding() {
