@@ -787,7 +787,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.10 Work Graph
+### 6.11 Work Graph
 
 **데이터 소스**: git log (모든 레포), GitHub API (PR)
 
@@ -808,7 +808,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.11 Repo Pulse
+### 6.12 Repo Pulse
 
 **데이터 소스**: git status (모든 레포)
 
@@ -833,7 +833,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.12 Timeline (Git Timeline)
+### 6.13 Timeline (Git Timeline)
 
 **데이터 소스**: git log --all
 
@@ -859,7 +859,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.13 Diffs
+### 6.14 Diffs
 
 **데이터 소스**: file-history/{sessionId}/, JSONL (tool_use: Write/Edit)
 
@@ -882,7 +882,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.14 Snapshots
+### 6.15 Snapshots
 
 **데이터 소스**: git status, 자체 스냅샷 저장소
 
@@ -903,7 +903,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.15 Skills
+### 6.16 Skills
 
 **데이터 소스**: `.claude/skills/*/SKILL.md`, `~/.claude/skills/`, 플러그인 스킬
 
@@ -927,7 +927,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.16 Agents
+### 6.17 Agents
 
 **데이터 소스**: `.claude/agents/*.md`, `~/.claude/agents/`
 
@@ -954,7 +954,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.17 Memory
+### 6.18 Memory
 
 **데이터 소스**: `~/.claude/projects/{path}/memory/MEMORY.md`
 
@@ -986,7 +986,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.18 Hooks (HooksDebuggerView)
+### 6.19 Hooks (HooksDebuggerView)
 
 **데이터 소스**: `.claude/settings.json` (hooks 섹션), `.claude/hooks/*.sh`, 런타임 훅 실행 로그
 
@@ -1039,7 +1039,7 @@ HookCard 구조:
 
 ---
 
-### 6.19 Hygiene
+### 6.20 Hygiene
 
 **데이터 소스**: git status, `.env` 파일, CLAUDE.md, 종합 검사
 
@@ -1067,7 +1067,7 @@ HookCard 구조:
 
 ---
 
-### 6.20 Deps (Dependencies)
+### 6.21 Deps (Dependencies)
 
 **데이터 소스**: `package.json` (각 레포 루트)
 
@@ -1086,7 +1086,7 @@ Graph 탭:
 
 ---
 
-### 6.21 Worktrees
+### 6.22 Worktrees
 
 **데이터 소스**: `git worktree list` (각 레포)
 
@@ -1100,7 +1100,7 @@ Graph 탭:
 
 ---
 
-### 6.22 Env
+### 6.23 Env
 
 **데이터 소스**: 레포 내 `.env`, `.env.local`, `.env.*.local` 파일 스캔
 
@@ -1114,7 +1114,7 @@ Graph 탭:
 
 ---
 
-### 6.23 Lint
+### 6.24 Lint
 
 **데이터 소스**: 각 레포의 `CLAUDE.md` 파일 파싱
 
@@ -1147,7 +1147,7 @@ Graph 탭:
 
 ---
 
-### 6.24 Settings (8개 섹션, 스크롤 필요)
+### 6.25 Settings (8개 섹션, 스크롤 필요)
 
 **데이터 소스**: 앱 자체 설정 (UserDefaults), ~/.ssh/authorized_keys
 
