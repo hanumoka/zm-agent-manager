@@ -1,9 +1,10 @@
-# Readout 앱 클론 구현 명세서
+# Readout 앱 기술 분석서 (UI/데이터/구현 상세)
 
 > 분석 일자: 2026-04-08
 > 대상: Readout v0.0.11 (macOS, com.benjitaylor.Readout)
 > 분석 방법: 바이너리 strings 추출 + Python 자동화 캡처(pyobjc + pyautogui) + 웹 리서치 + 데이터 소스 매핑
-> 목적: zm-agent-manager에서 Readout을 카피 구현하기 위한 상세 명세
+> 목적: zm-agent-manager 구현 시 참조할 기술 상세 명세
+> 기능 명세: [`readout-features.md`](./readout-features.md) 참조
 
 ---
 
@@ -759,7 +760,7 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.9 Repos
+### 6.10 Repos
 
 **데이터 소스**: git status, git log, `.claude/skills/`, `.claude/agents/`
 
