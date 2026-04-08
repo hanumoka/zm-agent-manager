@@ -66,7 +66,18 @@ JSONL에서 tool_use: TaskCreate, TaskUpdate
 ```
 
 **Readout 대응**: 직접 대응 기능 없음 — **zm-agent-manager만의 차별화 기능**
+**Agentation 차용**: 의도 분류(intent) 체계 → 태스크 유형 분류에 적용
 **현재 PRD 대응**: 없음 — **신규 기능 제안**
+
+**Agentation 차용 — 태스크 유형 분류 (intent)**:
+| 유형 | Agentation 원본 | zm-agent-manager 적용 |
+|------|----------------|---------------------|
+| `fix` | 버그 수정 | 버그 수정 태스크 |
+| `change` | 변경 요청 | 기능 변경/추가 태스크 |
+| `question` | 질문 | 조사/분석 태스크 |
+| `approve` | 승인 | 리뷰/검증 태스크 |
+
+→ 사용자의 프롬프트를 이 4가지 유형으로 자동 분류하면 태스크 보드에서 유형별 필터링 가능
 
 ---
 
@@ -82,9 +93,37 @@ JSONL에서 tool_use: TaskCreate, TaskUpdate
 | UC-3B | **태스크 상태 매핑** | Claude Code의 내장 상태(pending/in_progress/completed)를 사용자 워크플로우 단계에 매핑 |
 | UC-3C | **자동 상태 전환** | 특정 조건 충족 시 태스크 단계 자동 전환 (예: 코드 커밋 시 "구현"→"리뷰" 자동 이동) |
 | UC-3D | **실패/재시도 처리** | 태스크 실패 시 이전 단계로 되돌리기, 재시도 카운트, 실패 사유 기록 |
+| UC-3E | **심각도 분류** | Agentation의 severity 체계 차용 — 각 태스크에 blocking/important/suggestion 심각도 부여 |
+| UC-3F | **해결 요약 & 거부 사유** | Agentation의 resolve(summary)/dismiss(reason) 차용 — 태스크 완료 시 결과 요약, 실패 시 사유 기록 |
 
 **Readout 대응**: 없음 — **zm-agent-manager만의 핵심 차별화 기능**
+**Agentation 차용**: 상태 흐름 + 심각도 + 해결 요약/거부 사유
 **현재 PRD 대응**: 없음 — **신규 기능 제안**
+
+**Agentation 차용 — 확장된 상태 흐름**:
+```
+Claude Code 내장:  pending → in_progress → completed/deleted
+
+Agentation 참고:   pending → acknowledged → resolved (with summary)
+                                          → dismissed (with reason)
+
+zm-agent-manager 제안:
+  pending → acknowledged → in_progress → [사용자 정의 단계들] → resolved (with summary)
+                                                              → failed (with reason, retry 가능)
+                                                              → dismissed (with reason)
+```
+
+- `acknowledged`: 사용자가 태스크를 인지하고 확인한 상태 (Agentation에서 차용)
+- `resolved` + summary: 완료 시 결과 요약 자동 기록 (Agentation에서 차용)
+- `dismissed` + reason: 불필요하거나 잘못된 태스크 거부 + 사유 (Agentation에서 차용)
+- `failed` + reason + retry: 실패 + 사유 + 재시도 (zm-agent-manager 고유)
+
+**Agentation 차용 — 심각도 체계**:
+| 심각도 | 의미 | 태스크 보드 표시 |
+|--------|------|----------------|
+| `blocking` | 이 태스크가 완료되지 않으면 다음 단계 진행 불가 | 빨간 뱃지, 최상단 표시 |
+| `important` | 중요하지만 다른 작업 병행 가능 | 주황 뱃지 |
+| `suggestion` | 하면 좋지만 필수 아님 | 회색 뱃지 |
 
 ---
 
@@ -119,9 +158,37 @@ JSONL에서 tool_use: TaskCreate, TaskUpdate
 | UC-5B | **문서 리뷰 큐** | 사용자가 리뷰해야 할 문서 변경 목록을 큐 형태로 관리. 각 변경에 대해 "승인" / "반려" / "수정 요청" 액션 |
 | UC-5C | **문서 diff 뷰** | 변경된 문서의 이전/이후 버전을 side-by-side diff로 표시. file-history 데이터 활용 |
 | UC-5D | **문서 대시보드** | 모든 관리 문서의 현재 상태, 최종 수정 시간, 크기, 변경 빈도를 한눈에 표시 |
+| UC-5E | **문서 어노테이션** | Agentation의 어노테이션 개념 차용 — 문서 변경에 대해 사용자가 코멘트 추가 가능 |
 
 **Readout 대응**: Diffs(파일 변경), Lint(문서 건강), Repo Pulse(미커밋 파일)
+**Agentation 차용**: 어노테이션 상태 흐름 + 심각도 + 스레드 대화
 **현재 PRD 대응**: F6(파일 변경 하이라이트) — 부분적 커버
+
+**Agentation 차용 — 문서 변경을 어노테이션으로 관리**:
+
+문서 변경 = Agentation의 "어노테이션"과 동일한 패턴으로 관리:
+
+```
+Claude Code가 문서 수정
+  → zm-agent-manager가 변경 감지 (file-history 기반)
+  → 변경을 "문서 어노테이션"으로 생성 (status: pending)
+  → 경로 기반 자동 심각도 분류:
+      docs/requirements/ → blocking (최상)
+      docs/policies/, CLAUDE.md → important (상)
+      docs/roadmap/ → important (중)
+      기타 → suggestion (하)
+  → 사용자에게 알림 (심각도별 차등 — blocking은 즉시, suggestion은 일괄)
+  → 사용자 액션:
+      acknowledge → 확인함 (나중에 리뷰)
+      approve (resolve) → 승인 + 요약 기록
+      reject (dismiss) → 반려 + 사유 기록
+      reply → 코멘트 추가 (Claude Code에 피드백으로 전달 가능)
+```
+
+이 패턴의 장점:
+- Agentation에서 검증된 **상태 흐름**을 그대로 활용
+- 태스크와 문서 변경을 **동일한 상태 모델**로 관리 (코드 재사용)
+- 향후 Claude Code에 **reply를 피드백으로 전달**하는 확장 가능
 
 ---
 
