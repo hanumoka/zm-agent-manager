@@ -21,7 +21,10 @@
   - INBOX.md에 Readout 기반 아이디어 6개 추가 (비용추적, Handoff, ToolChain, Linter, 알림, 사이드바)
   - phase-1-mvp.md에 Readout UI 패턴 참고 메모 추가 (Dashboard/Live 분리, Skeleton, 커스텀 사이드바)
   - zm-block-claude-dir-write.sh 훅 버그 수정 (세션 데이터만 차단, plans/settings 허용)
-- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동, 경쟁 앱 분석 반영
+  - macOS 앱 분석 기법 7가지 조사 및 정리 (Accessibility Inspector, AppleScript UI 덤프, dsdump, 스크린샷 자동화 등)
+  - Python 자동화(pyobjc-framework-Quartz + pyautogui)로 Readout 앱 16개 화면 자동 캡처 및 분석 수행
+  - 캡처 화면: Overview, Assistant, Live, Sessions, Transcripts, Costs, Ports, Repos, Work Graph, Repo Pulse, Git Timeline, Diffs, Snapshots, Skills, Agents, Memory, Dependencies
+- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동, 경쟁 앱 전 화면 분석 완료, 앱 분석 자동화 파이프라인 확립
 - **다음 할 일**: Phase 1 MVP 개발 시작 (Electron + Vite + React 프로젝트 스캐폴딩)
 
 ## 2026-04-08 | docs 구조화 세션
