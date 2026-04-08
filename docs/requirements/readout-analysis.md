@@ -1,9 +1,9 @@
-# Readout 앱 경쟁 분석 보고서
+# Readout 앱 클론 구현 명세서
 
 > 분석 일자: 2026-04-08
 > 대상: Readout v0.0.11 (macOS, com.benjitaylor.Readout)
-> 분석 방법: 바이너리 strings 추출 + Python 자동화 캡처(pyobjc + pyautogui) + 웹 리서치
-> 목적: zm-agent-manager Phase 1~3 설계 참고
+> 분석 방법: 바이너리 strings 추출 + Python 자동화 캡처(pyobjc + pyautogui) + 웹 리서치 + 데이터 소스 매핑
+> 목적: zm-agent-manager에서 Readout을 카피 구현하기 위한 상세 명세
 
 ---
 
@@ -13,479 +13,1194 @@
 |------|------|
 | 개발자 | Benji Taylor (Coinbase Base Design Head) |
 | 플랫폼 | macOS 전용 (Swift/SwiftUI, Tahoe 26.0+) |
-| 버전 | 0.0.11 (베타) |
-| 가격 | 무료 |
-| 계정 | 불필요 (완전 로컬) |
-| 업데이트 | Sparkle 프레임워크 |
+| 버전 | 0.0.11 (베타, 빌드 57) |
+| 번들 ID | com.benjitaylor.Readout |
+| 바이너리 크기 | 24.6 MB (arm64) |
+| 업데이트 | Sparkle 프레임워크 (readout-updates.vercel.app) |
+| 가격 | 무료, 계정 불필요, 완전 로컬 |
 | 태그라인 | "Your dev environment, at a glance. One dashboard instead of six terminal tabs." |
 
 ---
 
-## 2. 사이드바 구조 (6개 섹션, 25개 항목)
+## 2. 데이터 소스 매핑
+
+### 2.1 `~/.claude/` 디렉토리 구조 및 Readout 화면 매핑
 
 ```
-Overview
-  ├── Readout (Dashboard)
-  └── Assistant (AI Chat)
-Monitor
-  ├── Live
-  ├── Sessions
-  ├── Transcripts
-  ├── Tools
-  ├── Costs
-  ├── Setup
-  └── Ports
-Workspace
-  ├── Repos
-  ├── Work Graph
-  ├── Repo Pulse
-  ├── Timeline
-  ├── Diffs
-  └── Snapshots
-Config
-  ├── Skills
-  ├── Agents
-  ├── Memory
-  └── Hooks
-Health
-  ├── Hygiene
-  ├── Deps
-  ├── Worktrees
-  ├── Env
-  └── Lint
-Settings
+~/.claude/
+├── history.jsonl                    → Sessions, Dashboard (Recent Sessions)
+├── stats-cache.json                 → Sessions (통계), Costs (일부)
+├── readout-pricing.json             → Costs (Readout이 생성한 가격표)
+├── readout-cost-cache.json          → Costs (Readout이 생성한 비용 캐시)
+├── sessions/{pid}.json              → Live (활성 세션 감지)
+├── projects/
+│   └── {encoded-path}/
+│       ├── {sessionId}.jsonl        → Sessions, Tools, Diffs, Replay, Transcripts
+│       ├── {sessionId}/
+│       │   └── subagents/
+│       │       └── agent-{id}.jsonl → Sessions (서브에이전트 활동)
+│       ├── memory/
+│       │   └── MEMORY.md            → Memory 화면
+│       └── settings.json            → Config (프로젝트 설정)
+├── file-history/
+│   └── {sessionId}/
+│       └── {hash}@v{n}             → Diffs, Snapshots (파일 변경 이력)
+├── settings.json                    → Settings
+├── todos/{sessionId}-*.json         → (Tasks 추적)
+├── shell-snapshots/                 → (셸 상태 스냅샷)
+├── paste-cache/                     → (붙여넣기 캐시)
+├── plugins/                         → Skills (플러그인 스킬)
+└── tasks/                           → Live (태스크 상태)
+```
+
+### 2.2 프로젝트 `.claude/` 디렉토리 (Readout이 스캔)
+
+```
+{project}/.claude/
+├── settings.json                    → Settings (프로젝트 권한/훅)
+├── skills/{name}/SKILL.md           → Skills 화면
+├── agents/{name}.md                 → Agents 화면
+├── hooks/{name}.sh                  → Hooks 화면
+└── rules/{name}.md                  → (Config에서 참고)
+```
+
+### 2.3 Git 데이터 (Readout이 git CLI로 수집)
+
+```
+git status                           → Repos (dirty/clean), Repo Pulse
+git log                              → Timeline, Work Graph (commits)
+git branch                           → Timeline (branches), Repos
+git diff                             → Diffs, Snapshots (변경 사항)
+git worktree list                    → Worktrees 화면
+```
+
+### 2.4 시스템 데이터
+
+```
+lsof -i -P                          → Ports (열린 포트)
+ps                                   → Ports (프로세스), Live (세션 PID)
+.env 파일 스캔                        → Env 화면
+CLAUDE.md 파싱                       → Lint 화면
+package.json 파싱                    → Deps 화면
+```
+
+### 2.5 JSONL 레코드 구조
+
+각 세션 파일(`{sessionId}.jsonl`)의 한 줄 = 하나의 JSON 레코드.
+
+```typescript
+// 공통 필드
+interface BaseRecord {
+  uuid: string;
+  parentUuid: string | null;
+  sessionId: string;
+  type: 'user' | 'assistant' | 'file-history-snapshot' | 'attachment' | 'permission-mode';
+  timestamp: number;       // Unix ms
+  cwd: string;
+  version: number;
+  gitBranch: string;
+  agentId: string | null;
+  slug: string;            // 모델 slug (예: "claude-opus-4-6")
+}
+
+// user 레코드
+interface UserRecord extends BaseRecord {
+  type: 'user';
+  message: {
+    role: 'user';
+    content: string | ContentBlock[];
+  };
+  isSidechain: boolean;
+  userType: 'external' | 'internal';
+}
+
+// assistant 레코드
+interface AssistantRecord extends BaseRecord {
+  type: 'assistant';
+  message: {
+    role: 'assistant';
+    content: ContentBlock[];   // text, tool_use, tool_result 블록
+    model: string;
+    usage: {
+      input_tokens: number;
+      output_tokens: number;
+      cache_read_input_tokens: number;
+      cache_creation_input_tokens: number;
+    };
+  };
+}
+
+// tool_use 블록 구조
+interface ToolUseBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;            // Bash, Read, Write, Edit, Glob, Grep, Agent, ...
+  input: Record<string, unknown>;
+}
+
+// tool_result 블록 구조
+interface ToolResultBlock {
+  type: 'tool_result';
+  tool_use_id: string;
+  content: string | ContentBlock[];
+}
+```
+
+### 2.6 history.jsonl 레코드 구조
+
+```typescript
+interface HistoryRecord {
+  display: string;           // 사용자 메시지 요약 (UI 표시용)
+  pastedContents: Record<string, PastedContent>;
+  timestamp: number;         // Unix ms
+  project: string;           // 절대 경로
+  sessionId: string;
+}
+```
+
+### 2.7 stats-cache.json 구조
+
+```typescript
+interface StatsCache {
+  version: number;
+  lastComputedDate: string;  // "YYYY-MM-DD"
+  dailyActivity: Array<{
+    date: string;
+    messageCount: number;
+    sessionCount: number;
+    toolCallCount: number;
+  }>;
+  dailyModelTokens: Array<{
+    date: string;
+    tokensByModel: Record<string, number>;
+  }>;
+  modelUsage: Record<string, {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadInputTokens: number;
+    cacheCreationInputTokens: number;
+    costUSD: number;
+  }>;
+}
+```
+
+### 2.8 readout-pricing.json (Readout이 생성)
+
+```typescript
+interface PricingData {
+  updated: string;           // "YYYY-MM-DD"
+  source: string;            // Anthropic pricing URL
+  models: Record<string, {
+    input: number;           // $/1M tokens
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  }>;
+}
+```
+
+### 2.9 sessions/{pid}.json (활성 세션 감지)
+
+```typescript
+interface ActiveSession {
+  pid: number;
+  sessionId: string;
+  cwd: string;
+  startedAt: number;         // Unix ms
+  kind: 'interactive' | 'task';
+  entrypoint: 'cli' | 'desktop';
+}
 ```
 
 ---
 
-## 3. 화면별 상세 컴포넌트 분석
+## 3. 전체 레이아웃 구조
 
-### 3.1 Overview — Readout (Dashboard)
-
-메인 대시보드. 전체 개발 환경 요약을 한 화면에 제공.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 인사 헤더 | 텍스트 | "Hey, {username}" + 레포/스킬/에이전트 수 요약 + 오늘 커밋 수 |
-| 통계 카드 (4개) | StatCard | Repos, Commits Today, Sessions, Est. Cost — 각각 아이콘+숫자+라벨, 색상 구분 (파랑/초록/파랑/노랑) |
-| Activity 차트 | BarChart | 일별 활동량 막대 차트 (최근 30일) |
-| When You Work | Heatmap | 요일×시간대 작업 패턴 히트맵 |
-| Cost by Model | HorizontalBar | 모델별 비용 바 (예: Opus 4.6 — $1.39) + Total 표시 |
-| Recent Sessions | List | 세션명 + 프로젝트 뱃지 + 상대 시간 (예: "24m ago") |
-| Hygiene 경고 | Banner | "1 hygiene issue needs attention" — 주의 아이콘 |
-| Uncommitted 경고 | Banner | "{repo} has N uncommitted files" |
-| CLAUDE.md 제안 | ActionCard | "Add CLAUDE.md to N projects" + "Better results" 액션 버튼 |
-| Recently Active | CardGrid | 레포별 Skills/Agents/Memory/Repos 요약 (가로 카드 4개) |
-
-**zm-agent-manager 시사점**: Dashboard와 세션 목록을 분리하되, 대시보드에 핵심 지표 카드를 배치하는 패턴 참고.
-
----
-
-### 3.2 Overview — Assistant
-
-AI 대화 인터페이스. 워크스페이스 데이터를 자연어로 질의.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 모델 선택 | Dropdown | 우측 상단 "Sonnet" 드롭다운 |
-| 빈 상태 | EmptyState | 로봇 일러스트 + "Add an API key to start chatting" |
-| API 키 버튼 | Button | "Add API Key" — Anthropic, OpenAI, Google 지원 |
-
-**zm-agent-manager 시사점**: Phase 3 이후 검토 가능. 높은 구현 비용.
-
----
-
-### 3.3 Monitor — Live
-
-실시간 활성 Claude Code 세션 모니터링.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (3개) | StatCard | Sessions (활성 수), Generating (현재 생성 중), Memory MB (메모리 사용량) |
-| 세션 카드 | SessionCard | 프로젝트명 + 프로젝트 폴더 뱃지 + 경과 시간(1:14:29) + 메모리(1006 MB) + "active" 상태 뱃지 (녹색) |
-
-**zm-agent-manager 시사점**: Phase 1 F2(실시간 스트리밍) 핵심 참고. 메모리 사용량 표시는 추가 가치.
-
----
-
-### 3.4 Monitor — Sessions
-
-세션 히스토리 통계 및 분석 대시보드.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 요약 텍스트 | Text | "N session, N messages total. Primary model: {model}. Active across N projects." |
-| When You Work | Heatmap | 요일×시간 히트맵 (Tue/Wed/Thu 등) |
-| 통계 카드 (3개) | StatCard | Sessions, Messages, Tokens (예: 1, 101, 2K) |
-| Daily Activity | BarChart | 일별 활동 막대 차트 |
-| Model Usage | HorizontalBar | 모델별 토큰 사용량 바 (Opus 4.6 — 2K) |
-| By Project | Table | 프로젝트명 + 세션 수 + 최근 사용 시간 |
-| Recent Sessions | List | 세션 제목(한국어 지원) + 프로젝트 뱃지 + 상대 시간 |
-
-**zm-agent-manager 시사점**: Phase 1 F1(세션 목록) + Phase 3 F8(세션 통계) 직접 참고.
-
----
-
-### 3.5 Monitor — Transcripts
-
-전체 세션 트랜스크립트 전문 검색.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 검색창 | SearchInput | "Search transcripts..." 플레이스홀더 |
-| 기간 필터 | TabBar | Today / This Week / This Month / All Time (하이라이트 탭) |
-| 빈 상태 | EmptyState | "Search across all your session transcripts. Type at least 2 characters." |
-
-**zm-agent-manager 시사점**: Phase 2 이후 세션 검색 기능으로 참고.
-
----
-
-### 3.6 Monitor — Tools
-
-도구 사용 분석 대시보드. 가장 정보 밀도가 높은 화면.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (3개) | StatCard | Total Calls (281), Files Touched (48), Avg/Session (47) |
-| 프로젝트 필터 | Dropdown | "All Projects" |
-| Usage Over Time | BarChart | 일별 도구 사용 차트 (14일) + "Busiest: Apr 8 with 281 calls" 텍스트 |
-| Tool Distribution | HorizontalBar | 10개 도구별 수평 바 — Bash(79), Read(48), Write(45), Edit(32), TaskUpdate(31), TaskCreate, Agent, WebSearch, ToolSearch, ExitPlanMode |
-| Common Sequences | PatternList | 도구 체인 패턴 8개 — "Bash → Bash (48)", "Write → Write (34)", "Read → Read (34)", "Edit → Edit (19)" 등 |
-| Most Edited Files | FileList | 파일별 편집 횟수 — CLAUDE.md, settings.json, SESSION_LOG.md |
-
-**zm-agent-manager 시사점**: Phase 1 F4(도구 추적) + Phase 3 확장 직접 참고. Common Sequences(도구 체인)는 INBOX 아이디어 #3과 연결.
-
----
-
-### 3.7 Monitor — Costs
-
-비용 추적 및 예측 대시보드.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 비용 카드 (4개) | StatCard | Today ($27.07, 파랑), This Week ($27.07, 초록), This Month ($27.07, 초록), All Time ($1.39, 노랑) |
-| Cost by Model | HorizontalBar | 모델별 비용 바 + 금액 라벨 |
-| Monthly Projection | DualStat | Estimate $116 / Burn $27.07 |
-| Trends | Table | This Week / This Month 비교 + 변화량 |
-| Daily Cost | BarChart | 일별 비용 막대 차트 |
-| 가격 메타 | Footer | "Prices updated 2026-01-23" + "Refresh Prices" 버튼 + 면책 문구 |
-
-**zm-agent-manager 시사점**: INBOX 아이디어 #1(비용 추적). stats-cache.json의 costUSD 활용.
-
----
-
-### 3.8 Monitor — Setup
-
-(미캡처 — 좌표 한계로 Ports와 겹침. 바이너리 분석 기반 추정)
-
-- Claude Code / Codex 에이전트 설정
-- 스캔 디렉토리 관리
-- 연결 상태 확인
-
----
-
-### 3.9 Monitor — Ports
-
-로컬 개발 서버/프로세스 포트 모니터링.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 요약 텍스트 | Text | "N port open across N process." |
-| 통계 카드 (3개) | StatCard | Ports, Processes, Node (Node.js 프로세스 수) |
-| 프로세스 카드 | ProcessCard | 프로세스명 + PID + 실행 경로 + 포트 번호(:6379) + 바인딩 주소(127.0.0.1) |
-
-**zm-agent-manager 시사점**: 직접적 관련 낮음. 개발 환경 모니터링 확장 시 참고.
-
----
-
-### 3.10 Workspace — Repos
-
-등록된 Git 레포지토리 관리.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (4개) | StatCard | Active (녹색), Dirty (주황), Unpushed (회색), Total (파랑) |
-| 섹션 헤더 | SectionHeader | "Active N" + 필터 아이콘 |
-| 레포 카드 | RepoCard | 프로젝트명 + 브랜치(main) + dirty 뱃지 + skills 뱃지 + 최근 커밋 메시지 + 시간 + 미니 activity 스파크라인 |
-
-**zm-agent-manager 시사점**: 직접적 관련 낮음. 멀티 레포 지원 시 참고.
-
----
-
-### 3.11 Workspace — Work Graph
-
-크로스 레포 작업 활동 종합 그래프.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 필터 탭 | TabBar | All / Mine |
-| 통계 카드 (4개) | StatCard | Active, Idle, Dormant, Commits |
-| Commit Activity | BarChart | 30일 커밋 막대 차트 |
-| Commits by Repo | HorizontalBar | 레포별 커밋 수 바 |
-| Pull Requests | List | PR 목록 (GitHub API 연동) |
-| Uncommitted Work | RepoList | 레포별 미커밋 파일 수 |
-| All Repos | RepoList | 레포 목록 + 최근 커밋 + 시간 |
-
----
-
-### 3.12 Workspace — Repo Pulse
-
-레포 건강 상태 한눈에 파악.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 요약 | Text | "N repos scanned. N needs attention (N uncommitted files)." |
-| 통계 카드 (3개) | StatCard | Need Attention (주황), Clean (초록), Uncommitted (빨강) |
-| 경고 섹션 | Section | "Needs Attention" 헤더 + 도움말 아이콘 |
-| 레포 카드 | AlertCard | 프로젝트명 + 파일 수 뱃지 + 시간 + 최근 커밋 메시지 |
-
----
-
-### 3.13 Workspace — Timeline (Git Timeline)
-
-커밋 히스토리 시각적 타임라인.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (3개) | StatCard | Repos, Branches, Commits |
-| 레포 헤더 | RepoHeader | 프로젝트명 + main 뱃지 + "N branch" |
-| 커밋 타임라인 | VerticalTimeline | 수직 라인 + 커밋 노드 — 해시(컬러 링크) + 메시지 + 작성자 + 상대 시간 |
-
-**zm-agent-manager 시사점**: Phase 1 F3(메시지 타임라인) UI 패턴 참고. 수직 타임라인 + 노드 디자인.
-
----
-
-### 3.14 Workspace — Diffs
-
-세션별 파일 변경 diff 모아보기.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (2개) | StatCard | Sessions, Files Changed |
-| 날짜 구분 | DateHeader | "Today" |
-| Diff 카드 | DiffCard | 세션 제목 + "Claude Code" 뱃지(파랑) + 프로젝트 뱃지(초록) + 파일수 + 편집수 뱃지(노랑) + "Replay" 버튼 |
-
-**zm-agent-manager 시사점**: Phase 2 F6(파일 변경 하이라이트) 참고. Replay 버튼 → 세션 리플레이 진입점.
-
----
-
-### 3.15 Workspace — Snapshots
-
-워크스페이스 상태 저장/복원.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 (3개) | StatCard | Repos, Snapshots, Dirty |
-| 섹션 헤더 | Section | "Current Branches N" |
-| 브랜치 카드 | BranchCard | 프로젝트명 + main 뱃지 + dirty 수 |
-| 액션 버튼 | Button | "Save Snapshot" — 카메라 아이콘 |
-
-**zm-agent-manager 시사점**: 읽기 전용 원칙과 충돌하므로 직접 구현 불가. 별도 저장소에 스냅샷 저장하는 방식으로 변형 가능.
-
----
-
-### 3.16 Config — Skills
-
-Claude Code 커스텀 스킬 관리.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 액션 버튼 (3개) | ButtonGroup | "Browse skills.sh" (검색), "Add from folder" (폴더), "New Skill" (생성) |
-| 요약 | Text | "N project-specific across N repo." |
-| 레포 그룹 | GroupHeader | "zm-agent-manager N" |
-| 스킬 목록 | ItemList | 번개 아이콘 + 스킬명 + description (접힌 상태) |
-
----
-
-### 3.17 Config — Agents
-
-Claude Code 커스텀 에이전트 관리.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 액션 버튼 | Button | "New Agent" (녹색 원) |
-| 요약 | Text | "N agents across N repo." |
-| 레포 그룹 | GroupHeader | "zm-agent-manager" |
-| 에이전트 카드 | AgentCard | 사람 아이콘(컬러 구분) + 에이전트명 + description 미리보기 |
-
----
-
-### 3.18 Config — Memory
-
-Claude Code MEMORY.md 뷰어.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 검색창 | SearchInput | "Search memories..." |
-| 요약 | Text | "N lines of context across N project, {project} has the most detail (N lines)." |
-| 프로젝트 카드 | ExpandableCard | 프로젝트 경로 + 라인 수 뱃지 + 메모리 내용 미리보기 (마크다운 렌더링) |
-
----
-
-### 3.19 Config — Hooks
-
-(미캡처 — 좌표 한계. 바이너리 분석 기반 추정)
-
-| 컴포넌트 (추정) | 유형 | 상세 |
-|----------|------|------|
-| HooksDebuggerView | DebugView | 훅 실행 상태 디버깅 |
-| HookCard | Card | 개별 훅 상태/결과 표시 |
-| hookStatuses | StatusList | 훅별 성공/실패/차단 상태 |
-
----
-
-### 3.20 Health — Hygiene
-
-프로젝트 건강 상태 검사.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 스코어 게이지 | CircularGauge | "N issues" 원형 게이지 + 심각도별 뱃지 (Info/Warning/Error) |
-| 제안 카드 | ActionCard | "Set up Readout Assistant — Add an API key to auto-diagnose issues" + 화살표 |
-| 이슈 섹션 (접이식) | CollapsibleSection | "Uncommitted Changes N" — 접기/펼치기 |
-| 이슈 카드 | IssueCard | "N uncommitted files" + 프로젝트 뱃지 |
-
-**zm-agent-manager 시사점**: INBOX 아이디어 참고. 프로젝트 건강 점수 표시 패턴.
-
----
-
-### 3.21 Health — Deps (Dependencies)
-
-의존성 건강 검사.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 탭 | TabBar | Health / Graph (두 가지 뷰) |
-| 빈 상태 | EmptyState | "No package.json found — Dependency health checks repos with a package.json in their root." |
-
----
-
-### 3.22 Health — Worktrees
-
-Git worktree 관리.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| (로딩 중) | Skeleton | 통계 카드 4개 스켈레톤 + 워크트리 목록 스켈레톤 |
-
-**zm-agent-manager 시사점**: Skeleton 로딩 UI 패턴 참고 — 실시간 데이터 로딩 시 적용.
-
----
-
-### 3.23 Health — Env
-
-환경변수 파일(.env) 보안 감사.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 통계 카드 | StatCard | (스켈레톤 로딩 중) |
-| 빈 상태 | EmptyState | "No .env files found — No .env files detected across your repos." |
-
----
-
-### 3.24 Health — Lint
-
-CLAUDE.md 파일 린터.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| 요약 | Text | "N issues across N file. N clean." |
-| 통계 카드 (3개) | StatCard | Files (파랑), Issues (주황), Clean (초록) |
-| 파일 카드 | FileCard | 프로젝트명 + 경고 아이콘 + 라인 수 + 파일 크기 + "N issues" 뱃지 |
-
-**zm-agent-manager 시사점**: INBOX 아이디어 #4(CLAUDE.md Linter) 직접 참고.
-
----
-
-### 3.25 Settings
-
-앱 전체 설정.
-
-| 컴포넌트 | 유형 | 상세 |
-|----------|------|------|
-| Rescan Workspace | ActionRow | "Refresh all data" 버튼 |
-| Scan Directories | DirectoryList | 경로 목록 + "Add Directory" / "Scan for New" 버튼 + "Scans up to 2 levels deep for git repos" |
-| Readout Assistant | SettingsGroup | Anthropic (토글 ON/OFF) + API Key 입력 + "Paste" 버튼 + 모델 선택 (Haiku/Sonnet/Opus 칩) |
-| 추가 AI | SettingsGroup | OpenAI (접기), Gemini (접기) |
-| Assistant 설명 | InfoText | "Ask about repos, costs, sessions, and more. Keys are stored locally. Shell env vars are auto-detected." |
-| General | SettingsGroup | "Launch at login" 토글 + "Check for updates automatically" 토글 |
-| 액션 버튼 | ButtonGroup | "Check for Updates" + "Export Log" |
-| Agents | SettingsGroup | Claude Code (토글 ON) + Codex (Not installed) |
-
----
-
-## 4. 공통 UI 패턴 정리
-
-### 4.1 StatCard (통계 카드)
-거의 모든 화면 상단에 3~4개 배치. 숫자 + 라벨 + 색상 점 구성.
+### 3.1 윈도우 레이아웃
 
 ```
-┌─────────────┐
-│     281     │
-│ ● Total Calls│
-└─────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ ● ● ●  (트래픽 라이트)                                        │
+├──────────────┬───────────────────────────────────────────────┤
+│              │                                               │
+│   SIDEBAR    │              CONTENT AREA                     │
+│   (230pt)    │              (나머지 전체)                      │
+│              │                                               │
+│  섹션 헤더    │  ┌─ 페이지 제목 (24pt bold) ─────────────────┐ │
+│  ─────────   │  │                                           │ │
+│  ● 메뉴 항목  │  │  ┌─ StatCards (3~4개, 수평 배열) ────────┐ │ │
+│  ● 메뉴 항목  │  │  │  [N ● label]  [N ● label]  [N ● la] │ │ │
+│  ● 메뉴 항목  │  │  └────────────────────────────────────────┘ │ │
+│              │  │                                           │ │
+│  섹션 헤더    │  │  ┌─ 섹션 (아이콘 + 제목 + 카운트) ────────┐ │ │
+│  ─────────   │  │  │                                       │ │ │
+│  ● 메뉴 항목  │  │  │  [컨텐츠 카드/리스트/차트]              │ │ │
+│  ● 메뉴 항목  │  │  │                                       │ │ │
+│              │  │  └────────────────────────────────────────┘ │ │
+│              │  │                                           │ │
+│  ─────────   │  │  ┌─ 섹션 2 ──────────────────────────────┐ │ │
+│  ● Settings  │  │  │  [추가 컨텐츠]                         │ │ │
+│              │  │  └────────────────────────────────────────┘ │ │
+├──────────────┴───────────────────────────────────────────────┤
+└──────────────────────────────────────────────────────────────┘
 ```
-색상 규칙: 파랑(정보), 초록(정상), 주황(주의), 빨강(경고), 노랑(비용)
 
-### 4.2 BarChart (막대 차트)
-Activity, Daily Cost, Usage Over Time 등에 사용. 일별 데이터 시각화.
+### 3.2 치수 (포인트 단위, Retina 2x 기준)
 
-### 4.3 HorizontalBar (수평 바 차트)
-Tool Distribution, Cost by Model, Commits by Repo 등. 항목별 비교.
-
-### 4.4 Skeleton 로딩
-데이터 로딩 중 회색 플레이스홀더 블록 표시. Worktrees, Env 등에서 확인.
-
-### 4.5 EmptyState (빈 상태)
-데이터 없을 때 아이콘 + 설명 텍스트 + 액션 안내. Transcripts, Deps, Env 등.
-
-### 4.6 뱃지 시스템
-- 상태 뱃지: "active" (녹색), "dirty" (주황)
-- 수량 뱃지: "2 files" (파랑), "6 skills" (파랑), "3 issues" (주황)
-- 카테고리 뱃지: "Claude Code" (파랑), 프로젝트명 (초록)
-
-### 4.7 접이식 섹션 (CollapsibleSection)
-Hygiene의 "Uncommitted Changes" 등. 헤더 클릭으로 펼침/접기.
+| 요소 | 크기 |
+|------|------|
+| 윈도우 기본 크기 | 756 × 949 pt |
+| 사이드바 폭 | ~230 pt (고정) |
+| 콘텐츠 영역 | ~526 pt (윈도우 - 사이드바) |
+| 사이드바 섹션 헤더 | 높이 ~20pt, 글자 12pt, 회색 대문자 |
+| 사이드바 메뉴 항목 | 높이 ~28pt, 글자 14pt |
+| 사이드바 선택 배경 | 둥근 사각형, radius ~8pt |
+| 콘텐츠 패딩 | 상하좌우 ~20pt |
+| 페이지 제목 | 24pt bold, 흰색 |
+| StatCard | ~150×65pt, radius ~12pt |
+| StatCard 숫자 | 28pt bold |
+| StatCard 라벨 | 12pt, 회색 |
+| 섹션 제목 | 14pt semibold + 아이콘 |
+| 카드 간격 | ~12pt |
 
 ---
 
-## 5. zm-agent-manager 반영 매핑
+## 4. 디자인 토큰 (색상 시스템)
 
-### Phase 1 직접 참고
+### 4.1 배경색
 
-| Readout 화면 | zm-agent-manager 기능 | 참고 포인트 |
-|-------------|----------------------|------------|
-| Dashboard | 메인 화면 | StatCard 4개 + Recent Sessions 패턴 |
-| Live | F2 실시간 스트리밍 | 세션 카드 (상태/시간/메모리), 통계 카드 |
-| Sessions | F1 세션 목록 | By Project 그룹핑, Recent Sessions 리스트 |
-| Tools | F4 도구 추적 | Tool Distribution 바 차트, Common Sequences |
-| Timeline | F3 메시지 타임라인 | 수직 타임라인 + 노드 디자인 |
+| 토큰 | 색상 | 용도 |
+|------|------|------|
+| `bg-window` | `#000000` | 윈도우 최외곽, 사이드바 배경 |
+| `bg-content` | `#1c1c1e` | 메인 콘텐츠 배경 |
+| `bg-card` | `#242425` ~ `#2c2c2e` | StatCard, 리스트 카드 배경 |
+| `bg-card-hover` | `#3a3a3c` | 카드 호버 상태 |
+| `bg-sidebar-selected` | `#3a3a3c` 반투명 | 선택된 사이드바 항목 |
+| `bg-divider` | `#38383a` | 구분선 |
 
-### Phase 2 참고
+### 4.2 텍스트 색상
 
-| Readout 화면 | zm-agent-manager 기능 | 참고 포인트 |
-|-------------|----------------------|------------|
-| Diffs | F6 파일 변경 하이라이트 | 세션별 diff 카드 + Replay 버튼 |
-| Transcripts | F5 세션 리플레이 | 검색 + 기간 필터 패턴 |
+| 토큰 | 색상 | 용도 |
+|------|------|------|
+| `text-primary` | `#ffffff` | 제목, 숫자, 주요 텍스트 |
+| `text-secondary` | `#a3a3a3` | 라벨, 보조 텍스트, 시간 |
+| `text-tertiary` | `#6e6e73` | 비활성, 플레이스홀더 |
+| `text-section-header` | `#8e8e93` | 사이드바 섹션 헤더 (소문자) |
 
-### Phase 3 / INBOX 참고
+### 4.3 강조/상태 색상
 
-| Readout 화면 | INBOX 아이디어 | 참고 포인트 |
-|-------------|--------------|------------|
-| Costs | #1 비용 추적 | 4개 기간 비교 카드 + Monthly Projection + Trends |
-| Tools (Sequences) | #3 Tool Chain | Common Sequences 패턴 리스트 |
-| Lint | #4 CLAUDE.md Linter | 파일별 이슈 수 + 상세 진입 |
-| Hygiene | #5 알림 시스템 | 원형 스코어 + 이슈 섹션 |
+| 토큰 | 색상 | 용도 |
+|------|------|------|
+| `accent-blue` | `#4a90d9` | 통계 점, 선택 상태, 링크 |
+| `accent-green` | `#34c759` | 활성 뱃지, 정상 상태, 초록 점 |
+| `accent-yellow` | `#ffd60a` | 비용, 경고, 노란 점 |
+| `accent-orange` | `#ff9f0a` | 주의, dirty 상태, 이슈 |
+| `accent-red` | `#ff453a` | 오류, uncommitted, 빨간 점 |
+| `accent-purple` | `#bf5af2` | 에이전트 아이콘 |
+
+### 4.4 차트 색상
+
+| 토큰 | 색상 | 용도 |
+|------|------|------|
+| `chart-bar-primary` | `#4a90d9` | Usage Over Time, Daily Cost |
+| `chart-bar-secondary` | `#34c759` | Daily Activity |
+| `chart-tool-bash` | `#4a90d9` | Bash 바 |
+| `chart-tool-read` | `#34c759` | Read 바 |
+| `chart-tool-write` | `#ffd60a` | Write 바 |
+| `chart-tool-edit` | `#ff9f0a` | Edit 바 |
+| `chart-tool-other` | `#8e8e93` | 기타 도구 바 |
+
+### 4.5 뱃지 색상
+
+| 뱃지 유형 | 배경 | 텍스트 |
+|-----------|------|--------|
+| "active" | `#34c759` 반투명 | `#34c759` |
+| "N dirty" | `#ff9f0a` 반투명 | `#ff9f0a` |
+| "N files" | `#4a90d9` 반투명 | `#4a90d9` |
+| "N skills" | `#4a90d9` 반투명 | `#4a90d9` |
+| "N issues" | `#ff9f0a` 반투명 | `#ff9f0a` |
+| "Claude Code" | `#4a90d9` 반투명 | `#4a90d9` |
+| 프로젝트명 | `#34c759` 반투명 | `#34c759` |
 
 ---
 
-## 6. Readout vs zm-agent-manager 차별화 포인트
+## 5. 사이드바 구조 상세
 
-| 관점 | Readout | zm-agent-manager |
-|------|---------|-------------------|
-| 플랫폼 | macOS 전용 | 크로스 플랫폼 (Electron) |
-| 데이터 접근 | 읽기+쓰기 (스냅샷) | **읽기 전용** (핵심 원칙) |
-| 범위 | 개발 환경 전체 (git, ports, deps, env) | Claude Code 세션 모니터링 특화 |
-| AI 통합 | Assistant (멀티 모델 채팅) | 없음 (Phase 3 이후 검토) |
-| 가격 | 무료 베타 | 오픈소스 예정 |
-| 대상 OS | macOS Tahoe 26.0+ | 제한 없음 |
+### 5.1 섹션 목록 (6개 섹션, 23개 항목 + Settings)
+
+```
+Overview        (섹션 헤더 없음, 최상단)
+  🏠 Readout        Dashboard — 메인 대시보드
+  🤖 Assistant      AI Chat — API 키 필요
+
+Monitor         (섹션 헤더: "Monitor")
+  📡 Live           실시간 세션 모니터
+  📊 Sessions       세션 히스토리 통계
+  📄 Transcripts    세션 트랜스크립트 검색
+  🔧 Tools          도구 사용 분석
+  💰 Costs          비용 추적
+  ⚙️ Setup          초기 설정/연결 상태
+  🔌 Ports          로컬 포트 모니터
+
+Workspace       (섹션 헤더: "Workspace")
+  📁 Repos          등록 레포 관리
+  📊 Work Graph     크로스 레포 작업 그래프
+  💓 Repo Pulse     레포 건강 상태
+  📅 Timeline       Git 커밋 타임라인
+  📝 Diffs          세션별 파일 변경
+  📸 Snapshots      워크스페이스 스냅샷
+
+Config          (섹션 헤더: "Config")
+  ⚡ Skills          커스텀 스킬 관리
+  👥 Agents         커스텀 에이전트 관리
+  🧠 Memory         MEMORY.md 뷰어
+  🔗 Hooks          훅 디버거
+
+Health          (섹션 헤더: "Health")
+  🩺 Hygiene        프로젝트 건강 검사
+  📦 Deps           의존성 건강
+  🌳 Worktrees      Git worktree 관리
+  🔑 Env            .env 파일 보안 감사
+  📋 Lint           CLAUDE.md 린터
+
+⚙️ Settings       앱 설정 (섹션 헤더 없음, 최하단)
+```
+
+### 5.2 사이드바 아이콘
+
+각 항목에 SF Symbols 아이콘 사용 (Electron에서는 유사 아이콘으로 대체).
+
+---
+
+## 6. 화면별 구현 명세
+
+### 6.1 Dashboard (Readout)
+
+**데이터 소스**: `history.jsonl`, `stats-cache.json`, `sessions/*.json`, git status, `.claude/skills/`, `.claude/agents/`, `memory/MEMORY.md`
+
+**레이아웃 (위→아래)**:
+```
+[인사 헤더] ─────────────────────────────────────────
+  "Hey, {username}"  (24pt bold)
+  "You have N repos set up, N with skills and N with agents.
+   {repo} has the richest config."  (14pt, secondary)
+  "You've landed N commit today."  (14pt, secondary)
+
+[StatCards 4개] ──────────────────────────────────────
+  | N Repos | N Commits Today | N Sessions | $N.NN Est. Cost |
+  (각 카드: 숫자 28pt bold + 색상 점 + 라벨 12pt)
+  (색상: 파랑, 초록, 파랑, 노랑)
+
+[2-Column Grid] ─────────────────────────────────────
+  좌: Activity (30일 막대차트)    우: When You Work (히트맵)
+
+[2-Column Grid] ─────────────────────────────────────
+  좌: Cost by Model (수평바)     우: Recent Sessions (리스트)
+
+[경고 배너들] ───────────────────────────────────────
+  ⚠️ "N hygiene issue needs attention"
+  ⚠️ "{repo} has N uncommitted files"
+  💡 "Add CLAUDE.md to N projects"  [Better results] 버튼
+
+[Recently Active] ──────────────────────────────────
+  "{repo}" ✏️
+  [Skills | Agents | Memory | Repos] 4개 미니 카드
+```
+
+**데이터 수집 로직**:
+- Repos 수: 등록된 스캔 디렉토리에서 git repo 카운트
+- Commits Today: `git log --after="today" --oneline | wc -l`
+- Sessions: `history.jsonl` 에서 오늘 날짜 세션 수
+- Est. Cost: `readout-cost-cache.json` + `readout-pricing.json` 계산
+- Activity: `stats-cache.json.dailyActivity`
+- When You Work: `history.jsonl` timestamp를 요일×시간 매핑
+- Recent Sessions: `history.jsonl` 최근 N개
+- Skills/Agents: `.claude/skills/`, `.claude/agents/` 디렉토리 스캔
+
+---
+
+### 6.2 Assistant
+
+**데이터 소스**: Settings의 API 키, 모든 화면의 데이터 (임베드)
+
+**레이아웃**:
+```
+[헤더] "Assistant" + [Sonnet ▼] 모델 드롭다운 (우측)
+
+[빈 상태 / 채팅]
+  빈 상태: 로봇 일러스트 + "Add an API key to start chatting"
+           + "Anthropic, OpenAI, or Google — your pick."
+           + [🔑 Add API Key] 버튼
+
+  채팅: ChatBubble 리스트 + 16종 임베드 위젯
+  임베드 종류: Agents, CostBreakdown, Costs, Deps, Env,
+              Hygiene, Live, MCP, Memory, Ports, RepoDetail,
+              Repos, Sessions, Skills, Snapshots, Timeline, Worktrees
+```
+
+---
+
+### 6.3 Live
+
+**데이터 소스**: `~/.claude/sessions/*.json` (pid 기반 프로세스 감지), 프로세스 메모리 (ps)
+
+**레이아웃**:
+```
+[제목] "Live"
+
+[StatCards 3개]
+  | N Sessions (파랑) | N Generating (초록) | N Memory MB (회색) |
+
+[세션 카드 리스트] (활성 세션당 1개)
+  ┌─────────────────────────────────────────────────────────┐
+  │ ● ⟳  {project-name}                          [active]  │
+  │   📁 {folder}  ⏱ H:MM:SS  💾 N MB                      │
+  └─────────────────────────────────────────────────────────┘
+  (왼쪽: 상태 점(녹색 깜빡임) + 스피너)
+  (우측: "active" 뱃지 녹색)
+  (하단: 폴더 경로 + 경과 시간 + 메모리)
+```
+
+**데이터 수집 로직**:
+- `~/.claude/sessions/*.json` 스캔 → pid 추출
+- `ps -p {pid}` 로 프로세스 존재 확인
+- 메모리: `ps -o rss= -p {pid}` (RSS → MB 변환)
+- 경과 시간: `startedAt` 부터 현재까지 차이
+- Generating: assistant 레코드가 스트리밍 중인지 (마지막 레코드 타입 확인)
+
+---
+
+### 6.4 Sessions
+
+**데이터 소스**: `history.jsonl`, `stats-cache.json`, 세션 JSONL 파일들
+
+**레이아웃**:
+```
+[제목] "Sessions"
+[요약] "N session, N messages total. Primary model: {model}. Active across N projects."
+
+[When You Work] ─ 히트맵 (7×24 그리드, 요일×시간)
+  Mon Tue Wed Thu Fri Sat Sun
+  [각 셀: 활동량에 따른 색상 강도]
+
+[StatCards 3개]
+  | N Sessions (파랑) | N Messages (초록) | NK Tokens (파랑) |
+
+[Daily Activity] ─ 막대 차트 (최근 30일)
+  (X축: 날짜, Y축: 메시지 수, 바 색상: 초록)
+
+[Model Usage] ─ 수평 바 차트
+  {model-name}  ▓▓▓▓▓▓▓▓▓░  NK
+  (바 색상: 파랑, 우측: 토큰 수)
+
+[By Project] ─ 테이블
+  | {project-name} | N (세션수) | {time} (최근) |
+
+[Recent Sessions] ─ 세션 리스트
+  ┌──────────────────────────────────────────────┐
+  │ {세션 제목/첫 메시지 요약}                      │
+  │ 📁 {project}  ⏱ {time ago}                   │
+  └──────────────────────────────────────────────┘
+```
+
+**데이터 수집 로직**:
+- Sessions 수: `history.jsonl` 고유 sessionId 카운트
+- Messages: 모든 JSONL의 user+assistant 레코드 수 합산
+- Tokens: 모든 assistant 레코드의 `message.usage` 합산
+- When You Work: `history.jsonl` timestamp → 요일/시간 분류
+- Daily Activity: `stats-cache.json.dailyActivity`
+- Model Usage: `stats-cache.json.modelUsage` 또는 `dailyModelTokens`
+- By Project: `history.jsonl` project 필드별 그룹핑
+- Recent Sessions: `history.jsonl` 최신 N개, display 필드 표시
+
+---
+
+### 6.5 Transcripts
+
+**데이터 소스**: 모든 세션 JSONL 파일 (전문 검색)
+
+**레이아웃**:
+```
+[제목] "Transcripts"
+[검색창] 🔍 "Search transcripts..."  (전체 너비 입력 필드)
+[기간 필터] [Today] [This Week] [This Month] [All Time]  (탭 바, All Time 기본)
+[빈 상태] "Search across all your session transcripts. Type at least 2 characters."
+[검색 결과] 세션별 매치 리스트 (하이라이트)
+```
+
+**검색 로직**:
+- 모든 JSONL에서 user/assistant 레코드의 message.content 텍스트 검색
+- 기간 필터: timestamp 기준 필터링
+- 최소 2자 입력 필요
+
+---
+
+### 6.6 Tools
+
+**데이터 소스**: 모든 세션 JSONL (assistant 레코드의 tool_use 블록)
+
+**레이아웃**:
+```
+[제목] "Tools"
+
+[StatCards 3개]
+  | N Total Calls | N Files Touched | N Avg/Session |
+
+[프로젝트 필터] "All Projects ▼" 드롭다운
+
+[Usage Over Time] ─ 막대차트 (14일)
+  🔥 "Busiest: {date} with N calls"
+
+[Tool Distribution] ─ 수평 바 차트 (10개 도구)
+  ⚡ "N tools" 카운트
+  Bash       ▓▓▓▓▓▓▓▓▓▓▓▓▓  79
+  Read       ▓▓▓▓▓▓▓▓       48
+  Write      ▓▓▓▓▓▓▓        45
+  Edit       ▓▓▓▓▓          32
+  TaskUpdate ▓▓▓▓▓          31
+  TaskCreate ▓▓▓            ...
+  Agent      ▓▓
+  WebSearch  ▓
+  ToolSearch ▓
+  ExitPlanMode ▓
+  (각 바 색상: Bash=파랑, Read=초록, Write=노랑, Edit=주황, 나머지=회색)
+
+[Common Sequences] ─ 도구 체인 패턴
+  ⚡ "N patterns"
+  Bash → Bash        ▓▓▓▓▓  48
+  Write → Write      ▓▓▓    34
+  Read → Read        ▓▓▓    34
+  Edit → Edit        ▓▓     19
+  Read → Edit        ▓▓     18
+  TaskUpdate → TaskUpdate ▓  11
+  TaskCreate → TaskCreate ▓  11
+  Write → TaskUpdate ▓       9
+
+[Most Edited Files] ─ 파일 리스트
+  📄 "N total" 카운트
+  CLAUDE.md          📁 {project}
+  settings.json      📁 {project}/.claude
+  SESSION_LOG.md     📁 {project}/docs/sessions
+```
+
+**데이터 수집 로직**:
+- Total Calls: 모든 JSONL에서 type=tool_use 블록 카운트
+- Files Touched: tool_use에서 file_path 인자가 있는 고유 파일 수
+- Tool Distribution: tool_use.name별 카운트
+- Common Sequences: 연속된 두 tool_use의 name 쌍 카운트
+- Most Edited Files: Write/Edit tool_use의 file_path별 카운트
+
+---
+
+### 6.7 Costs
+
+**데이터 소스**: `readout-pricing.json`, `readout-cost-cache.json`, 세션 JSONL (usage 필드)
+
+**레이아웃**:
+```
+[제목] "Costs"
+[요약] "Estimated total: $N.NN across N model. Daily average: $N.NN."
+
+[비용 카드 4개]
+  | $N.NN Today (파랑) | $N.NN This Week (초록) | $N.NN This Month (초록) | $N.NN All Time (노랑) |
+
+[Cost by Model] ─ 수평 바
+  ⚡ 아이콘
+  {model-name}  ▓▓▓▓▓▓▓▓▓  $N.NN
+
+[Monthly Projection] ─ 이중 통계    [Trends] ─ 비교 테이블
+  Estimate $NNN                      | This Week  | $N.NN | ─  |
+  Burn     $NN.NN                    | This Month | $N.NN | ─  |
+  (📊 아이콘 + Tab: Trends)
+
+[Daily Cost] ─ 막대차트 (최근 14일)
+  (X축: 날짜, Y축: 비용, 바 색상: 파랑)
+
+[가격 메타]
+  "Prices updated {date}" + [🔄 Refresh Prices]
+  ⓘ "Estimates based on published API pricing. Actual costs depend on your plan and billing."
+```
+
+**비용 계산 로직**:
+```
+cost = (input_tokens × pricing.input / 1M)
+     + (output_tokens × pricing.output / 1M)
+     + (cache_read_tokens × pricing.cacheRead / 1M)
+     + (cache_write_tokens × pricing.cacheWrite / 1M)
+```
+
+---
+
+### 6.8 Ports
+
+**데이터 소스**: `lsof -i -P -n` 또는 유사 시스템 명령
+
+**레이아웃**:
+```
+[제목] "Ports"
+[요약] "N port open across N process."
+
+[StatCards 3개]
+  | N Ports (파랑) | N Processes (초록) | N Node (초록) |
+
+[프로세스 카드 리스트]
+  ┌──────────────────────────────────────────────────────┐
+  │ 📦 {process-name}  PID {pid}                         │
+  │   {full-command-path}                                │
+  │   :{port}  {bind-address}                            │
+  └──────────────────────────────────────────────────────┘
+  (포트 번호: 파랑 bold)
+```
+
+---
+
+### 6.9 Repos
+
+**데이터 소스**: git status, git log, `.claude/skills/`, `.claude/agents/`
+
+**레이아웃**:
+```
+[제목] "Repos"
+
+[StatCards 4개]
+  | N Active (초록) | N Dirty (주황) | N Unpushed (회색) | N Total (파랑) |
+
+[Active 섹션] ─ "Active N" + 필터 아이콘
+  ┌──────────────────────────────────────────────────────────┐
+  │ {repo-name}   ⎇ main  [● N dirty] [N skills]  ~~~~~~~~ │
+  │ {최근 커밋 메시지}  — {time ago}                    >     │
+  └──────────────────────────────────────────────────────────┘
+  (우측: 미니 activity 스파크라인 그래프 + 화살표)
+```
+
+---
+
+### 6.10 Work Graph
+
+**데이터 소스**: git log (모든 레포), GitHub API (PR)
+
+**레이아웃**:
+```
+[제목] "Work Graph"
+[필터] [All] [Mine] 탭
+
+[StatCards 4개]
+  | N Active | N Idle | N Dormant | N Commits |
+
+[Commit Activity] ─ 30일 막대차트
+[Commits by Repo] ─ 레포별 수평 바
+[Pull Requests] ─ PR 리스트 (GitHub API)
+[Uncommitted Work] ─ 레포별 미커밋 파일
+[All Repos] ─ 전체 레포 리스트 + 최근 커밋
+```
+
+---
+
+### 6.11 Repo Pulse
+
+**데이터 소스**: git status (모든 레포)
+
+**레이아웃**:
+```
+[제목] "Repo Pulse"
+[요약] "N repos scanned. N needs attention (N uncommitted files)."
+
+[StatCards 3개]
+  | N Need Attention (주황) | N Clean (초록) | N Uncommitted (빨강) |
+
+[Needs Attention 섹션] ⚠️ + ⓘ 도움말
+  ┌──────────────────────────────────────────────────────────┐
+  │ {repo-name}  [N files] 뱃지                        >    │
+  │ {time ago}  {최근 커밋 메시지}                            │
+  ├──────────────────────────────────────────────────────────┤
+  │ (펼침 시)                                                │
+  │   ? .claude/settings.local.json                         │
+  │   [👁 Show Diff]                                         │
+  └──────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.12 Timeline (Git Timeline)
+
+**데이터 소스**: git log --all
+
+**레이아웃**:
+```
+[제목] "Git Timeline"
+
+[StatCards 3개]
+  | N Repos (파랑) | N Branches (초록) | N Commits (파랑) |
+
+[레포별 타임라인]
+  ■ {repo-name}  [main] 뱃지  "N branch"
+
+  │ ● {short-hash}                                {author}
+  │   {commit message}                            {time ago}
+  │
+  │ ● {short-hash}
+  │   {commit message}                            {time ago}
+  │
+  (수직 라인 + 원형 노드)
+  (해시: 녹색 링크, 메시지: 흰색, 작성자/시간: 회색)
+```
+
+---
+
+### 6.13 Diffs
+
+**데이터 소스**: file-history/{sessionId}/, JSONL (tool_use: Write/Edit)
+
+**레이아웃**:
+```
+[제목] "Diffs"
+[요약] (숨김)
+
+[StatCards 2개]
+  | N Sessions (파랑) | N Files Changed (초록) |
+
+[날짜별 그룹] ─ "Today"
+  ┌────────────────────────────────────────────────────────┐
+  │ {세션 제목/첫 메시지}                                     │
+  │ [Claude Code] [📁 project]  N files  [N edits]  ⟳Replay│
+  └────────────────────────────────────────────────────────┘
+  (뱃지: Claude Code=파랑, project=초록, edits=노랑)
+  (Replay 버튼: 세션 리플레이로 이동)
+```
+
+---
+
+### 6.14 Snapshots
+
+**데이터 소스**: git status, 자체 스냅샷 저장소
+
+**레이아웃**:
+```
+[제목] "Snapshots"
+
+[StatCards 3개]
+  | N Repos (파랑) | N Snapshots (초록) | N Dirty (주황) |
+
+[Current Branches] ─ "N"
+  ┌──────────────────────────────────────────┐
+  │ 📁 {repo-name}  [main] 뱃지  ● N       │
+  └──────────────────────────────────────────┘
+
+[📸 Save Snapshot] 버튼
+```
+
+---
+
+### 6.15 Skills
+
+**데이터 소스**: `.claude/skills/*/SKILL.md`, `~/.claude/skills/`, 플러그인 스킬
+
+**레이아웃**:
+```
+[제목] "Skills"
+[액션 바] [🔍 Browse skills.sh] [📁 Add from folder] [✨ New Skill]
+
+[요약] "N project-specific across N repo."
+
+[레포 그룹] ─ "{repo-name} N"
+  ⚡ zm-analyze-jsonl     ---
+  ⚡ zm-new-component     ---
+  ⚡ zm-phase-status      ---
+  ⚡ zm-session-end       ---
+  ⚡ zm-session-start     ---
+  ⚡ zm-validate-req      ---
+  (각 항목: 번개 아이콘 + 스킬명 + description 한 줄)
+  (클릭 시 상세 화면 또는 인라인 펼침)
+```
+
+---
+
+### 6.16 Agents
+
+**데이터 소스**: `.claude/agents/*.md`, `~/.claude/agents/`
+
+**레이아웃**:
+```
+[제목] "Agents"
+[액션 바] [🟢 New Agent]
+
+[요약] "N agents across N repo."
+
+[레포 그룹] ─ "{repo-name}"
+  ┌──────────────────────────────────────────────────────┐
+  │ 👤 zm-electron-expert                            >   │
+  │   Electron 앱 아키텍처 전문가. 메인/렌더러/프리로드...     │
+  ├──────────────────────────────────────────────────────┤
+  │ 👤 zm-jsonl-analyst                              >   │
+  │   Claude Code JSONL 세션 데이터 분석 전문가...           │
+  ├──────────────────────────────────────────────────────┤
+  │ 👤 zm-ui-reviewer                                >   │
+  │   React + Tailwind UI 코드 리뷰 전문가...               │
+  └──────────────────────────────────────────────────────┘
+  (아이콘 색상: 빨강, 파랑, 노랑 등 에이전트별 구분)
+```
+
+---
+
+### 6.17 Memory
+
+**데이터 소스**: `~/.claude/projects/{path}/memory/MEMORY.md`
+
+**레이아웃**:
+```
+[제목] "Memory"
+[검색창] 🔍 "Search memories..."
+
+[요약] "N lines of context across N project. {project} has the most detail (N lines)."
+
+[프로젝트 카드] (접기/펼치기)
+  ┌──────────────────────────────────────────────────────┐
+  │ projects/{project-name}                              │
+  │ [33 lines] zm-agent-manager Memory, Project Overview │
+  ├──────────────────────────────────────────────────────┤
+  │ (펼침 시 — 마크다운 렌더링)                              │
+  │                                                      │
+  │ ## zm-agent-manager Memory                           │
+  │ ### Project Overview                                 │
+  │ - Claude Code 세션 실시간 모니터링 및 리플레이 Electron 앱│
+  │ - Tech stack: Electron + TypeScript + React 18 + ... │
+  │ ### Docs Structure (7 categories)                    │
+  │   docs/                                              │
+  │   ├── requirements/                                  │
+  │   ├── policies/                                      │
+  │   ...                                                │
+  └──────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.18 Hooks
+
+**데이터 소스**: `.claude/settings.json` (hooks 섹션), `.claude/hooks/*.sh`
+
+(미캡처 — 바이너리 분석 기반 추정)
+
+```
+[제목] "Hooks"
+[훅 리스트] — 이벤트별 그룹핑
+  PreToolUse
+    ├── Edit|Write → zm-block-claude-dir-write.sh  [상태]
+    └── Bash → zm-block-dangerous-bash.sh          [상태]
+  PostToolUse
+    └── Edit|Write → zm-lint-on-save.sh            [상태]
+  Stop
+    └── (prompt 타입) 문서 갱신 판단                  [상태]
+  (상태: ✅ 성공, ❌ 차단, ⏱ 실행시간)
+```
+
+---
+
+### 6.19 Hygiene
+
+**데이터 소스**: git status, `.env` 파일, CLAUDE.md, 종합 검사
+
+**레이아웃**:
+```
+[제목] "Hygiene"
+
+[원형 스코어] ─ 큰 원형 게이지
+  (중앙: "N issues" 숫자)
+  (우측: "● N Info" / "● N Warning" / "● N Error" 심각도 뱃지)
+
+[제안 카드]
+  ┌──────────────────────────────────────────────────────┐
+  │ 💬 Set up Readout Assistant                      >   │
+  │   Add an API key to auto-diagnose issues             │
+  └──────────────────────────────────────────────────────┘
+
+[이슈 섹션] ─ 접이식
+  ◎ Uncommitted Changes N ⓘ                         ˅
+  ┌──────────────────────────────────────────────────────┐
+  │ N uncommitted file(s)  [project-name] 뱃지           │
+  │ {repo-name}                                          │
+  └──────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.20 Deps (Dependencies)
+
+**데이터 소스**: `package.json` (각 레포 루트)
+
+**레이아웃**:
+```
+[제목] "Dependencies"
+[탭] [Health] [Graph]
+
+Health 탭:
+  [빈 상태] "No package.json found"
+  (있으면: 의존성 버전 상태, 업데이트 가능 여부)
+
+Graph 탭:
+  (의존성 관계 시각화 그래프)
+```
+
+---
+
+### 6.21 Worktrees
+
+**데이터 소스**: `git worktree list` (각 레포)
+
+**레이아웃**:
+```
+[제목] "Worktrees"
+[StatCards 4개] (스켈레톤 로딩)
+[워크트리 리스트] (스켈레톤 로딩)
+  (데이터 로드 후: 워크트리 경로 + 브랜치 + 상태)
+```
+
+---
+
+### 6.22 Env
+
+**데이터 소스**: 레포 내 `.env`, `.env.local`, `.env.*.local` 파일 스캔
+
+**레이아웃**:
+```
+[제목] "Env"
+[StatCards] (스켈레톤)
+[빈 상태] "No .env files found — No .env files detected across your repos."
+(있으면: 파일별 변수 목록, 보안 경고)
+```
+
+---
+
+### 6.23 Lint
+
+**데이터 소스**: 각 레포의 `CLAUDE.md` 파일 파싱
+
+**레이아웃**:
+```
+[제목] "Lint"
+[요약] "N issues across N file. N clean."
+
+[StatCards 3개]
+  | N Files (파랑) | N Issues (주황) | N Clean (초록) |
+
+[파일 카드]
+  ┌──────────────────────────────────────────────────────┐
+  │ ⚠️ {repo-name}                                   >  │
+  │   N lines  N.NKB  [N issues] 뱃지                    │
+  └──────────────────────────────────────────────────────┘
+
+(클릭 시 상세 — 이슈별 제안)
+  - "CLAUDE.md is getting long (N lines). Consider extracting details."
+  - "Consider adding a ## Development section"
+  - "Consider adding sections (## Quick Start, ## Tech Stack, etc.)"
+```
+
+**린트 규칙 (바이너리에서 추출)**:
+- 파일 길이 경고 (56줄 이상)
+- 필수 섹션 누락 (Development, Quick Start, Tech Stack)
+- 책임 분리 권고 ("Consider splitting responsibilities across multiple agents")
+- 스킬 부재 경고 ("sessions but no skills. Skills automate repetitive workflows.")
+- MEMORY.md 크기 경고 ("MEMORY.md over 200 lines gets truncated")
+
+---
+
+### 6.24 Settings
+
+**데이터 소스**: 앱 자체 설정 (UserDefaults)
+
+**레이아웃**:
+```
+[제목] "Settings"
+
+[Rescan Workspace] ─ [🔄 Refresh all data]
+
+[Scan Directories] ─ 디렉토리 관리
+  ~/{project-path}
+  [➕ Add Directory]  [🔍 Scan for New]
+  "Scans up to 2 levels deep for git repos."
+
+[Readout Assistant] ─ AI 설정
+  ● Anthropic  [토글 ON/OFF]
+    API Key: [____________]  [Paste]
+    Model: [Haiku] [Sonnet] [Opus]  (칩 선택)
+  ● OpenAI     (접기)
+  ● Gemini     (접기)
+  "Ask about repos, costs, sessions, and more.
+   Keys are stored locally. Shell env vars are auto-detected."
+
+[General]
+  Launch at login      [토글]
+  Check for updates    [토글]
+  [Check for Updates]  [Export Log]
+
+[Agents] ─ 에이전트 엔진 설정
+  ● Claude Code  [토글 ON]
+  ● Codex        Not installed
+```
+
+---
+
+## 7. 공통 UI 패턴 구현 가이드
+
+### 7.1 StatCard 컴포넌트
+
+```
+Props: { value: number | string, label: string, color: 'blue'|'green'|'yellow'|'orange'|'red' }
+
+┌─────────────────┐
+│      281        │  ← 28pt bold, white
+│  ● Total Calls  │  ← 12pt, color dot(8px) + gray label
+└─────────────────┘
+배경: bg-card, radius: 12pt, padding: 12pt
+전체 너비: 균등 분배 (flex: 1, gap: 12pt)
+```
+
+### 7.2 수평 바 차트
+
+```
+Props: { items: Array<{label, value, color}>, maxValue?: number }
+
+{label}  ▓▓▓▓▓▓▓▓░░░░  {value}
+         ↑ 비율에 따른 너비
+바 높이: 8pt, radius: 4pt
+라벨: 14pt monospace, 좌측 정렬 (고정폭 120pt)
+값: 14pt, 우측
+```
+
+### 7.3 뱃지 컴포넌트
+
+```
+Props: { text: string, variant: 'blue'|'green'|'orange'|'red' }
+
+[N files]
+배경: accent 색상 15% opacity
+텍스트: accent 색상 100%
+padding: 2pt 8pt, radius: 4pt, font: 11pt
+```
+
+### 7.4 섹션 헤더
+
+```
+Props: { icon: string, title: string, count?: number, tooltip?: string }
+
+⚡ Tool Distribution 10 tools ⓘ
+아이콘(16pt) + 제목(14pt semibold) + 카운트(12pt gray) + 도움말 아이콘
+```
+
+### 7.5 카드 리스트 아이템
+
+```
+Props: { title, subtitle, badges[], rightContent, onClick }
+
+┌──────────────────────────────────────────────────────┐
+│ {icon} {title}  [badge1] [badge2]              >     │
+│        {subtitle}                                    │
+└──────────────────────────────────────────────────────┘
+배경: bg-card, hover: bg-card-hover
+padding: 12pt, radius: 8pt
+우측: chevron (>) 또는 커스텀 콘텐츠
+```
+
+### 7.6 접이식 섹션
+
+```
+Props: { title, count, isOpen, onToggle, children }
+
+◎ {title} {count} ⓘ                            ˅/˄
+┌──────────────────────────────────────────────────────┐
+│ (children — 접기/펼치기 애니메이션)                      │
+└──────────────────────────────────────────────────────┘
+```
+
+### 7.7 스켈레톤 로딩
+
+```
+데이터 로딩 중 표시. 실제 컴포넌트와 동일한 크기의 회색 블록.
+색상: #2c2c2e, 애니메이션: shimmer (좌→우 밝기 변화)
+StatCard 스켈레톤, 리스트 스켈레톤, 차트 스켈레톤 각각 구현.
+```
+
+### 7.8 빈 상태 (EmptyState)
+
+```
+Props: { icon, title, description }
+
+    (icon — 64pt, gray)
+  {title}        ← 16pt semibold
+  {description}  ← 14pt secondary
+중앙 정렬, 콘텐츠 영역 중간에 배치
+```
+
+---
+
+## 8. 인터랙션 패턴
+
+### 8.1 네비게이션
+- 사이드바 클릭 → 메인 콘텐츠 전환 (페이지 교체, 애니메이션 없음)
+- 선택된 항목: 배경 하이라이트 (둥근 사각형)
+- 카드 클릭 → 상세 보기 (인라인 펼침 또는 하위 페이지)
+
+### 8.2 필터링
+- 드롭다운: "All Projects" (Tools, Work Graph)
+- 탭 바: 기간 필터 (Transcripts), Health/Graph (Deps), All/Mine (Work Graph)
+
+### 8.3 검색
+- 실시간 검색: 2자 이상 입력 시 즉시 결과 (Transcripts, Memory)
+- 디바운스: 300ms
+
+### 8.4 접기/펼치기
+- Repo Pulse: 카드 클릭 → 파일 목록 + Show Diff 버튼
+- Hygiene: 이슈 섹션 헤더 클릭 → 이슈 목록
+- Memory: 프로젝트 카드 클릭 → MEMORY.md 내용
+
+### 8.5 실시간 업데이트
+- Live: 세션 상태 폴링 (5초 간격 추정)
+- Dashboard: Hygiene 경고, uncommitted 파일 수 주기적 갱신
+- Repo Pulse: git status 주기적 스캔
+
+### 8.6 외부 연동
+- GitHub API: Pull Requests (Work Graph)
+- Anthropic API: Assistant 채팅
+- 시스템 명령: git, lsof, ps
+
+---
+
+## 9. zm-agent-manager 구현 우선순위 매핑
+
+### Phase 1 (MVP) — 직접 카피 대상
+
+| Readout 화면 | 구현 우선순위 | 이유 |
+|-------------|-------------|------|
+| **Live** | ★★★★★ | F2 핵심 — 가장 단순하면서 가치 높음 |
+| **Sessions** | ★★★★★ | F1 핵심 — 세션 목록 + 기본 통계 |
+| **Tools** | ★★★★☆ | F4 핵심 — 도구 분포 + 체인 패턴 |
+| **Dashboard** | ★★★★☆ | 진입점 — StatCard + 요약 정보 |
+| **Timeline** | ★★★☆☆ | F3 참고 — 수직 타임라인 패턴 |
+
+### Phase 2 — 확장 카피 대상
+
+| Readout 화면 | 구현 우선순위 | 이유 |
+|-------------|-------------|------|
+| **Diffs** | ★★★★★ | F6 핵심 — 세션별 파일 변경 |
+| **Transcripts** | ★★★★☆ | 검색 기능 — 세션 리플레이 진입점 |
+| **Costs** | ★★★☆☆ | F8 일부 — 비용 추적 |
+
+### Phase 3 — 선택적 카피 대상
+
+| Readout 화면 | 구현 우선순위 | 이유 |
+|-------------|-------------|------|
+| **Skills** | ★★★☆☆ | Config 뷰어 |
+| **Agents** | ★★★☆☆ | Config 뷰어 |
+| **Memory** | ★★★☆☆ | Config 뷰어 |
+| **Hygiene** | ★★☆☆☆ | 부가 기능 |
+| **Lint** | ★★☆☆☆ | 부가 기능 |
+
+### 구현하지 않을 화면
+
+| Readout 화면 | 이유 |
+|-------------|------|
+| **Assistant** | 높은 구현 비용, API 키 필요 |
+| **Repos/Work Graph/Repo Pulse** | git 관리 도구는 범위 밖 |
+| **Ports** | 개발 서버 모니터링은 범위 밖 |
+| **Snapshots** | 읽기 전용 원칙 위반 |
+| **Worktrees/Env/Deps** | 범위 밖 |
+| **Settings** | 자체 설정 UI로 대체 |
