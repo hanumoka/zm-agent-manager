@@ -1,0 +1,21 @@
+# 개발 로드맵
+
+PRD의 기능 정의를 실행 가능한 단계별 체크리스트로 분해한다.
+각 Phase의 상세 항목은 개별 파일 참조.
+
+## 전체 현황
+
+| Phase | 제목 | 상태 | 상세 |
+|-------|------|------|------|
+| 1 | 세션 모니터링 (MVP) | **대기** | [phase-1-mvp.md](./phase-1-mvp.md) |
+| 2 | 세션 리플레이 | 대기 | [phase-2-replay.md](./phase-2-replay.md) |
+| 3 | 분석 및 확장 | 대기 | [phase-3-analysis.md](./phase-3-analysis.md) |
+
+## Phase 간 의존성
+
+```
+Phase 1 (MVP) ──→ Phase 2 (리플레이) ──→ Phase 3 (분석)
+```
+
+- Phase 1이 완료되어야 Phase 2 착수 가능 (JSONL 파싱, 타임라인 뷰 기반)
+- Phase 2 완료 후 Phase 3 착수 (리플레이 인프라 활용)

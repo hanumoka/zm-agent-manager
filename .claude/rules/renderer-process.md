@@ -1,0 +1,11 @@
+---
+paths:
+  - "src/renderer/**/*.ts"
+  - "src/renderer/**/*.tsx"
+---
+- 파일 I/O 직접 수행 금지 — 반드시 IPC를 통해 메인 프로세스에 요청
+- React 함수형 컴포넌트 + hooks만 사용 (class 컴포넌트 금지)
+- 상태 관리: Zustand 사용
+- 스타일링: Tailwind CSS 유틸리티 클래스 사용
+- 대량 리스트: 가상화(virtualization) 적용 필수
+- window.api (preload에서 노출된 API)를 통해 메인 프로세스와 통신
