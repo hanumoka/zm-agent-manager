@@ -497,10 +497,11 @@ Health          (섹션 헤더: "Health")
   | {project-name} | N (세션수) | {time} (최근) |
 
 [Recent Sessions] ─ 세션 리스트
-  ┌──────────────────────────────────────────────┐
-  │ {세션 제목/첫 메시지 요약}                      │
-  │ 📁 {project}  ⏱ {time ago}                   │
-  └──────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────┐
+  │ {세션 제목/첫 메시지 요약}                              │
+  │ 📁 {project}  ⏱ {time ago}              [Replay ▶]  │
+  └──────────────────────────────────────────────────────┘
+  (각 항목 우측에 "Replay" 버튼 — 클릭 시 Session Replay 화면 진입)
 ```
 
 **데이터 수집 로직**:
@@ -631,7 +632,41 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.8 Ports
+### 6.8 Setup
+
+**데이터 소스**: `~/.claude/sessions/*.json`, `~/.claude/` 전체 스캔, git repo 스캔
+
+**레이아웃** (바이너리 분석 기반 추정):
+```
+[제목] "Setup"
+
+[워크스페이스 스캔 상태]
+  "Scanning your workspace..." (진행 중)
+  또는 "Workspace rescanned" (완료)
+  [Rescan Workspace] 버튼
+
+[에이전트 감지]
+  Claude Code: [감지됨/미감지] 상태
+  Codex: [감지됨/미감지] 상태
+  "No agents found" (미감지 시)
+
+[레포 감지 결과]
+  "These repos have no agent configuration:" (설정 없는 레포)
+  레포 목록
+
+[설치 상태]
+  _installState, _installing, _installed
+  에이전트별 설치/활성화 상태 토글
+```
+
+**Setup 단계** (SetupStep):
+1. 워크스페이스 스캔 (디렉토리 탐색)
+2. 에이전트 감지 (Claude Code, Codex)
+3. 레포 설정 확인
+
+---
+
+### 6.9 Ports
 
 **데이터 소스**: `lsof -i -P -n` 또는 유사 시스템 명령
 
@@ -874,24 +909,56 @@ cost = (input_tokens × pricing.input / 1M)
 
 ---
 
-### 6.18 Hooks
+### 6.18 Hooks (HooksDebuggerView)
 
-**데이터 소스**: `.claude/settings.json` (hooks 섹션), `.claude/hooks/*.sh`
+**데이터 소스**: `.claude/settings.json` (hooks 섹션), `.claude/hooks/*.sh`, 런타임 훅 실행 로그
 
-(미캡처 — 바이너리 분석 기반 추정)
+**컴포넌트** (바이너리 분석: HooksDebugger, HookCard, HookInfo, HookStatus):
 
+**레이아웃**:
 ```
 [제목] "Hooks"
-[훅 리스트] — 이벤트별 그룹핑
-  PreToolUse
-    ├── Edit|Write → zm-block-claude-dir-write.sh  [상태]
-    └── Bash → zm-block-dangerous-bash.sh          [상태]
-  PostToolUse
-    └── Edit|Write → zm-lint-on-save.sh            [상태]
-  Stop
-    └── (prompt 타입) 문서 갱신 판단                  [상태]
-  (상태: ✅ 성공, ❌ 차단, ⏱ 실행시간)
+[스켈레톤] HooksDebuggerSkeleton (데이터 로딩 중)
+
+[안내 텍스트]
+  "Hooks are defined in ~/.claude/settings.json under the 'hooks' key."
+
+[훅 카드 리스트] ─ 이벤트별 그룹핑
+  ┌─ HookCard ──────────────────────────────────────────┐
+  │ PreToolUse                                          │
+  │   matcher: "Edit|Write"                             │
+  │   command: zm-block-claude-dir-write.sh             │
+  │   상태: [HookStatus — 성공/실패/차단]                  │
+  │   "Hook failed (exit N)" (실패 시)                    │
+  ├─────────────────────────────────────────────────────┤
+  │ PreToolUse                                          │
+  │   matcher: "Bash"                                   │
+  │   command: zm-block-dangerous-bash.sh               │
+  │   상태: [HookStatus]                                  │
+  ├─────────────────────────────────────────────────────┤
+  │ PostToolUse                                         │
+  │   matcher: "Edit|Write"                             │
+  │   command: zm-lint-on-save.sh                       │
+  │   상태: [HookStatus]                                  │
+  ├─────────────────────────────────────────────────────┤
+  │ Stop                                                │
+  │   type: "prompt"                                    │
+  │   prompt: (요약)                                     │
+  │   상태: [HookStatus]                                  │
+  └─────────────────────────────────────────────────────┘
+
+HookCard 구조:
+  - 이벤트 타입 (PreToolUse, PostToolUse, Stop, Notification 등)
+  - matcher 패턴
+  - hook 타입 (command, prompt, agent, http)
+  - command/prompt 내용
+  - HookStatus: 마지막 실행 결과 (성공/실패/차단 + exit code)
 ```
+
+**HookStatus 상태**:
+- 성공: 초록 체크 + exit 0
+- 차단: 빨강 X + exit 2 + 에러 메시지
+- 실패: 주황 경고 + exit code + stderr
 
 ---
 
@@ -1129,6 +1196,154 @@ Props: { icon, title, description }
   {description}  ← 14pt secondary
 중앙 정렬, 콘텐츠 영역 중간에 배치
 ```
+
+---
+
+## 7A. Session Replay 뷰 구현 명세 (핵심 서브뷰)
+
+Readout의 핵심 기능. Sessions 또는 Diffs에서 "Replay" 버튼 클릭 시 진입.
+
+**데이터 소스**: `{sessionId}.jsonl` (전체 파싱), `file-history/{sessionId}/` (파일 변경 이력)
+
+**컴포넌트** (바이너리 분석):
+- `SessionReplayView` — 메인 뷰
+- `SessionReplaySkeleton` — 로딩 상태
+- `PlaybackControls` — 재생 컨트롤
+- `PlayheadTriangle` — 재생 헤드 (타임라인 위)
+- `ReplayMetaCard` — 세션 메타 정보
+- `ToolCallRow` — 도구 호출 이벤트 행
+- `TimelineEvent` — 타임라인 이벤트
+- `ToolCallFeed` — 도구 호출 피드
+
+**레이아웃**:
+```
+┌──────────────────────────────────────────────────────────┐
+│ [← Back]  Session Replay                                 │
+│                                                          │
+│ ┌─ ReplayMetaCard ─────────────────────────────────────┐ │
+│ │ 세션 ID / 프로젝트명 / 시작 시간 / 메시지 수 / 도구 수   │ │
+│ └──────────────────────────────────────────────────────┘ │
+│                                                          │
+│ ┌─ Timeline Bar (수평 스크러버) ──────────────────────────┐ │
+│ │ ◄ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░ ► [PlayheadTriangle]  │ │
+│ └──────────────────────────────────────────────────────┘ │
+│                                                          │
+│ ┌─ PlaybackControls ──────────────────────────────────┐  │
+│ │ [⏮] [◀ Step] [▶ Play/⏸ Pause] [Step ▶] [⏭]         │  │
+│ │ Speed: [0.5x] [1x] [2x] [4x]                       │  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                          │
+│ ┌─ Event Timeline (수직 스크롤) ────────────────────────┐ │
+│ │                                                      │ │
+│ │  ● User Message                                      │ │
+│ │  │ "실제 readout 을 대비하여 90프로 이상..."            │ │
+│ │  │                                                   │ │
+│ │  ● Assistant Response                                │ │
+│ │  │ (텍스트 내용 요약)                                  │ │
+│ │  │                                                   │ │
+│ │  ├── ToolCallRow: Read (file_path)                   │ │
+│ │  │   ⏱ 0.3s  [결과 토글]                              │ │
+│ │  │                                                   │ │
+│ │  ├── ToolCallRow: Edit (file_path)                   │ │
+│ │  │   ⏱ 0.1s  📄 파일 하이라이트                        │ │
+│ │  │                                                   │ │
+│ │  ├── ToolCallRow: Bash (command)                     │ │
+│ │  │   ⏱ 2.1s  [결과 토글]                              │ │
+│ │  │                                                   │ │
+│ │  ● User Message                                      │ │
+│ │  │ (다음 메시지...)                                    │ │
+│ │                                                      │ │
+│ └──────────────────────────────────────────────────────┘ │
+│                                                          │
+│ ┌─ File Changes Panel (우측 또는 하단) ─────────────────┐ │
+│ │ 📄 CLAUDE.md          [변경됨 — 파일 하이라이트 펄스]    │ │
+│ │ 📄 settings.json      [변경됨]                        │ │
+│ │ 📄 SESSION_LOG.md     [변경됨]                        │ │
+│ └──────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘
+```
+
+**PlaybackControls 상세**:
+- `_isPlaying`: 재생/일시정지 상태
+- `_playbackSpeed`: 재생 속도 (0.5x, 1x, 2x, 4x)
+- `_playheadFraction`: 0.0~1.0 재생 위치
+- `_step`: 이벤트 단위 스텝 이동
+
+**TimelineEvent 종류** (EventKind):
+- `user`: 사용자 메시지 (파랑 노드)
+- `assistant`: 어시스턴트 응답 (녹색 노드)
+- `tool_use`: 도구 호출 (주황 노드) → ToolCallRow로 표시
+- `tool_result`: 도구 결과 (회색, 접힌 상태)
+- `file_change`: 파일 변경 (FileChange → 파일 하이라이트 펄스)
+
+**ToolCallRow 구조**:
+```
+Props: { toolName, toolInput, duration, isExpanded, onToggle }
+
+┌──────────────────────────────────────────────┐
+│ 🔧 {toolName}  {input 요약}        ⏱ {N}s  │
+│ (펼침 시: 전체 input + output)               │
+└──────────────────────────────────────────────┘
+```
+
+**파일 하이라이트 동작**:
+- 파일 변경 이벤트 발생 시 해당 파일명에 펄스 애니메이션 (`_pulse`, `_animatedPct`)
+- "Files light up as edits land" (Benji Taylor 트윗 인용)
+- 색상: accent-green 펄스 → 서서히 페이드
+
+**검색**: `_replaySearchQuery` — 리플레이 내 이벤트 검색 기능
+
+**데이터 수집 로직**:
+1. `{sessionId}.jsonl` 전체 파싱 → 레코드를 timestamp 순 정렬
+2. user/assistant/tool_use/tool_result 레코드를 TimelineEvent로 변환
+3. `file-history/{sessionId}/` 에서 파일 변경 이력 매핑
+4. parentUuid로 메시지 체인 구성
+5. PlaybackControls로 타임라인 위치 제어
+
+---
+
+## 7B. Diffs 상세 뷰 구현 명세
+
+Diffs 목록에서 세션 카드 클릭 시 진입.
+
+**컴포넌트**: `SessionDiffView`, `SessionDiffSkeleton`, `SessionChangeCard`, `SessionFileChanges`
+
+**레이아웃** (Diffs 캡처 이미지 기반):
+```
+[제목] "Diffs"
+[요약] "N sessions with file changes. N files modified total."
+
+[StatCards 2개]
+  | N Sessions (파랑) | N Files Changed (초록) |
+
+[날짜별 그룹] ─ "Today"
+  ┌─ 세션 Diff 카드 (SessionChangeCard) ──────────────────────┐
+  │ {세션 제목/첫 메시지 요약}                                    │
+  │ [Claude Code] [📁 project]  N files  [N edits]  [⟳ Replay] │
+  │                                                            │
+  │ (펼침 시 — SessionFileChanges)                               │
+  │  📄 CLAUDE.md                          +50 -10             │
+  │  📄 settings.json                      +20 -5              │
+  │  📄 SESSION_LOG.md                     +15 -1              │
+  │  [👁 Show Diff] 버튼 (파일별)                                │
+  └────────────────────────────────────────────────────────────┘
+```
+
+**Diffs 캡처에서 확인된 상세**:
+- 각 카드에 커밋 해시 표시 (녹색 텍스트, 예: "a5a006c...")
+- 파일 수 + 편집 수 뱃지 (파랑/노랑)
+- "Replay" 버튼 우측 (→ Session Replay 진입)
+- 세션별 시간 표시 ("4h ago")
+
+---
+
+## 7C. Dashboard 추가 발견사항
+
+**시간대별 인사 메시지**:
+- 오전: "Morning, {username}" (추정)
+- 낮: "Midday, {username}"
+- 오후: "Hey, {username}"
+- 밤: "Deep in it, {username}?" (확인됨 — 야간 작업 시)
 
 ---
 
