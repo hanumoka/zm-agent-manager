@@ -94,13 +94,18 @@ interface BaseRecord {
   uuid: string;
   parentUuid: string | null;
   sessionId: string;
-  type: 'user' | 'assistant' | 'file-history-snapshot' | 'attachment' | 'permission-mode';
-  timestamp: number;       // Unix ms
+  type: 'user' | 'assistant' | 'file-history-snapshot' | 'system'
+      | 'queue-operation' | 'attachment' | 'permission-mode';
+  timestamp: number | string; // Unix ms (number) 또는 ISO 8601 (string)
   cwd: string;
-  version: number;
+  version: number | string;   // 숫자 또는 "2.1.94" (system 레코드)
   gitBranch: string;
   agentId: string | null;
-  slug: string;            // 모델 slug (예: "claude-opus-4-6")
+  slug: string;               // 모델 slug (예: "claude-opus-4-6") 또는 세션 slug
+  isSidechain: boolean;
+  userType: 'external' | 'internal';
+  entrypoint: 'cli' | 'desktop';
+  requestId?: string;          // assistant 레코드에서 API 요청 ID
 }
 
 // user 레코드
@@ -144,6 +149,71 @@ interface ToolResultBlock {
   tool_use_id: string;
   content: string | ContentBlock[];
 }
+
+// thinking 블록 구조 (Claude의 사고 과정)
+interface ThinkingBlock {
+  type: 'thinking';
+  thinking: string;           // 사고 내용 텍스트
+  signature: string;          // 서명
+}
+
+// system 레코드 (턴 종료 메타데이터)
+interface SystemRecord extends BaseRecord {
+  type: 'system';
+  subtype: 'turn_duration';
+  durationMs: number;          // 턴 소요 시간 (ms)
+  messageCount: number;        // 턴 내 메시지 수
+  isMeta: boolean;
+}
+
+// queue-operation 레코드 (백그라운드 태스크 알림)
+interface QueueOperationRecord {
+  type: 'queue-operation';
+  operation: 'enqueue' | 'dequeue';
+  timestamp: string;           // ISO 8601
+  sessionId: string;
+  content: string;             // task-notification XML
+}
+
+// attachment 레코드 (첨부 파일/붙여넣기)
+interface AttachmentRecord extends BaseRecord {
+  type: 'attachment';
+  // 첨부 콘텐츠 (이미지, 텍스트 등)
+}
+
+// permission-mode 레코드 (권한 모드 변경)
+interface PermissionModeRecord extends BaseRecord {
+  type: 'permission-mode';
+  // 권한 모드 상태
+}
+
+// file-history-snapshot 레코드
+interface FileHistorySnapshotRecord {
+  type: 'file-history-snapshot';
+  messageId: string;
+  snapshot: {
+    messageId: string;
+    trackedFileBackups: Record<string, unknown>;
+    timestamp: string;         // ISO 8601
+  };
+  isSnapshotUpdate: boolean;
+}
+
+// tool_use input 구조 (도구별)
+// Read:        { file_path: string }
+// Write:       { file_path: string, content: string }
+// Edit:        { file_path: string, old_string: string, new_string: string, replace_all: boolean }
+// Bash:        { command: string, description: string }
+// Glob:        { pattern: string }
+// Grep:        { pattern: string, ... }
+// Agent:       { subagent_type: string, description: string, prompt: string }
+// WebSearch:   { query: string }
+// WebFetch:    { url: string, prompt: string }
+// TaskCreate:  { subject: string, description: string, activeForm: string }
+// TaskUpdate:  { taskId: string, status: string }
+// ToolSearch:  { query: string, max_results: number }
+// AskUserQuestion: { questions: Array }
+// ExitPlanMode: {}
 ```
 
 ### 2.6 history.jsonl 레코드 구조
