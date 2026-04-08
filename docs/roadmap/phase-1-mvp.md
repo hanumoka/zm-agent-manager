@@ -5,6 +5,18 @@
 
 ---
 
+## UI 설계 참고 (Readout 앱 분석, 2026-04-08)
+
+> Readout 바이너리 리버스 엔지니어링에서 확인된 패턴. Phase 1 설계 시 참고.
+
+- **Dashboard vs Live 분리**: Readout은 요약 대시보드(ActivityChart, MiniStat)와 실시간 세션 뷰(LiveSessionsView)를 별도 탭으로 구성
+- **Skeleton 로딩**: 실시간 데이터 로드 중 스켈레톤 UI 적용 (LiveWireSkeleton)
+- **재사용 컴포넌트**: DataCard, AnimatedMiniStat 등 카드/통계 위젯을 대시보드와 상세 뷰에서 공유
+- **사이드바 활성 표시**: SidebarSectionWithDot — 라이브 세션 활성 시 사이드바에 색상 점 표시
+- **커스터마이즈 사이드바**: 사용자가 섹션 순서/표시 여부 설정 가능 (SidebarCustomizeSheet)
+
+---
+
 ## Milestone 1: 프로젝트 스캐폴딩
 
 - [ ] Electron + Vite + React + TypeScript 프로젝트 초기 설정
