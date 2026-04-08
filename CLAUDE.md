@@ -32,6 +32,8 @@ src/
 - **읽기 전용**: `~/.claude/` 디렉토리 데이터를 절대 수정하지 않는다
 - **성능 우선**: 대용량 JSONL 스트리밍 파싱, 가상화 리스트 사용
 - **IPC 분리**: 파일 I/O는 메인 프로세스에서만 수행, 렌더러는 IPC로 데이터 수신
+- **요구사항 검증 우선**: 새 요구사항 수신 시 기존 PRD/정책/로드맵과 교차 검증 후 작업 착수
+- **문서 동기화**: 작업 결과가 문서에 영향을 주면 즉시 관련 문서 갱신
 
 ## 주요 데이터
 - 세션 데이터: `~/.claude/projects/{encoded-path}/{sessionId}.jsonl`
@@ -81,6 +83,23 @@ npm run lint
 2. roadmap 체크리스트 업데이트 (`- [x]`)
 3. 새 이슈 발견 시 → `troubleshooting/known-issues.md`
 4. 새 아이디어 발생 시 → `ideas/INBOX.md`
+
+### 요구사항 검증 프로토콜
+사용자가 새 요구사항/기능 요청/설계 변경을 제시하면 **작업 착수 전에** 검증:
+1. **모호성 검사** — 범위, 기준, 조건이 불명확하면 즉시 질문
+2. **정책 충돌 검사** — PRD, 코딩 컨벤션, 핵심 원칙과 교차 검증
+3. **로드맵 정합성** — 현재 Phase 범위 이탈 여부 확인
+4. **기술 타당성** — Electron 아키텍처, 성능 관점 검토
+- 문제 없으면 바로 진행, 문제 있으면 작업 전 경고 후 사용자 승인 대기
+- 상세: [`.claude/rules/requirement-validation.md`](.claude/rules/requirement-validation.md)
+
+### 문서 자동 갱신
+작업 중 아래 상황 발생 시 관련 문서를 즉시 갱신하고 간결하게 보고:
+- roadmap 항목 완료 → phase 파일 체크
+- 새 이슈 발견 → `known-issues.md` 추가
+- 정책/PRD 변경 합의 → 해당 문서 반영
+- 새 아이디어 언급 → `INBOX.md` 추가
+- 상세: [`.claude/rules/doc-auto-update.md`](.claude/rules/doc-auto-update.md)
 
 ### 관리 규칙
 - SESSION_LOG.md: 최근 10개 세션만 유지, 초과분은 `sessions/archive/YYYY-MM.md`로 이동
