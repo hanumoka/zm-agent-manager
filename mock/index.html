@@ -252,6 +252,128 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <!-- CONTENT -->
 <main class="content">
 
+<!-- ==================== ONBOARDING (최초 실행) ==================== -->
+<div id="page-onboarding" class="page">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:500px">
+    <div style="text-align:center;max-width:480px">
+      <div style="font-size:64px;margin-bottom:16px">📊</div>
+      <div style="font-size:32px;font-weight:700;margin-bottom:8px">zm-agent-manager</div>
+      <div style="font-size:16px;color:var(--text-secondary);margin-bottom:32px">
+        Claude Code 세션 모니터링, 태스크 관리, 문서 감독
+      </div>
+
+      <div id="onboard-step1" style="margin-bottom:24px">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">
+          시작하려면 Claude Code 프로젝트가 있는 디렉토리를 추가하세요.<br>
+          <span style="font-size:12px;color:var(--text-tertiary)">~/.claude/projects/ 를 자동 스캔하거나, 직접 폴더를 선택할 수 있습니다.</span>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button onclick="startAutoScan()" style="padding:12px 24px;background:var(--accent-blue);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">
+            🔍 자동 스캔 (~/.claude/)
+          </button>
+          <button onclick="startManualSelect()" style="padding:12px 24px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--bg-divider);border-radius:10px;font-size:14px;cursor:pointer">
+            📁 폴더 직접 선택
+          </button>
+        </div>
+      </div>
+
+      <div id="onboard-scanning" style="display:none">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:12px">
+          ⏳ 워크스페이스 스캔 중...
+        </div>
+        <div style="width:100%;height:4px;background:var(--bg-divider);border-radius:2px;overflow:hidden">
+          <div id="scan-progress" style="width:0%;height:100%;background:var(--accent-blue);border-radius:2px;transition:width 0.5s"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">
+          2 levels deep 까지 git 레포지토리를 스캔합니다.
+        </div>
+      </div>
+
+      <div id="onboard-result" style="display:none">
+        <div style="font-size:14px;color:var(--accent-green);margin-bottom:12px">
+          ✅ 스캔 완료!
+        </div>
+        <div style="background:var(--bg-card);border-radius:12px;padding:16px;text-align:left;margin-bottom:16px">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">감지된 프로젝트:</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+            <input type="checkbox" checked>
+            <span>📁 zm-agent-manager</span>
+            <span class="badge badge-green" style="margin-left:auto">6 skills</span>
+            <span class="badge badge-blue">3 agents</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--bg-divider)">
+            <input type="checkbox" checked>
+            <span>📁 sonix_galatine</span>
+            <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto">no config</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button onclick="completeOnboarding()" style="padding:12px 32px;background:var(--accent-blue);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">
+            시작하기 →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== NO CLAUDE CODE ==================== -->
+<div id="page-no-claude" class="page">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:500px">
+    <div style="text-align:center;max-width:440px">
+      <div style="font-size:64px;margin-bottom:16px">⚠️</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:8px">Claude Code를 찾을 수 없습니다</div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:24px">
+        <code style="background:var(--bg-card);padding:2px 8px;border-radius:4px">~/.claude/</code> 디렉토리가 존재하지 않습니다.<br><br>
+        Claude Code를 먼저 설치하고 한 번 이상 실행해 주세요.
+      </div>
+      <div style="background:var(--bg-card);border-radius:12px;padding:16px;text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:8px">설치 방법:</div>
+        <div style="font-family:monospace;background:#1a1a1c;padding:8px 12px;border-radius:6px;margin-bottom:6px">
+          npm install -g @anthropic-ai/claude-code
+        </div>
+        <div style="font-family:monospace;background:#1a1a1c;padding:8px 12px;border-radius:6px">
+          claude
+        </div>
+      </div>
+      <button onclick="startAutoScan()" style="padding:10px 20px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--bg-divider);border-radius:8px;font-size:13px;cursor:pointer">
+        🔄 다시 확인
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== NO PROJECTS ==================== -->
+<div id="page-no-projects" class="page">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:500px">
+    <div style="text-align:center;max-width:440px">
+      <div style="font-size:64px;margin-bottom:16px">📭</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:8px">프로젝트를 찾을 수 없습니다</div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:24px">
+        <code style="background:var(--bg-card);padding:2px 8px;border-radius:4px">~/.claude/projects/</code> 에 세션 데이터가 없습니다.<br><br>
+        Claude Code로 프로젝트에서 작업을 시작하면 자동으로 감지됩니다.
+      </div>
+      <div style="background:var(--bg-card);border-radius:12px;padding:16px;text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:8px">시작하려면:</div>
+        <div style="font-family:monospace;background:#1a1a1c;padding:8px 12px;border-radius:6px;margin-bottom:6px">
+          cd ~/your-project
+        </div>
+        <div style="font-family:monospace;background:#1a1a1c;padding:8px 12px;border-radius:6px">
+          claude
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="startAutoScan()" style="padding:10px 20px;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">
+          🔄 다시 스캔
+        </button>
+        <button onclick="startManualSelect()" style="padding:10px 20px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--bg-divider);border-radius:8px;font-size:13px;cursor:pointer">
+          📁 폴더 직접 선택
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== DASHBOARD ==================== -->
 <div id="page-dashboard" class="page active">
   <div class="page-title">Good afternoon, kyb</div>
@@ -880,6 +1002,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div style="font-size:13px;color:var(--text-secondary)">zm-agent-manager v0.1.0</div>
     <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">Electron + React + TypeScript</div>
   </div>
+
+  <div class="setting-group" style="border:1px dashed var(--accent-orange);margin-top:20px">
+    <div class="setting-group-title" style="color:var(--accent-orange)">Demo: 온보딩 화면 테스트</div>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px">실제 앱에서는 ~/.claude/ 상태에 따라 자동 분기됩니다.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="showOnboarding()" style="padding:6px 12px;background:var(--accent-blue);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">최초 실행 (온보딩)</button>
+      <button onclick="showNoClaude()" style="padding:6px 12px;background:var(--accent-red);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Claude Code 미설치</button>
+      <button onclick="showNoProjects()" style="padding:6px 12px;background:var(--accent-orange);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">프로젝트 없음</button>
+    </div>
+  </div>
 </div>
 
 </main>
@@ -924,6 +1056,60 @@ document.querySelectorAll('.speed-chip').forEach(chip => {
     chip.classList.add('active');
   };
 });
+
+// Onboarding
+function showOnboarding() {
+  document.querySelector('.sidebar').style.display = 'none';
+  showPage('onboarding');
+}
+function showNoClaude() {
+  document.querySelector('.sidebar').style.display = 'none';
+  showPage('no-claude');
+}
+function showNoProjects() {
+  document.querySelector('.sidebar').style.display = 'none';
+  showPage('no-projects');
+}
+
+function startAutoScan() {
+  document.getElementById('onboard-step1').style.display = 'none';
+  document.getElementById('onboard-scanning').style.display = 'block';
+  document.getElementById('onboard-result').style.display = 'none';
+  showPage('onboarding');
+  document.querySelector('.sidebar').style.display = 'none';
+
+  // 스캔 애니메이션
+  let progress = 0;
+  const bar = document.getElementById('scan-progress');
+  const interval = setInterval(() => {
+    progress += Math.random() * 20 + 5;
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(interval);
+      setTimeout(() => {
+        document.getElementById('onboard-scanning').style.display = 'none';
+        document.getElementById('onboard-result').style.display = 'block';
+      }, 500);
+    }
+    bar.style.width = progress + '%';
+  }, 300);
+}
+
+function startManualSelect() {
+  alert('폴더 선택 다이얼로그 (Electron에서 dialog.showOpenDialog 호출)');
+  // Mock: 바로 스캔 결과 표시
+  document.getElementById('onboard-step1').style.display = 'none';
+  document.getElementById('onboard-scanning').style.display = 'none';
+  document.getElementById('onboard-result').style.display = 'block';
+}
+
+function completeOnboarding() {
+  document.querySelector('.sidebar').style.display = '';
+  showPage('dashboard');
+}
+
+// 온보딩 데모 버튼들 (Settings 페이지 하단에 추가)
+// 실제 앱에서는 ~/.claude/ 존재 여부에 따라 자동 분기
 </script>
 
 </body>
