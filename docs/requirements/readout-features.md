@@ -103,7 +103,17 @@
 - 모델별 비용 비율
 - 최근 세션 목록 (세션명 + 프로젝트 + 시간)
 - 건강 경고 배너 (Hygiene 이슈, 미커밋 파일, CLAUDE.md 미설정)
+- **비용 예산 제안**: "Set a spending budget" — "You've spent $N this month with no budget alerts config..." + "Cost control" 버튼
 - 최근 활성 레포의 Skills/Agents/Memory/Repos 요약
+- **워크스페이스 리스캔 알림**: "Workspace rescanned" 토스트 (리스캔 완료 시)
+
+**시간대별 인사 메시지** (확인된 4종):
+| 시간대 | 메시지 |
+|--------|--------|
+| 아침 | "Morning, {name}" (추정) |
+| 낮 | "Midday, {name}" (확인) |
+| 오후 | "Afternoon grind, {name}" (확인) |
+| 밤 | "Deep in it, {name}?" (확인) |
 
 **입력 데이터**: history.jsonl, stats-cache.json, sessions/*.json, git status, .claude/skills/, .claude/agents/, memory/MEMORY.md
 
@@ -481,12 +491,48 @@ cost = (input_tokens × model.input / 1,000,000)
 
 ### F-SET-03. 앱 환경설정 (Settings)
 
-**제공 기능**:
-- **스캔 디렉토리 관리**: 추가/삭제, "2 levels deep for git repos" 스캔
-- **AI 어시스턴트 설정**: Anthropic/OpenAI/Gemini API 키 + 모델 선택 (Haiku/Sonnet/Opus)
-- **일반 설정**: 로그인 시 자동 시작, 자동 업데이트
-- **에이전트 엔진**: Claude Code(ON/OFF), Codex(설치 여부)
-- **진단**: Check for Updates, Export Log
+Settings는 총 **8개 섹션**으로 구성 (스크롤 필요):
+
+**1. Scan Directories** — 워크스페이스 관리
+- 스캔 디렉토리 추가/삭제
+- "Add Directory" / "Scan for New" 버튼
+- "Scans up to 2 levels deep for git repos"
+- "Rescan Workspace" / "Refresh all data" 버튼
+
+**2. Readout Assistant** — AI 채팅 설정
+- Anthropic (토글 ON/OFF) + API Key 입력 + 모델 선택 (Haiku/Sonnet/Opus 칩)
+- OpenAI (접기/펼치기)
+- Gemini (접기/펼치기)
+- "Ask about repos, costs, sessions, and more. Keys are stored locally."
+
+**3. General** — 일반 설정
+- "Launch at login" 토글
+- "Check for updates automatically" 토글
+- "Check for Updates" / "Export Log" 버튼
+
+**4. Agents** — 에이전트 엔진
+- Claude Code (토글 ON/OFF, 경로 표시)
+- Codex (Not installed)
+- "Disabled agents won't appear in sessions, costs, or the dashboard."
+
+**5. Remote Machines** — 원격 머신 모니터링
+- "No remote machines configured" (초기 상태)
+- "Add Machine" / "View This Mac" 버튼
+- "Connect to remote machines running Claude Code or Codex via SSH."
+- "Uses your ~/.ssh/authorized_keys and ssh-agent for authentication."
+
+**6. Sidebar** — 사이드바 커스터마이즈
+- "Show or hide sidebar items."
+- "Customize Sidebar" / "Reset to Default" 버튼
+
+**7. Cost Budget** — 비용 예산 알림
+- Daily: $N / Monthly: $N 설정 필드
+- **"Alert at N%"** 슬라이더 (기본 80%)
+- "Set to $0 to disable."
+
+**8. Footer** — 버전 정보
+- "Readout v0.0.11 © 2026 Benji Taylor • Sponsor"
+- "Readout is in beta. Expect bugs, visual inconsistencies, and rough edges."
 
 ### F-MON-06. 포트 모니터 (Ports)
 
