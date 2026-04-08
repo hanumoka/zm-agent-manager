@@ -149,13 +149,29 @@ JSONL에서 tool_use: TaskCreate, TaskUpdate
 
 ---
 
+## 사용자 의사결정 결과 (2026-04-08)
+
+### 확정된 방향
+
+| 항목 | 결정 | 근거 |
+|------|------|------|
+| **포지셔닝** | Readout 클론 + 태스크 관리 | Readout 모니터링 기반에 태스크 보드/워크플로우/문서 관리 추가 |
+| **태스크 범위** | Claude Code 내부 태스크 시각화 (읽기 전용) | ~/.claude/todos/ + JSONL TaskCreate/TaskUpdate 파싱 |
+| **워크플로우** | 사용자 정의 단계 | 예: 요구사항→설계→구현→테스트→리뷰→완료 |
+| **워크플로우 연동** | 앱에서만 관리 | Claude Code의 상태를 읽어오되, 사용자 단계는 앱 내부에서 별도 매핑. 읽기 전용 원칙 유지 |
+| **문서 관리** | 중요도 분류 + 알림 | 읽기 전용이지만 중요 변경은 눈에 띄게 표시 |
+| **중요도 기준** | 경로 기반 자동 분류 | docs/requirements/=최상, docs/policies/=상, CLAUDE.md=상, docs/roadmap/=중, 기타=하 |
+| **데이터 저장** | 앱 전용 디렉토리 | ~/.zm-agent-manager/ 또는 Electron userData. ~/.claude/는 절대 수정 안 함 |
+
+---
+
 ## PRD 보강 제안
 
 ### 제안 1: Phase 1에 추가할 기능
 
 | ID | 기능명 | 이유 |
 |----|--------|------|
-| **F11** | **태스크 보드** | 고민 2의 핵심. `~/.claude/todos/` 파싱으로 구현 가능. MVP 가치 높음 |
+| **F11** | **태스크 보드** | 고민 2의 핵심. `~/.claude/todos/` + JSONL TaskCreate/TaskUpdate 파싱. MVP 가치 높음 |
 
 ### 제안 2: Phase 2에 추가할 기능
 
@@ -168,37 +184,87 @@ JSONL에서 tool_use: TaskCreate, TaskUpdate
 
 | ID | 기능명 | 이유 |
 |----|--------|------|
-| **F14** | **태스크 워크플로우** | 고민 3의 핵심. 태스크 보드 위에 구축 |
-| **F15** | **문서 중요도 분류 & 리뷰 큐** | 고민 5의 핵심. 문서 인벤토리 위에 구축 |
+| **F14** | **태스크 워크플로우** | 고민 3의 핵심. 태스크 보드 위에 사용자 정의 단계 구축 |
+| **F15** | **문서 중요도 분류 & 알림** | 고민 5의 핵심. 경로 기반 자동 분류 + 중요 변경 알림 |
 | **F16** | **알림 시스템** | 고민 4 보강. 세션/비용/문서 이벤트에 대한 데스크톱 알림 |
 
 ---
 
-## Readout과의 차별화 방향
+## 경쟁 환경 분석
+
+### 유사 도구 비교
+
+| 도구 | 유형 | 핵심 기능 | zm-agent-manager와의 관계 |
+|------|------|----------|------------------------|
+| **Readout** | macOS 앱 (비공개) | 세션 모니터링 + 리플레이 + 비용 + 25개 화면 | **클론 대상** — 모니터링/리플레이 참고 |
+| **Vibe Kanban** | 웹 앱 (Apache 2.0) | 칸반 보드 + 워크스페이스 + AI 에이전트 10종 지원 | **경쟁자** — 태스크 관리 참고 (Rust+TS, 24.6K stars) |
+| **Agent Kanban** | VS Code 확장 | 마크다운 태스크 + plan/todo/implement 워크플로우 | **참고** — 마크다운 기반 태스크 형식 |
+| **Agentation** | npm 패키지 + MCP | UI 어노테이션 → 에이전트 피드백 | **보완 가능** — MCP 연동 참고 |
+| **SessionWatcher** | macOS 메뉴바 ($2.99) | 토큰/비용/레이트 리밋 추적 | **경쟁자** — 비용 추적 참고 |
+
+### zm-agent-manager 차별화 포인트
 
 ```
 Readout (현재)
-  └─ "개발 환경을 한눈에 보는 대시보드"
+  └─ "개발 환경을 한눈에 보는 대시보드" (모니터)
   └─ git/ports/deps/env 등 범용 개발 도구 통합
   └─ 세션 리플레이 + 비용 추적
+  └─ macOS 전용, 비공개
+
+Vibe Kanban (현재)
+  └─ "AI 에이전트를 위한 칸반 보드" (프로젝트 관리)
+  └─ 워크스페이스 (브랜치 + 터미널 + 브라우저)
+  └─ Claude Code 외 10종 에이전트 지원
+  └─ 웹 기반, Apache 2.0
 
 zm-agent-manager (제안)
   └─ "Claude Code 작업을 관리하는 프로젝트 매니저"
-  └─ 태스크 보드 + 워크플로우 (Readout에 없는 핵심 차별화)
-  └─ 문서 라이프사이클 관리 + 리뷰 큐 (Readout에 없는 핵심 차별화)
-  └─ 실시간 모니터링 + 세션 리플레이 (Readout과 동등)
-  └─ 비용 추적 + 알림 (Readout과 동등)
+  └─ Readout급 모니터링 + 리플레이 (크로스 플랫폼)
+  └─ Claude Code 내부 태스크 시각화 (Vibe Kanban과 차별화)
+  └─ 사용자 정의 워크플로우 (고민 3)
+  └─ 문서 중요도 분류 + 알림 (Readout/Vibe에 없음)
+  └─ Claude Code 특화 (범용이 아닌 깊이)
+  └─ Electron 크로스 플랫폼, 오픈소스
 ```
 
-**핵심 포지셔닝**: Readout이 **"모니터"** 라면, zm-agent-manager는 **"매니저"** 다.
+**핵심 포지셔닝**: Readout의 **모니터링 깊이** + Vibe Kanban의 **태스크 관리** + **문서 감독** = zm-agent-manager
 
 ---
 
-## todos 데이터 구조 (태스크 보드 구현을 위한 사전 조사 필요)
+## 태스크 데이터 소스 분석 (완료)
+
+### 1차 소스: `~/.claude/todos/{sessionId}-agent-{sessionId}.json`
+- 세션 종료 후 빈 배열 `[]`로 초기화됨 (확인됨)
+- 활성 세션 중에만 태스크 데이터 존재
+- 구조: JSON 배열 (세부 필드는 활성 세션에서 추가 확인 필요)
+
+### 2차 소스: JSONL의 TaskCreate/TaskUpdate tool_use
+- **모든 세션의 태스크 이력을 완벽히 재구성 가능** (검증 완료)
+- TaskCreate: subject, description, activeForm
+- TaskUpdate: taskId, status (pending/in_progress/completed/deleted)
+- 실제 추출 결과: 11개 TaskCreate + 20+ TaskUpdate 이벤트 확인
+
+### 3차 소스: Claude Code 내부 태스크 시스템
+- 태스크 상태: pending → in_progress → completed (+ deleted)
+- 의존성: blocks/blockedBy 관계 지원
+- Agent Teams: `~/.claude/tasks/{team-name}/` 에 공유 태스크 저장
+- 훅: TaskCreated/TaskCompleted 훅으로 정책 적용 가능
+- 가시성: 터미널에서 `Ctrl+T`로 토글
+
+### 앱 자체 데이터 저장 설계
 
 ```
-~/.claude/todos/{sessionId}-agent-{sessionId}.json
+~/.zm-agent-manager/
+├── config.json                    # 앱 설정 (워크플로우 단계, 중요도 규칙 등)
+├── workflows/                     # 사용자 정의 워크플로우 템플릿
+│   └── default.json               # 기본: pending→in_progress→completed
+├── task-metadata/                  # 태스크 확장 메타데이터
+│   └── {sessionId}/
+│       └── {taskId}.json          # 워크플로우 단계, 라벨, 우선순위 등
+├── doc-importance/                 # 문서 중요도 설정 (경로 기반 규칙)
+│   └── rules.json
+├── notifications/                  # 알림 이력
+│   └── {date}.json
+└── cache/                          # 파싱 캐시 (성능 최적화)
+    └── sessions/
 ```
-
-> 이 파일의 실제 구조를 분석하여 태스크 보드 기능의 데이터 소스를 확정해야 함.
-> 분석 대상: 필드 구조, 상태값, 생성/수정 시간, 연관 세션 ID 등.
