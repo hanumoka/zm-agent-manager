@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zm-agent-manager Mock</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-window: #000000;
+  --bg-content: #1c1c1e;
+  --bg-card: #242425;
+  --bg-card-hover: #3a3a3c;
+  --bg-sidebar-selected: rgba(58,58,60,0.5);
+  --bg-divider: #38383a;
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #6e6e73;
+  --text-section: #8e8e93;
+  --accent-blue: #4a90d9;
+  --accent-green: #34c759;
+  --accent-yellow: #ffd60a;
+  --accent-orange: #ff9f0a;
+  --accent-red: #ff453a;
+  --accent-purple: #bf5af2;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-window); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { width: 240px; min-width: 240px; background: var(--bg-window); padding: 16px 8px; overflow-y: auto; border-right: 1px solid var(--bg-divider); }
+.sidebar-section { font-size: 11px; text-transform: uppercase; color: var(--text-section); padding: 16px 16px 4px; letter-spacing: 0.5px; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--text-secondary); position: relative; transition: background 0.15s; }
+.sidebar-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.sidebar-item.active { background: var(--bg-sidebar-selected); color: var(--text-primary); }
+.sidebar-item .icon { width: 20px; text-align: center; font-size: 14px; }
+.sidebar-item .badge { position: absolute; right: 12px; background: var(--accent-red); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+.sidebar-item .dot { position: absolute; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-red); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.sidebar-item.disabled { opacity: 0.4; pointer-events: none; }
+.sidebar-item.disabled::after { content: '(Phase 2)'; font-size: 10px; color: var(--text-tertiary); margin-left: auto; }
+.sidebar-item.disabled.disabled-p3::after { content: '(Phase 3)'; }
+
+/* Content */
+.content { flex: 1; background: var(--bg-content); overflow-y: auto; padding: 24px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* Components */
+.page-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.page-subtitle { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; }
+.stat-cards { display: flex; gap: 12px; margin-bottom: 20px; }
+.stat-card { flex: 1; background: var(--bg-card); border-radius: 12px; padding: 14px 16px; }
+.stat-card .value { font-size: 28px; font-weight: 700; }
+.stat-card .label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.stat-card .label .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-blue { background: var(--accent-blue); }
+.dot-green { background: var(--accent-green); }
+.dot-yellow { background: var(--accent-yellow); }
+.dot-orange { background: var(--accent-orange); }
+.dot-red { background: var(--accent-red); }
+
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; margin-top: 20px; }
+.section-header .icon { font-size: 14px; }
+.section-header .title { font-size: 14px; font-weight: 600; }
+.section-header .count { font-size: 12px; color: var(--text-secondary); }
+
+.card { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+.card:hover { background: var(--bg-card-hover); }
+.card-row { display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-size: 14px; font-weight: 600; }
+.card-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.card-meta { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+.badge-blue { background: rgba(74,144,217,0.15); color: var(--accent-blue); }
+.badge-green { background: rgba(52,199,89,0.15); color: var(--accent-green); }
+.badge-orange { background: rgba(255,159,10,0.15); color: var(--accent-orange); }
+.badge-red { background: rgba(255,69,58,0.15); color: var(--accent-red); }
+.badge-gray { background: rgba(142,142,147,0.15); color: var(--text-section); }
+.badge-yellow { background: rgba(255,214,10,0.15); color: var(--accent-yellow); }
+
+.bar-chart { margin: 8px 0; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
+.bar-label { width: 120px; text-align: right; color: var(--text-secondary); font-family: monospace; }
+.bar-track { flex: 1; height: 8px; background: var(--bg-divider); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; }
+.bar-value { width: 40px; font-size: 12px; color: var(--text-secondary); }
+
+.alert-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border-radius: 8px; margin-bottom: 6px; font-size: 13px; cursor: pointer; }
+.alert-banner:hover { background: var(--bg-card-hover); }
+.alert-banner .action { margin-left: auto; color: var(--accent-blue); font-size: 12px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Timeline */
+.timeline { padding-left: 20px; border-left: 1px solid var(--bg-divider); }
+.timeline-item { position: relative; padding: 12px 0 12px 20px; }
+.timeline-item::before { content: ''; position: absolute; left: -25px; top: 18px; width: 10px; height: 10px; border-radius: 50%; }
+.timeline-item.user::before { background: var(--accent-blue); }
+.timeline-item.assistant::before { background: var(--accent-green); }
+.timeline-item .time { font-size: 11px; color: var(--text-tertiary); position: absolute; right: 0; top: 14px; }
+.timeline-item .msg { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-top: 4px; }
+.tool-call { background: #2c2c2e; border-radius: 8px; padding: 8px 12px; margin: 6px 0; font-size: 13px; }
+.tool-call .name { font-weight: 600; color: var(--accent-orange); }
+.tool-call .input { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-call .duration { font-size: 11px; color: var(--text-tertiary); }
+.turn-divider { border-top: 1px solid var(--bg-divider); margin: 12px 0; padding-top: 8px; font-size: 11px; color: var(--text-tertiary); text-align: center; }
+.thinking-block { background: #1a1a1c; border-radius: 6px; padding: 6px 10px; margin: 4px 0; font-size: 12px; color: var(--text-tertiary); cursor: pointer; }
+
+/* Kanban */
+.kanban { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.kanban-lane { background: rgba(28,28,30,0.5); border-radius: 12px; padding: 12px; min-height: 300px; }
+.kanban-lane-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; display: flex; justify-content: space-between; }
+.task-card { background: var(--bg-card); border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid transparent; }
+.task-card:hover { background: var(--bg-card-hover); }
+.task-card.blocking { border-left-color: var(--accent-red); }
+.task-card.important { border-left-color: var(--accent-orange); }
+.task-card.suggestion { border-left-color: var(--text-section); }
+.task-card .subject { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.task-card .desc { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-card .meta { display: flex; gap: 6px; margin-top: 6px; align-items: center; font-size: 11px; color: var(--text-tertiary); }
+
+.task-detail { background: var(--bg-content); border: 1px solid var(--bg-divider); border-radius: 12px; padding: 16px; margin-top: 16px; }
+.task-detail .history-item { font-size: 12px; color: var(--text-secondary); padding: 4px 0; }
+
+/* Docs */
+.review-queue-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+.review-queue-item .actions { margin-left: auto; display: flex; gap: 6px; }
+.review-queue-item .actions button { padding: 4px 10px; border-radius: 6px; border: none; font-size: 11px; cursor: pointer; }
+.btn-review { background: var(--accent-blue); color: #fff; }
+.btn-ack { background: var(--bg-divider); color: var(--text-secondary); }
+.btn-approve { background: var(--accent-green); color: #fff; }
+.btn-reject { background: var(--accent-red); color: #fff; }
+
+.doc-table { width: 100%; font-size: 13px; }
+.doc-table th { text-align: left; color: var(--text-tertiary); font-weight: normal; font-size: 11px; padding: 8px 12px; border-bottom: 1px solid var(--bg-divider); }
+.doc-table td { padding: 8px 12px; border-bottom: 1px solid rgba(56,56,58,0.3); }
+.doc-table tr:hover { background: var(--bg-card); cursor: pointer; }
+
+/* Replay */
+.replay-bar { background: var(--bg-card); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.replay-track { width: 100%; height: 6px; background: var(--bg-divider); border-radius: 3px; margin: 8px 0; position: relative; cursor: pointer; }
+.replay-fill { height: 100%; background: var(--accent-blue); border-radius: 3px; width: 35%; }
+.replay-head { position: absolute; top: -5px; left: 35%; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--accent-blue); transform: translateX(-6px); }
+.replay-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.replay-controls button { background: var(--bg-card); border: none; color: var(--text-primary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.replay-controls button:hover { background: var(--bg-card-hover); }
+.replay-controls button.active { background: var(--accent-blue); }
+.speed-chips { display: flex; gap: 4px; margin-left: auto; }
+.speed-chip { padding: 4px 10px; border-radius: 4px; font-size: 12px; background: var(--bg-card); color: var(--text-secondary); cursor: pointer; border: none; }
+.speed-chip.active { background: var(--accent-blue); color: #fff; }
+
+.replay-split { display: grid; grid-template-columns: 65% 35%; gap: 16px; }
+.file-panel { background: var(--bg-card); border-radius: 12px; padding: 12px; }
+.file-item { padding: 6px 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; border-radius: 4px; }
+.file-item:hover { background: var(--bg-card-hover); }
+.file-item .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); animation: pulse 1s; }
+
+/* Costs */
+.cost-card { text-align: center; }
+.cost-card .value { font-size: 24px; font-weight: 700; }
+.budget-section { display: flex; gap: 20px; align-items: center; margin-top: 16px; }
+.budget-section label { font-size: 13px; color: var(--text-secondary); }
+.budget-section input { background: var(--bg-card); border: 1px solid var(--bg-divider); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; width: 80px; font-size: 13px; }
+.budget-slider { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.budget-slider input[type=range] { flex: 1; accent-color: var(--accent-blue); }
+
+/* Settings */
+.setting-group { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.setting-group-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; }
+.setting-row + .setting-row { border-top: 1px solid rgba(56,56,58,0.3); }
+.toggle { width: 42px; height: 24px; border-radius: 12px; background: var(--bg-divider); position: relative; cursor: pointer; transition: background 0.2s; }
+.toggle.on { background: var(--accent-blue); }
+.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle.on::after { left: 20px; }
+
+.back-btn { font-size: 13px; color: var(--accent-blue); cursor: pointer; margin-bottom: 12px; display: inline-block; }
+.back-btn:hover { text-decoration: underline; }
+
+/* Empty */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state .title { font-size: 16px; font-weight: 600; color: var(--text-secondary); }
+.empty-state .desc { font-size: 14px; margin-top: 4px; }
+
+/* Chart placeholder */
+.chart-placeholder { background: var(--bg-card); border-radius: 12px; padding: 16px; min-height: 140px; display: flex; align-items: flex-end; gap: 4px; }
+.chart-bar { background: var(--accent-blue); border-radius: 3px 3px 0 0; flex: 1; min-width: 8px; transition: height 0.3s; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+.filter-bar select { background: var(--bg-card); border: 1px solid var(--bg-divider); color: var(--text-primary); padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+
+.session-item { display: flex; justify-content: space-between; align-items: center; }
+.replay-btn { font-size: 11px; color: var(--accent-blue); cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+.replay-btn:hover { background: rgba(74,144,217,0.15); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-section">Monitor</div>
+  <div class="sidebar-item active" onclick="showPage('dashboard')">
+    <span class="icon">📊</span> Dashboard
+  </div>
+  <div class="sidebar-item" onclick="showPage('live')">
+    <span class="icon">🔴</span> Live
+    <span class="dot"></span>
+  </div>
+  <div class="sidebar-item" onclick="showPage('sessions')">
+    <span class="icon">📋</span> Sessions
+  </div>
+  <div class="sidebar-item" onclick="showPage('tools')">
+    <span class="icon">🔧</span> Tools
+  </div>
+
+  <div class="sidebar-section">Tasks</div>
+  <div class="sidebar-item" onclick="showPage('board')">
+    <span class="icon">📌</span> Board
+  </div>
+  <div class="sidebar-item disabled disabled-p3">
+    <span class="icon">🔄</span> Workflow
+  </div>
+
+  <div class="sidebar-section">History</div>
+  <div class="sidebar-item" onclick="showPage('replay')">
+    <span class="icon">▶️</span> Replay
+  </div>
+  <div class="sidebar-item" onclick="showPage('diffs')">
+    <span class="icon">📝</span> Diffs
+  </div>
+  <div class="sidebar-item disabled disabled-p3" style="">
+    <span class="icon">🔍</span> Search
+  </div>
+
+  <div class="sidebar-section">Manage</div>
+  <div class="sidebar-item" onclick="showPage('docs')">
+    <span class="icon">📄</span> Docs
+    <span class="badge" style="position:absolute;right:12px">2</span>
+  </div>
+  <div class="sidebar-item" onclick="showPage('costs')">
+    <span class="icon">💰</span> Costs
+  </div>
+  <div style="margin-top:auto; border-top:1px solid var(--bg-divider); padding-top:8px; margin-top: 12px;"></div>
+  <div class="sidebar-item" onclick="showPage('settings')">
+    <span class="icon">⚙️</span> Settings
+  </div>
+</nav>
+
+<!-- CONTENT -->
+<main class="content">
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="page-dashboard" class="page active">
+  <div class="page-title">Good afternoon, kyb</div>
+  <div class="page-subtitle">zm-agent-manager에서 활발히 작업 중입니다. 오늘 14개 커밋 완료.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">1</div><div class="label"><span class="dot dot-blue"></span> Sessions</div></div>
+    <div class="stat-card"><div class="value">11</div><div class="label"><span class="dot dot-green"></span> Tasks</div></div>
+    <div class="stat-card"><div class="value">353</div><div class="label"><span class="dot dot-blue"></span> Tool Calls</div></div>
+    <div class="stat-card"><div class="value">$27.07</div><div class="label"><span class="dot dot-yellow"></span> Est. Cost</div></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section-header"><span class="icon">⚡</span><span class="title">Activity</span><span class="count">30d</span></div>
+      <div class="chart-placeholder" id="activity-chart"></div>
+    </div>
+    <div>
+      <div class="section-header"><span class="icon">📌</span><span class="title">Task Summary</span></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+          <span>Pending</span><span style="color:var(--accent-orange)">3</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+          <span>In Progress</span><span style="color:var(--accent-blue)">2</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+          <span>Completed today</span><span style="color:var(--accent-green)">6</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header"><span class="icon">📊</span><span class="title">Recent Sessions</span><span class="count">5</span></div>
+  <div class="card" onclick="showPage('session-detail')">
+    <div class="session-item">
+      <div>
+        <div class="card-title">실제 readout을 대비하여 90프로 이상 구현이 가능해야 한다...</div>
+        <div class="card-meta">📁 zm-agent-manager &nbsp; ⏱ 1h ago</div>
+      </div>
+      <span class="replay-btn" onclick="event.stopPropagation();showPage('replay')">Replay ▶</span>
+    </div>
+  </div>
+  <div class="card" onclick="showPage('session-detail')">
+    <div class="session-item">
+      <div>
+        <div class="card-title">Agentation 도 면밀히 분석하여 제공하는 기능을 수집하여...</div>
+        <div class="card-meta">📁 zm-agent-manager &nbsp; ⏱ 4h ago</div>
+      </div>
+      <span class="replay-btn" onclick="event.stopPropagation();showPage('replay')">Replay ▶</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="session-item">
+      <div>
+        <div class="card-title">커스텀 스킬 에이전트 훅스의 이름을 접두어 zm-를 붙여서...</div>
+        <div class="card-meta">📁 zm-agent-manager &nbsp; ⏱ 6h ago</div>
+      </div>
+      <span class="replay-btn" onclick="event.stopPropagation();showPage('replay')">Replay ▶</span>
+    </div>
+  </div>
+
+  <div class="section-header"><span class="icon">⚠️</span><span class="title">Alerts</span></div>
+  <div class="alert-banner" onclick="showPage('docs')">
+    🔴 PRD-v2.md changed (blocking) <span class="action">Review →</span>
+  </div>
+  <div class="alert-banner" onclick="showPage('docs')">
+    🟠 feature-spec.md changed (important) <span class="action">Review →</span>
+  </div>
+  <div class="alert-banner">
+    ⚠️ 1 uncommitted file in zm-agent-manager
+  </div>
+  <div class="alert-banner" onclick="showPage('costs')">
+    💰 You've spent $27.07 with no budget set <span class="action">Configure →</span>
+  </div>
+</div>
+
+<!-- ==================== LIVE ==================== -->
+<div id="page-live" class="page">
+  <div class="page-title">Live Sessions</div>
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">1</div><div class="label"><span class="dot dot-blue"></span> Sessions</div></div>
+    <div class="stat-card"><div class="value">0</div><div class="label"><span class="dot dot-green"></span> Generating</div></div>
+    <div class="stat-card"><div class="value">1,006</div><div class="label"><span class="dot dot-blue"></span> Memory MB</div></div>
+  </div>
+
+  <div class="card" onclick="showPage('session-detail')" style="border-left: 3px solid var(--accent-green)">
+    <div class="card-row">
+      <div class="card-title">
+        <span style="color:var(--accent-green);margin-right:8px">●</span>
+        zm-agent-manager
+      </div>
+      <span class="badge badge-green">active</span>
+    </div>
+    <div class="card-subtitle">📁 ~/projects/zm-agent-manager</div>
+    <div class="card-meta">⏱ 1:14:29 &nbsp; 💾 1006 MB</div>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">
+      🔧 현재: Write docs/requirements/wireframes.md
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SESSIONS ==================== -->
+<div id="page-sessions" class="page">
+  <div class="page-title">Sessions</div>
+  <div class="page-subtitle">1 session, 101 messages total. Primary model: claude-opus-4-6. Active across 2 projects.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">1</div><div class="label"><span class="dot dot-blue"></span> Sessions</div></div>
+    <div class="stat-card"><div class="value">101</div><div class="label"><span class="dot dot-green"></span> Messages</div></div>
+    <div class="stat-card"><div class="value">2K</div><div class="label"><span class="dot dot-blue"></span> Tokens</div></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📁</span><span class="title">By Project</span></div>
+  <div class="card">
+    <div class="card-row"><span>zm-agent-manager</span><span style="font-size:13px;color:var(--text-secondary)">23 sessions &nbsp; 2h ago</span></div>
+  </div>
+  <div class="card">
+    <div class="card-row"><span>sonix_galatine</span><span style="font-size:13px;color:var(--text-secondary)">11 sessions &nbsp; Feb 6</span></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📊</span><span class="title">Recent Sessions</span></div>
+  <div class="card" onclick="showPage('session-detail')">
+    <div class="session-item">
+      <div>
+        <div class="card-title">실제 readout을 대비하여 90프로 이상 구현이 가능해야 한다...</div>
+        <div class="card-meta">📁 zm-agent-manager &nbsp; ⏱ 1h ago &nbsp; 📨 101 msgs</div>
+      </div>
+      <span class="replay-btn" onclick="event.stopPropagation();showPage('replay')">Replay ▶</span>
+    </div>
+  </div>
+  <div class="card" onclick="showPage('session-detail')">
+    <div class="session-item">
+      <div>
+        <div class="card-title">관리해야하는 문서의 종류를 클리드 분야에서 관리해야한다...</div>
+        <div class="card-meta">📁 zm-agent-manager &nbsp; ⏱ 8h ago &nbsp; 📨 45 msgs</div>
+      </div>
+      <span class="replay-btn" onclick="event.stopPropagation();showPage('replay')">Replay ▶</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SESSION DETAIL (Timeline) ==================== -->
+<div id="page-session-detail" class="page">
+  <div class="back-btn" onclick="showPage('sessions')">← Sessions</div>
+  <div class="page-title">세션 타임라인</div>
+  <div class="page-subtitle">📁 zm-agent-manager &nbsp; ⏱ 14:22~15:45 &nbsp; 📨 101 messages &nbsp; 🔧 353 tool calls</div>
+
+  <div class="timeline">
+    <div class="timeline-item user">
+      <span class="time">14:22</span>
+      <div class="card-title">User</div>
+      <div class="msg">실제 readout을 대비하여 90프로 이상 구현이 가능해야 한다. 면밀히 재검토하여 모두 평균적으로 90 퍼센트 이상으로 올리수 있게 단계별로 면밀히 재검토해줘</div>
+    </div>
+
+    <div class="timeline-item assistant">
+      <span class="time">14:23</span>
+      <div class="card-title">Assistant</div>
+      <div class="thinking-block" onclick="this.style.maxHeight=this.style.maxHeight?'':'200px';this.style.overflow='hidden'">
+        ▶ Thinking (접기/펼치기) — "각 영역의 부족한 부분을 체계적으로 보강하겠습니다..."
+      </div>
+      <div class="msg">각 영역의 부족한 부분을 체계적으로 보강하겠습니다.</div>
+      <div class="tool-call">
+        <span class="name">🔧 Read</span>
+        <span class="input"> docs/requirements/readout-analysis.md</span>
+        <span class="duration"> ⏱ 0.3s</span>
+      </div>
+      <div class="tool-call">
+        <span class="name">🔧 Bash</span>
+        <span class="input"> python3 << 'PYEOF' ... (Readout 캡처 스크립트)</span>
+        <span class="duration"> ⏱ 45.2s</span>
+      </div>
+      <div class="tool-call">
+        <span class="name">🔧 Edit</span>
+        <span class="input"> docs/requirements/readout-analysis.md</span>
+        <span class="duration"> ⏱ 0.1s</span>
+      </div>
+    </div>
+
+    <div class="turn-divider">── Turn End ── 262s, 106 messages ──</div>
+
+    <div class="timeline-item user">
+      <span class="time">14:27</span>
+      <div class="card-title">User</div>
+      <div class="msg">진행해줘</div>
+    </div>
+
+    <div class="timeline-item assistant">
+      <span class="time">14:28</span>
+      <div class="card-title">Assistant</div>
+      <div class="msg">PRD v2를 작성합니다. 기존 PRD의 좋은 부분은 유지하면서 사용자 고민, 경쟁 분석, F11~F16을 통합합니다.</div>
+      <div class="tool-call">
+        <span class="name">🔧 Write</span>
+        <span class="input"> docs/requirements/PRD-v2.md (454줄)</span>
+        <span class="duration"> ⏱ 0.2s</span>
+      </div>
+      <div class="tool-call">
+        <span class="name">🔧 Bash</span>
+        <span class="input"> git add && git commit && git push</span>
+        <span class="duration"> ⏱ 3.1s</span>
+      </div>
+    </div>
+
+    <div class="turn-divider">── Turn End ── 180s, 42 messages ──</div>
+
+    <div class="timeline-item user">
+      <span class="time">14:31</span>
+      <div class="card-title">User</div>
+      <div class="msg">게속 진행해줘</div>
+    </div>
+
+    <div class="timeline-item assistant">
+      <span class="time">14:32</span>
+      <div class="card-title">Assistant</div>
+      <div class="msg">기능명세서를 작성합니다.</div>
+      <div class="tool-call">
+        <span class="name">🔧 Write</span>
+        <span class="input"> docs/requirements/feature-spec.md (564줄)</span>
+        <span class="duration"> ⏱ 0.3s</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOOLS ==================== -->
+<div id="page-tools" class="page">
+  <div class="page-title">Tools</div>
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">353</div><div class="label"><span class="dot dot-blue"></span> Total Calls</div></div>
+    <div class="stat-card"><div class="value">48</div><div class="label"><span class="dot dot-green"></span> Files Touched</div></div>
+    <div class="stat-card"><div class="value">47</div><div class="label"><span class="dot dot-blue"></span> Avg/Session</div></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📊</span><span class="title">Tool Distribution</span><span class="count">13 tools</span></div>
+  <div class="bar-chart">
+    <div class="bar-row"><span class="bar-label">Read</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent-green)"></div></div><span class="bar-value">139</span></div>
+    <div class="bar-row"><span class="bar-label">Bash</span><div class="bar-track"><div class="bar-fill" style="width:63%;background:var(--accent-blue)"></div></div><span class="bar-value">87</span></div>
+    <div class="bar-row"><span class="bar-label">Edit</span><div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--accent-orange)"></div></div><span class="bar-value">35</span></div>
+    <div class="bar-row"><span class="bar-label">TaskUpdate</span><div class="bar-track"><div class="bar-fill" style="width:15%;background:var(--text-section)"></div></div><span class="bar-value">21</span></div>
+    <div class="bar-row"><span class="bar-label">Write</span><div class="bar-track"><div class="bar-fill" style="width:14%;background:var(--accent-yellow)"></div></div><span class="bar-value">19</span></div>
+    <div class="bar-row"><span class="bar-label">WebSearch</span><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--text-section)"></div></div><span class="bar-value">12</span></div>
+    <div class="bar-row"><span class="bar-label">TaskCreate</span><div class="bar-track"><div class="bar-fill" style="width:8%;background:var(--text-section)"></div></div><span class="bar-value">11</span></div>
+    <div class="bar-row"><span class="bar-label">Agent</span><div class="bar-track"><div class="bar-fill" style="width:6%;background:var(--text-section)"></div></div><span class="bar-value">9</span></div>
+  </div>
+
+  <div class="section-header"><span class="icon">🔗</span><span class="title">Common Sequences</span><span class="count">8 patterns</span></div>
+  <div class="bar-chart">
+    <div class="bar-row"><span class="bar-label">Bash → Bash</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent-blue)"></div></div><span class="bar-value">48</span></div>
+    <div class="bar-row"><span class="bar-label">Write → Write</span><div class="bar-track"><div class="bar-fill" style="width:71%;background:var(--accent-yellow)"></div></div><span class="bar-value">34</span></div>
+    <div class="bar-row"><span class="bar-label">Read → Read</span><div class="bar-track"><div class="bar-fill" style="width:71%;background:var(--accent-green)"></div></div><span class="bar-value">34</span></div>
+    <div class="bar-row"><span class="bar-label">Edit → Edit</span><div class="bar-track"><div class="bar-fill" style="width:40%;background:var(--accent-orange)"></div></div><span class="bar-value">19</span></div>
+    <div class="bar-row"><span class="bar-label">Read → Edit</span><div class="bar-track"><div class="bar-fill" style="width:38%;background:var(--accent-green)"></div></div><span class="bar-value">18</span></div>
+  </div>
+
+  <div class="section-header"><span class="icon">📄</span><span class="title">Most Edited Files</span><span class="count">48 total</span></div>
+  <div class="card"><div class="card-row"><span>CLAUDE.md</span><span class="badge badge-blue">📁 zm-agent-manager</span></div><div class="card-meta">6 edits</div></div>
+  <div class="card"><div class="card-row"><span>settings.json</span><span class="badge badge-blue">📁 .claude</span></div><div class="card-meta">5 edits</div></div>
+  <div class="card"><div class="card-row"><span>SESSION_LOG.md</span><span class="badge badge-blue">📁 docs/sessions</span></div><div class="card-meta">4 edits</div></div>
+  <div class="card"><div class="card-row"><span>readout-analysis.md</span><span class="badge badge-blue">📁 docs/requirements</span></div><div class="card-meta">3 edits</div></div>
+</div>
+
+<!-- ==================== BOARD (Kanban) ==================== -->
+<div id="page-board" class="page">
+  <div class="page-title">Task Board</div>
+  <div class="filter-bar">
+    <select><option>All Sessions</option><option>zm-agent-manager #20b85cb8</option></select>
+    <select><option>Severity: All</option><option>Blocking</option><option>Important</option><option>Suggestion</option></select>
+    <select><option>Type: All</option><option>fix</option><option>change</option><option>question</option></select>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">11</div><div class="label"><span class="dot dot-blue"></span> Total</div></div>
+    <div class="stat-card"><div class="value">2</div><div class="label"><span class="dot dot-orange"></span> Active</div></div>
+    <div class="stat-card"><div class="value">8</div><div class="label"><span class="dot dot-green"></span> Done</div></div>
+    <div class="stat-card"><div class="value">73%</div><div class="label"><span class="dot dot-green"></span> Rate</div></div>
+  </div>
+
+  <div class="kanban">
+    <div class="kanban-lane">
+      <div class="kanban-lane-title">Pending <span class="badge badge-orange">3</span></div>
+      <div class="task-card blocking" onclick="document.getElementById('task-detail').style.display='block'">
+        <div class="subject">🔴 화면설계서 리뷰</div>
+        <div class="desc">screen-design.md 사용자 리뷰 대기</div>
+        <div class="meta"><span class="badge badge-red">blocking</span> <span class="badge badge-gray">approve</span> 📁 zm-agt ⏱ 5m</div>
+      </div>
+      <div class="task-card important">
+        <div class="subject">🟠 와이어프레임 리뷰</div>
+        <div class="desc">wireframes.md 사용자 리뷰 대기</div>
+        <div class="meta"><span class="badge badge-orange">important</span> <span class="badge badge-gray">approve</span> 📁 zm-agt ⏱ 5m</div>
+      </div>
+      <div class="task-card suggestion">
+        <div class="subject">⚪ F7 상세 보강</div>
+        <div class="desc">서브에이전트 추적 기능 스펙 보강</div>
+        <div class="meta"><span class="badge badge-gray">suggestion</span> <span class="badge badge-gray">change</span> ⏱ 1h</div>
+      </div>
+    </div>
+
+    <div class="kanban-lane">
+      <div class="kanban-lane-title">In Progress <span class="badge badge-blue">2</span></div>
+      <div class="task-card important">
+        <div class="subject">🟠 HTML Mock 작성</div>
+        <div class="desc">전체 서비스 HTML 모크업 구현</div>
+        <div class="meta"><span class="badge badge-orange">important</span> <span class="badge badge-gray">change</span> 📁 zm-agt ⏱ now</div>
+      </div>
+      <div class="task-card important">
+        <div class="subject">🟠 기능명세서 보강</div>
+        <div class="desc">F11 데이터 소스 강조 추가</div>
+        <div class="meta"><span class="badge badge-orange">important</span> <span class="badge badge-gray">fix</span> ⏱ 10m</div>
+      </div>
+    </div>
+
+    <div class="kanban-lane">
+      <div class="kanban-lane-title">Completed <span class="badge badge-green">8</span></div>
+      <div class="task-card" style="opacity:0.7">
+        <div class="subject">✅ PRD v2 작성</div>
+        <div class="desc">F1~F16 + 사용자 고민 + 경쟁 분석 통합</div>
+        <div class="meta"><span class="badge badge-green">done</span> <span class="badge badge-gray">change</span> ⏱ 30m ago</div>
+      </div>
+      <div class="task-card" style="opacity:0.7">
+        <div class="subject">✅ 기능명세서 작성</div>
+        <div class="desc">F1~F16 입력/출력/로직/UI 정의</div>
+        <div class="meta"><span class="badge badge-green">done</span> <span class="badge badge-gray">change</span> ⏱ 20m ago</div>
+      </div>
+      <div class="task-card" style="opacity:0.7">
+        <div class="subject">✅ 화면설계서 작성</div>
+        <div class="desc">사이드바 + 10개 화면 + 네비게이션</div>
+        <div class="meta"><span class="badge badge-green">done</span> <span class="badge badge-gray">change</span> ⏱ 15m ago</div>
+      </div>
+      <div class="task-card" style="opacity:0.7">
+        <div class="subject">✅ 커스텀 스킬 6개 생성</div>
+        <div class="meta"><span class="badge badge-green">done</span> ⏱ 3h ago</div>
+      </div>
+      <div class="task-card" style="opacity:0.7">
+        <div class="subject">✅ 커스텀 에이전트 3개 생성</div>
+        <div class="meta"><span class="badge badge-green">done</span> ⏱ 3h ago</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-detail" id="task-detail" style="display:none">
+    <div class="card-row">
+      <div class="card-title">📌 화면설계서 리뷰</div>
+      <span class="badge badge-red">blocking</span>
+    </div>
+    <div class="card-subtitle">screen-design.md 사용자 리뷰 대기 — 561줄</div>
+    <div style="margin-top:12px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">Severity: <span class="badge badge-red">blocking</span> &nbsp; Type: <span class="badge badge-gray">approve</span></div>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">상태 이력:</div>
+      <div class="history-item">● 14:40 TaskCreate → pending</div>
+      <div class="history-item">● 14:41 TaskUpdate → in_progress</div>
+      <div class="history-item">● 14:45 TaskUpdate → completed</div>
+    </div>
+    <div style="margin-top:12px;font-size:13px">
+      소속 세션: <span style="color:var(--accent-blue);cursor:pointer" onclick="showPage('session-detail')">zm-agent-manager #20b85cb8 →</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== REPLAY ==================== -->
+<div id="page-replay" class="page">
+  <div class="back-btn" onclick="showPage('sessions')">← Back</div>
+  <div class="page-title">Session Replay</div>
+  <div class="page-subtitle">📁 zm-agent-manager &nbsp; ⏱ 14:22~15:45 &nbsp; 📨 101 messages &nbsp; 🔧 353 tools</div>
+
+  <div class="replay-bar">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-tertiary)">
+      <span>14:22</span><span>15:45</span>
+    </div>
+    <div class="replay-track">
+      <div class="replay-fill"></div>
+      <div class="replay-head"></div>
+    </div>
+  </div>
+
+  <div class="replay-controls">
+    <button>⏮</button>
+    <button>◀</button>
+    <button class="active">▶ Play</button>
+    <button>▶</button>
+    <button>⏭</button>
+    <div class="speed-chips">
+      <button class="speed-chip">0.5x</button>
+      <button class="speed-chip active">1x</button>
+      <button class="speed-chip">2x</button>
+      <button class="speed-chip">4x</button>
+    </div>
+  </div>
+
+  <div class="replay-split">
+    <div>
+      <div class="section-header"><span class="title">Event Timeline</span></div>
+      <div class="timeline">
+        <div class="timeline-item user">
+          <span class="time">14:22</span>
+          <div class="card-title">User</div>
+          <div class="msg">실제 readout을 대비하여 90프로 이상...</div>
+        </div>
+        <div class="timeline-item assistant">
+          <span class="time">14:23</span>
+          <div class="card-title">Assistant</div>
+          <div class="tool-call"><span class="name">🔧 Read</span> <span class="input">readout-analysis.md</span> <span class="duration">⏱ 0.3s</span></div>
+          <div class="tool-call"><span class="name">🔧 Bash</span> <span class="input">python3 (캡처 스크립트)</span> <span class="duration">⏱ 45.2s</span></div>
+          <div class="tool-call" style="border-left:2px solid var(--accent-green)"><span class="name">🔧 Edit</span> <span class="input">readout-analysis.md ← 현재</span> <span class="duration">⏱ 0.1s</span></div>
+        </div>
+        <div class="turn-divider">── Turn End ── 262s ──</div>
+        <div class="timeline-item user">
+          <span class="time">14:27</span>
+          <div class="card-title">User</div>
+          <div class="msg">진행해줘</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-header"><span class="title">File Changes</span></div>
+      <div class="file-panel">
+        <div class="file-item"><span class="pulse"></span> 📄 readout-analysis.md</div>
+        <div class="file-item"> 📄 CLAUDE.md</div>
+        <div class="file-item"><span class="pulse"></span> 📄 PRD-v2.md</div>
+        <div class="file-item"><span class="pulse"></span> 📄 feature-spec.md</div>
+        <div class="file-item"> 📄 SESSION_LOG.md</div>
+        <div class="file-item"><span class="pulse"></span> 📄 screen-design.md</div>
+        <div class="file-item"> 📄 settings.json</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIFFS ==================== -->
+<div id="page-diffs" class="page">
+  <div class="page-title">Diffs</div>
+  <div class="page-subtitle">5 sessions with file changes. 59 files modified total.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="value">5</div><div class="label"><span class="dot dot-blue"></span> Sessions</div></div>
+    <div class="stat-card"><div class="value">59</div><div class="label"><span class="dot dot-green"></span> Files Changed</div></div>
+  </div>
+
+  <div class="section-header"><span class="title">Today</span></div>
+  <div class="card">
+    <div class="card-title">실제 readout을 대비하여 90프로 이상 구현이 가능해야...</div>
+    <div class="card-meta" style="margin-top:6px">
+      <span class="badge badge-blue">Claude Code</span>
+      <span class="badge badge-green">zm-agent-manager</span>
+      &nbsp; 30 files &nbsp;
+      <span class="badge badge-yellow">60 edits</span>
+      &nbsp;&nbsp;
+      <span class="replay-btn" onclick="showPage('replay')">⟳ Replay</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">/exit</div>
+    <div class="card-meta" style="margin-top:6px">
+      <span class="badge badge-blue">Claude Code</span>
+      <span class="badge badge-green">zm-agent-manager</span>
+      &nbsp; 7 files &nbsp;
+      <span class="badge badge-yellow">17 edits</span>
+      &nbsp;&nbsp;
+      <span class="replay-btn" onclick="showPage('replay')">⟳ Replay</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DOCS ==================== -->
+<div id="page-docs" class="page">
+  <div class="page-title">Documents</div>
+
+  <div class="section-header"><span class="icon">⚠️</span><span class="title">Pending Review</span><span class="count">2</span></div>
+  <div class="review-queue-item">
+    <span>🔴</span>
+    <span style="flex:1">PRD-v2.md <span class="badge badge-red">blocking</span></span>
+    <span style="font-size:11px;color:var(--text-tertiary)">⏱ 30m ago</span>
+    <div class="actions">
+      <button class="btn-review" onclick="showPage('doc-detail')">Review</button>
+      <button class="btn-ack">Ack</button>
+    </div>
+  </div>
+  <div class="review-queue-item">
+    <span>🟠</span>
+    <span style="flex:1">feature-spec.md <span class="badge badge-orange">important</span></span>
+    <span style="font-size:11px;color:var(--text-tertiary)">⏱ 20m ago</span>
+    <div class="actions">
+      <button class="btn-review" onclick="showPage('doc-detail')">Review</button>
+      <button class="btn-ack">Ack</button>
+    </div>
+  </div>
+
+  <div class="section-header"><span class="icon">📄</span><span class="title">Document Inventory</span><span class="count">15 files</span></div>
+  <table class="doc-table">
+    <thead><tr><th>Name</th><th>Size</th><th>Lines</th><th>Modified</th><th>Severity</th></tr></thead>
+    <tbody>
+      <tr onclick="showPage('doc-detail')"><td>📄 CLAUDE.md</td><td>4.5KB</td><td>108</td><td>2h ago</td><td><span class="badge badge-orange">important</span></td></tr>
+      <tr onclick="showPage('doc-detail')"><td>📄 MEMORY.md</td><td>1.2KB</td><td>33</td><td>3h ago</td><td><span class="badge badge-orange">important</span></td></tr>
+      <tr onclick="showPage('doc-detail')"><td>📄 PRD-v2.md</td><td>15KB</td><td>471</td><td>30m ago</td><td><span class="badge badge-red">blocking</span></td></tr>
+      <tr onclick="showPage('doc-detail')"><td>📄 feature-spec.md</td><td>18KB</td><td>566</td><td>20m ago</td><td><span class="badge badge-red">blocking</span></td></tr>
+      <tr onclick="showPage('doc-detail')"><td>📄 screen-design.md</td><td>16KB</td><td>561</td><td>10m ago</td><td><span class="badge badge-red">blocking</span></td></tr>
+      <tr onclick="showPage('doc-detail')"><td>📄 wireframes.md</td><td>12KB</td><td>389</td><td>5m ago</td><td><span class="badge badge-red">blocking</span></td></tr>
+      <tr><td>📁 .claude/rules/</td><td>-</td><td>5 files</td><td>2h ago</td><td><span class="badge badge-orange">important</span></td></tr>
+      <tr><td>📁 .claude/skills/</td><td>-</td><td>6 files</td><td>3h ago</td><td><span class="badge badge-gray">suggestion</span></td></tr>
+      <tr><td>📁 .claude/agents/</td><td>-</td><td>3 files</td><td>3h ago</td><td><span class="badge badge-gray">suggestion</span></td></tr>
+      <tr><td>📁 docs/roadmap/</td><td>-</td><td>4 files</td><td>5h ago</td><td><span class="badge badge-orange">important</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== DOC DETAIL ==================== -->
+<div id="page-doc-detail" class="page">
+  <div class="back-btn" onclick="showPage('docs')">← Documents</div>
+  <div class="page-title">PRD-v2.md <span class="badge badge-red">blocking</span></div>
+  <div class="page-subtitle">docs/requirements/PRD-v2.md &nbsp; 471줄 &nbsp; 15KB &nbsp; 30m ago</div>
+
+  <div class="section-header"><span class="title">변경 이력</span></div>
+  <div class="card" style="font-size:13px">
+    <div>● 14:45 세션 #20b85cb8 — 471줄 신규 생성 (PRD v2)</div>
+  </div>
+
+  <div class="section-header"><span class="title">Diff Preview</span></div>
+  <div class="card" style="font-family:monospace;font-size:12px;line-height:1.6;max-height:300px;overflow-y:auto">
+    <div style="color:var(--accent-green)">+ # zm-agent-manager PRD v2</div>
+    <div style="color:var(--accent-green)">+</div>
+    <div style="color:var(--accent-green)">+ > 버전: 2.0</div>
+    <div style="color:var(--accent-green)">+ > 작성일: 2026-04-08</div>
+    <div style="color:var(--accent-green)">+</div>
+    <div style="color:var(--accent-green)">+ ## 1. 프로젝트 개요</div>
+    <div style="color:var(--accent-green)">+ ### 1.1 프로젝트명</div>
+    <div style="color:var(--accent-green)">+ **zm-agent-manager** — Claude Code 세션 모니터링,</div>
+    <div style="color:var(--accent-green)">+ 태스크 관리, 문서 감독 데스크톱 앱</div>
+    <div style="color:var(--text-tertiary)">  ... (462줄 더)</div>
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button class="btn-approve" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="alert('Approved!')">✅ Approve</button>
+    <button class="btn-reject" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="alert('Rejected!')">❌ Reject</button>
+    <button class="btn-ack" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;background:var(--bg-card);color:var(--text-secondary)">💬 Comment</button>
+  </div>
+</div>
+
+<!-- ==================== COSTS ==================== -->
+<div id="page-costs" class="page">
+  <div class="page-title">Costs</div>
+  <div class="page-subtitle">Estimated total: $27.07 across 1 model. Daily average: $27.07.</div>
+
+  <div class="stat-cards">
+    <div class="stat-card cost-card"><div class="value" style="color:var(--accent-blue)">$27.07</div><div class="label"><span class="dot dot-blue"></span> Today</div></div>
+    <div class="stat-card cost-card"><div class="value" style="color:var(--accent-green)">$27.07</div><div class="label"><span class="dot dot-green"></span> This Week</div></div>
+    <div class="stat-card cost-card"><div class="value" style="color:var(--accent-green)">$27.07</div><div class="label"><span class="dot dot-green"></span> This Month</div></div>
+    <div class="stat-card cost-card"><div class="value" style="color:var(--accent-yellow)">$1.39</div><div class="label"><span class="dot dot-yellow"></span> All Time</div></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section-header"><span class="title">Cost by Model</span></div>
+      <div class="bar-chart">
+        <div class="bar-row"><span class="bar-label">Opus 4.6</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent-blue)"></div></div><span class="bar-value">$27.07</span></div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="section-header"><span class="title">Monthly Projection</span></div>
+        <div class="card">
+          <div style="font-size:24px;font-weight:700">$116</div>
+          <div style="font-size:13px;color:var(--text-secondary)">Estimate &nbsp; | &nbsp; Burn: $27.07</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-header"><span class="title">Budget</span></div>
+      <div class="card">
+        <div class="budget-section">
+          <label>Daily: <input type="text" value="$0" style="width:60px"></label>
+          <label>Monthly: <input type="text" value="$0" style="width:60px"></label>
+        </div>
+        <div class="budget-slider">
+          <span style="font-size:12px;color:var(--text-secondary)">Alert at:</span>
+          <input type="range" min="0" max="100" value="80">
+          <span style="font-size:12px;font-weight:600">80%</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px">Set to $0 to disable.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header"><span class="title">Daily Cost</span><span class="count">14d</span></div>
+  <div class="chart-placeholder" id="cost-chart"></div>
+  <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">
+    Prices updated 2026-01-23 &nbsp; | &nbsp; Estimates based on published API pricing.
+  </div>
+</div>
+
+<!-- ==================== SETTINGS ==================== -->
+<div id="page-settings" class="page">
+  <div class="page-title">Settings</div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">Scan Directories</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">~/projects/zm-agent-manager</div>
+    <div style="display:flex;gap:8px">
+      <button style="padding:6px 12px;background:var(--bg-divider);border:none;color:var(--text-primary);border-radius:6px;font-size:12px;cursor:pointer">➕ Add Directory</button>
+      <button style="padding:6px 12px;background:var(--bg-divider);border:none;color:var(--text-primary);border-radius:6px;font-size:12px;cursor:pointer">🔍 Scan for New</button>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">Notifications</div>
+    <div class="setting-row"><span>세션 시작/종료</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="setting-row"><span>태스크 완료</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="setting-row"><span>비용 임계치</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="setting-row"><span>문서 변경 (blocking)</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="setting-row"><span>문서 변경 (important)</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+    <div class="setting-row"><span>에이전트 stuck</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">Document Importance Rules</div>
+    <div style="font-size:12px;font-family:monospace;color:var(--text-secondary)">
+      <div style="padding:3px 0">docs/requirements/** → <span class="badge badge-red">blocking</span></div>
+      <div style="padding:3px 0">CLAUDE.md → <span class="badge badge-orange">important</span></div>
+      <div style="padding:3px 0">docs/policies/** → <span class="badge badge-orange">important</span></div>
+      <div style="padding:3px 0">docs/roadmap/** → <span class="badge badge-orange">important</span></div>
+      <div style="padding:3px 0">** → <span class="badge badge-gray">suggestion</span></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">About</div>
+    <div style="font-size:13px;color:var(--text-secondary)">zm-agent-manager v0.1.0</div>
+    <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">Electron + React + TypeScript</div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// Navigation
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  // Map page to sidebar
+  const map = {
+    'dashboard': 0, 'live': 1, 'sessions': 2, 'session-detail': 2,
+    'tools': 3, 'board': 4, 'replay': 6, 'diffs': 7,
+    'docs': 9, 'doc-detail': 9, 'costs': 10, 'settings': 11
+  };
+  const items = document.querySelectorAll('.sidebar-item:not(.disabled)');
+  if (map[id] !== undefined && items[map[id]]) items[map[id]].classList.add('active');
+  // Scroll content to top
+  document.querySelector('.content').scrollTop = 0;
+}
+
+// Generate chart bars
+function generateChart(id, count, maxH, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  for (let i = 0; i < count; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.style.height = (Math.random() * maxH + 10) + 'px';
+    bar.style.background = color || 'var(--accent-blue)';
+    el.appendChild(bar);
+  }
+}
+generateChart('activity-chart', 30, 100, 'var(--accent-green)');
+generateChart('cost-chart', 14, 100, 'var(--accent-blue)');
+
+// Speed chip toggle
+document.querySelectorAll('.speed-chip').forEach(chip => {
+  chip.onclick = () => {
+    document.querySelectorAll('.speed-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  };
+});
+</script>
+
+</body>
+</html>
