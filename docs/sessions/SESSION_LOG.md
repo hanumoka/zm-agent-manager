@@ -26,7 +26,13 @@
   - 정밀 재조사: 25개 사이드바 항목 중 23개 화면 캡처 + 화면별 상세 컴포넌트 분석
   - 신규 발견 메뉴: Env(환경변수 감사), Lint(CLAUDE.md 린터) — 이전 22개→25개로 수정
   - 캡처 화면: Overview, Assistant, Live, Sessions, Transcripts, Tools, Costs, Ports, Repos, Work Graph, Repo Pulse, Git Timeline, Diffs, Snapshots, Skills, Agents, Memory, Dependencies, Hygiene, Worktrees, Env, Lint, Settings
-- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동, 경쟁 앱 25개 화면 정밀 분석 완료, 앱 분석 자동화 파이프라인 확립
+  - Readout 기능 명세서(readout-features.md, 676줄) 신규 작성 — 기획 참고용 기능 중심 문서
+  - Readout 기술 분석서(readout-analysis.md) 리팩토링 — 레코드 7종 + tool input 13종 + Settings 8개 섹션 보강
+  - Agentation 기능 분석서(agentation-analysis.md, 375줄) 신규 작성 — MCP 9도구, 워크플로우 4패턴
+  - filesystem MCP 서버 로컬 설정 + .mcp.json 생성 → Readout Dashboard에서 "⚡ 1 MCP server" 표시 확인
+  - Settings 스크롤 탐색: Remote Machines, Sidebar 커스터마이즈, Cost Budget(Alert at N%) 신규 발견
+  - Dashboard 추가 발견: "Set a spending budget" 제안 카드, "Afternoon grind" 인사, "Workspace rescanned" 토스트
+- **결과**: Claude Code 설정 최적화 완료, 요구사항 검증 시스템 가동, 경쟁 앱 정밀 분석 완료(Readout 25화면 + Agentation 10기능), MCP 연동 확인
 - **다음 할 일**: Phase 1 MVP 개발 시작 (Electron + Vite + React 프로젝트 스캐폴딩)
 
 ## 2026-04-08 | docs 구조화 세션

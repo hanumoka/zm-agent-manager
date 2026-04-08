@@ -54,15 +54,19 @@
 └── tasks/                           → Live (태스크 상태)
 ```
 
-### 2.2 프로젝트 `.claude/` 디렉토리 (Readout이 스캔)
+### 2.2 프로젝트 루트 디렉토리 (Readout이 스캔)
 
 ```
-{project}/.claude/
-├── settings.json                    → Settings (프로젝트 권한/훅)
-├── skills/{name}/SKILL.md           → Skills 화면
-├── agents/{name}.md                 → Agents 화면
-├── hooks/{name}.sh                  → Hooks 화면
-└── rules/{name}.md                  → (Config에서 참고)
+{project}/
+├── .mcp.json                        → Dashboard (MCP 서버 수 표시 "⚡ N MCP server")
+├── CLAUDE.md                        → Lint (CLAUDE.md 린터)
+├── package.json                     → Deps (의존성 검사)
+└── .claude/
+    ├── settings.json                → Settings (프로젝트 권한/훅)
+    ├── skills/{name}/SKILL.md       → Skills 화면
+    ├── agents/{name}.md             → Agents 화면
+    ├── hooks/{name}.sh              → Hooks 화면
+    └── rules/{name}.md              → (Config에서 참고)
 ```
 
 ### 2.3 Git 데이터 (Readout이 git CLI로 수집)
@@ -471,11 +475,13 @@ Health          (섹션 헤더: "Health")
 [경고 배너들] ───────────────────────────────────────
   ⚠️ "N hygiene issue needs attention"
   ⚠️ "{repo} has N uncommitted files"
+  💰 "Set a spending budget" — "You've spent $N this month..."  [Cost control]
   💡 "Add CLAUDE.md to N projects"  [Better results] 버튼
 
 [Recently Active] ──────────────────────────────────
   "{repo}" ✏️
   [Skills | Agents | Memory | Repos] 4개 미니 카드
+  ⚡ "N MCP server" (프로젝트에 .mcp.json이 있을 때 표시)
 ```
 
 **데이터 수집 로직**:
@@ -1141,22 +1147,22 @@ Graph 탭:
 
 ---
 
-### 6.24 Settings
+### 6.24 Settings (8개 섹션, 스크롤 필요)
 
-**데이터 소스**: 앱 자체 설정 (UserDefaults)
+**데이터 소스**: 앱 자체 설정 (UserDefaults), ~/.ssh/authorized_keys
 
-**레이아웃**:
+**레이아웃** (스크롤 전체):
 ```
 [제목] "Settings"
 
-[Rescan Workspace] ─ [🔄 Refresh all data]
+[1. Rescan Workspace] ─ [🔄 Refresh all data]
 
-[Scan Directories] ─ 디렉토리 관리
+[2. Scan Directories] ─ 디렉토리 관리
   ~/{project-path}
   [➕ Add Directory]  [🔍 Scan for New]
   "Scans up to 2 levels deep for git repos."
 
-[Readout Assistant] ─ AI 설정
+[3. Readout Assistant] ─ AI 설정
   ● Anthropic  [토글 ON/OFF]
     API Key: [____________]  [Paste]
     Model: [Haiku] [Sonnet] [Opus]  (칩 선택)
@@ -1165,14 +1171,35 @@ Graph 탭:
   "Ask about repos, costs, sessions, and more.
    Keys are stored locally. Shell env vars are auto-detected."
 
-[General]
-  Launch at login      [토글]
-  Check for updates    [토글]
+[4. General]
+  Launch at login                [토글]
+  Check for updates automatically [토글]
   [Check for Updates]  [Export Log]
 
-[Agents] ─ 에이전트 엔진 설정
-  ● Claude Code  [토글 ON]
+[5. Agents] ─ 에이전트 엔진 설정
+  ● Claude Code  /usr/local/bin/claude  [토글 ON]
   ● Codex        Not installed
+  "Enable or disable data sources. Disabled agents won't appear
+   in sessions, costs, or the dashboard."
+
+[6. Remote Machines] ─ 원격 모니터링 (스크롤 필요)
+  "No remote machines configured"
+  [➕ Add Machine]  [👁 View This Mac]
+  "Connect to remote machines running Claude Code or Codex via SSH.
+   Uses your ~/.ssh/authorized_keys and ssh-agent for authentication."
+
+[7. Sidebar] ─ 사이드바 커스터마이즈
+  "Show or hide sidebar items."
+  [✏️ Customize Sidebar]  [🔄 Reset to Default]
+
+[8. Cost Budget] ─ 비용 예산 알림
+  Daily: $ [___]    Monthly: $ [___]
+  Alert at [==●===] 80%  (슬라이더)
+  "Set to $0 to disable."
+
+[Footer]
+  "Readout v0.0.11 © 2026 Benji Taylor • Sponsor"
+  "Readout is in beta. Expect bugs, visual inconsistencies, and rough edges."
 ```
 
 ---
