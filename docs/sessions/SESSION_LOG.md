@@ -25,9 +25,13 @@
     - IPC/preload 시그니처 확장 (`searchSessions(query, filters?)`)
     - `SearchPage.tsx`: 프로젝트 드롭다운 + date input 2개 + "필터 초기화" 버튼
     - MCP 시각 검증: 2026-04-08 필터 시 108건 모두 "22시간 전" 표시로 정확 동작 확인
-- **검증**: typecheck/lint/vitest 19/Playwright 7 모두 통과 (각 단계마다)
+- **검증**: typecheck/lint/vitest 25(19→25)/Playwright 7 모두 통과
 - **문서 갱신**: known-issues.md(4건 추가, High 1건 [해결됨]), testing-strategy.md(connect 우회), phase-3-analysis.md(M2 [x]), ROADMAP.md(Phase 3 상태)
-- **다음 할 일**: Phase 2 M7 예산 알림 → Phase 3 M1 통계 대시보드 (사용자 결정 대기)
+- **추가 작업** (audit + Stage A/B):
+  - 병렬 Explore agent로 변경 전체 재검토 → critical 버그 0건, search-service 단위 테스트 누락 1건 식별
+  - Stage A: `feature/m2-search-filters-and-prompt-count` → main fast-forward 머지 (`3913bbc`)
+  - Stage B: `searchSessions`/`parseHistoryFile`에 옵션 파라미터 추가(default 동일) + `search-service.test.ts` 신규 6개 케이스 → `feature/search-service-tests` → main fast-forward 머지 (`c5e9b35`)
+- **다음 할 일**: Phase 2 M7 예산 알림 → Phase 3 M1 통계 대시보드 (다음 세션)
 
 ## 2026-04-09 | Q5 Electron MCP 서버 도입
 
