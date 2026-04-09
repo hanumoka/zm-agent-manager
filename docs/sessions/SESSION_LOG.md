@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M7 예산 알림 완료 (F13 4/4)
+
+- **목표**: Phase 2 M7의 마지막 항목 "예산 설정 및 알림" 구현 → F13 비용 추적 100%
+- **작업 내용**:
+  - `BudgetSettings` 타입 + IPC 채널 2개(`budget:get-settings`, `budget:set-settings`) 추가
+  - `src/main/budget-service.ts` 신규: `loadBudgetSettings`/`saveBudgetSettings`/`evaluateBudgetAlerts`
+    - 저장 위치: `~/.zm-agent-manager/budget-settings.json` (옵션 주입 가능)
+    - 트리거: `cost:get-summary` 호출 시 자동 평가, 일별/월별 독립
+    - 알림 레벨: alertPercent 도달(`warn`) + 100% 초과(`exceed`)
+    - 중복 방지: `lastNotifiedKeys`(`{period}-{date}-{level}`)로 같은 임계 1회만
+    - Electron `Notification` API 사용, 옵션으로 `notify` 함수 주입(테스트용)
+  - `ipc.ts`: GET/SET 핸들러 + `cost:get-summary` 응답 후 `evaluateBudgetAlerts` 트리거
+  - preload + d.ts: `getBudgetSettings`/`setBudgetSettings` 노출
+  - `CostTracker.tsx`: BudgetCard 신규 (일별/월별 input, 임계 슬라이더, 진행 바, 저장 버튼)
+    - 진행 바 색상: green(<alert) / orange(≥alert) / red(≥100%) + testid 부여
+- **단위 테스트** (`src/main/test/budget-service.test.ts` 신규, 9개):
+  - load/save 기본/persistence/잘못된 alertPercent 보정
+  - evaluate: 미설정/80% warn/100% exceed/월별 독립/임계 미도달/lastNotifiedKeys 저장
+- **검증**: typecheck/lint/vitest **34**(25→34)/Playwright 7 모두 통과
+- **MCP 시각 검증**: $5/$100 입력 → 저장 → 진행 바 즉시 표시(150% red), 알림 1회 발송 후 중복 방지 확인
+- **문서 갱신**: phase-2 M7 [x] + ROADMAP.md Phase 2 상태
+- **다음 할 일**: Phase 3 M1 통계 대시보드 (F8) — 가장 사용자 가치 높음
+
+---
+
 ## 2026-04-09 | MCP 탐색 테스트 + High 이슈 수정 + Phase 3 M2 검색 필터 완료
 
 - **목표**: Q5 후속 MCP 탐색 시연 → 발견 이슈 처리 → Phase 3 M2(검색 필터) 마무리

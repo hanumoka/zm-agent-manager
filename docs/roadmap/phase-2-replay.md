@@ -48,9 +48,9 @@
 - [x] 문서별 메타데이터 (크기, 라인 수, 최종 수정일) + 카테고리별 그룹핑
 - [ ] file-history 기반 diff 뷰
 
-## Milestone 7: 비용 실시간 추적 (F13)
+## Milestone 7: 비용 실시간 추적 (F13) — **완료**
 
 - [x] JSONL usage 필드 파싱 (토큰 수, 모델명) — cost-scanner.ts
 - [x] 모델별 비용 계산 (Opus/Sonnet/Haiku 가격 테이블)
 - [x] 일별 비용 차트 (Recharts) + 대시보드 StatCard 연동
-- [ ] 예산 설정 및 알림
+- [x] 예산 설정 및 알림 — `budget-service.ts` + Electron Notification + Costs 페이지 BudgetCard (2026-04-09)

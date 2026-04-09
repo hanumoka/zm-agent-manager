@@ -11,6 +11,7 @@ import type {
   DocInfo,
   SearchResponse,
   SearchFilters,
+  BudgetSettings,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -30,6 +31,10 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_DOCS, projectPath),
   searchSessions: (query: string, filters?: SearchFilters): Promise<SearchResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.SEARCH_SESSIONS, query, filters),
+  getBudgetSettings: (): Promise<BudgetSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
+  setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_BUDGET_SETTINGS, settings),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

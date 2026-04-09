@@ -25,6 +25,8 @@ export const IPC_CHANNELS = {
   GET_SESSION_SUBAGENTS: 'sessions:get-subagents',
   GET_PROJECT_DOCS: 'docs:get-project',
   SEARCH_SESSIONS: 'search:sessions',
+  GET_BUDGET_SETTINGS: 'budget:get-settings',
+  SET_BUDGET_SETTINGS: 'budget:set-settings',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -238,6 +240,24 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 예산 설정 (F13) ───
+
+export interface BudgetSettings {
+  /** 일별 예산 (USD). 0/null이면 비활성화 */
+  dailyUsd: number | null;
+  /** 월별 예산 (USD). 0/null이면 비활성화 */
+  monthlyUsd: number | null;
+  /** 알림 임계 비율 (0~100). 기본 80 */
+  alertPercent: number;
+  /**
+   * 마지막 알림 발송 키 (중복 방지). 형식:
+   * - 일별: `daily-YYYY-MM-DD-{warn|exceed}`
+   * - 월별: `monthly-YYYY-MM-{warn|exceed}`
+   * 키가 일치하면 같은 임계의 추가 알림을 건너뛴다.
+   */
+  lastNotifiedKeys: string[];
 }
 
 // ─── 검색 ───

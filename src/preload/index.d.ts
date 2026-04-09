@@ -9,6 +9,7 @@ import type {
   DocInfo,
   SearchResponse,
   SearchFilters,
+  BudgetSettings,
 } from '@shared/types';
 
 interface AppAPI {
@@ -21,6 +22,8 @@ interface AppAPI {
   getSessionSubagents: (projectEncoded: string, sessionId: string) => Promise<SubagentInfo[]>;
   getProjectDocs: (projectPath: string) => Promise<DocInfo[]>;
   searchSessions: (query: string, filters?: SearchFilters) => Promise<SearchResponse>;
+  getBudgetSettings: () => Promise<BudgetSettings>;
+  setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

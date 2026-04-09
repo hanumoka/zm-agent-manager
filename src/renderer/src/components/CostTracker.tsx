@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { DollarSign, Cpu, ArrowUpDown, Hash } from 'lucide-react';
-import type { CostSummary, ModelCost } from '@shared/types';
+import { DollarSign, Cpu, ArrowUpDown, Hash, Wallet } from 'lucide-react';
+import type { CostSummary, ModelCost, BudgetSettings } from '@shared/types';
 
 // ─── 토큰 포맷 ───
 
@@ -45,6 +45,206 @@ function StatCard({ label, value, icon: Icon, color }: StatCardProps): React.JSX
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <p className="text-2xl font-bold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+// ─── BudgetCard ───
+
+/** YYYY-MM-DD 로컬 오늘 / YYYY-MM 로컬 이번 달 */
+function todayLocalKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function monthLocalKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+interface BudgetCardProps {
+  summary: CostSummary;
+}
+
+function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
+  const [settings, setSettings] = useState<BudgetSettings | null>(null);
+  const [dailyInput, setDailyInput] = useState('');
+  const [monthlyInput, setMonthlyInput] = useState('');
+  const [alertPercentInput, setAlertPercentInput] = useState(80);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // 초기 로드
+  useEffect(() => {
+    let mounted = true;
+    window.api
+      ?.getBudgetSettings?.()
+      ?.then((s) => {
+        if (!mounted) return;
+        setSettings(s);
+        setDailyInput(s.dailyUsd != null ? String(s.dailyUsd) : '');
+        setMonthlyInput(s.monthlyUsd != null ? String(s.monthlyUsd) : '');
+        setAlertPercentInput(s.alertPercent);
+      })
+      ?.catch((e) => {
+        if (mounted) setError(e instanceof Error ? e.message : '예산 설정 로드 실패');
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // 오늘/이번 달 비용
+  const today = todayLocalKey();
+  const month = monthLocalKey();
+  const todayCost = useMemo(
+    () => summary.byDay.filter((d) => d.date === today).reduce((a, d) => a + d.cost, 0),
+    [summary, today]
+  );
+  const monthCost = useMemo(
+    () => summary.byDay.filter((d) => d.date.startsWith(month)).reduce((a, d) => a + d.cost, 0),
+    [summary, month]
+  );
+
+  const handleSave = useCallback(async () => {
+    if (!settings) return;
+    const daily = dailyInput.trim() === '' ? null : Number(dailyInput);
+    const monthly = monthlyInput.trim() === '' ? null : Number(monthlyInput);
+    if (daily !== null && (Number.isNaN(daily) || daily < 0)) {
+      setError('일별 예산은 0 이상 숫자여야 합니다');
+      return;
+    }
+    if (monthly !== null && (Number.isNaN(monthly) || monthly < 0)) {
+      setError('월별 예산은 0 이상 숫자여야 합니다');
+      return;
+    }
+    const next: BudgetSettings = {
+      dailyUsd: daily,
+      monthlyUsd: monthly,
+      alertPercent: alertPercentInput,
+      // 임계값/예산이 변경되었으므로 알림 키 초기화 (재평가 가능)
+      lastNotifiedKeys: [],
+    };
+    try {
+      const saved = await window.api.setBudgetSettings(next);
+      setSettings(saved);
+      setSavedAt(Date.now());
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '저장 실패');
+    }
+  }, [settings, dailyInput, monthlyInput, alertPercentInput]);
+
+  const renderProgressBar = (
+    label: string,
+    actual: number,
+    budget: number | null
+  ): React.JSX.Element | null => {
+    if (budget === null || budget <= 0) return null;
+    const ratio = Math.min(actual / budget, 1.5);
+    const pct = Math.round(ratio * 100);
+    const overBudget = ratio >= 1;
+    const reachedAlert = ratio >= alertPercentInput / 100;
+    const barColor = overBudget
+      ? 'bg-destructive'
+      : reachedAlert
+        ? 'bg-accent-orange'
+        : 'bg-accent-green';
+    return (
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{label}</span>
+          <span>
+            {formatCost(actual)} / {formatCost(budget)} ({pct}%)
+          </span>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full ${barColor} transition-all`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+            data-testid={`budget-bar-${label === '오늘' ? 'daily' : 'monthly'}`}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4" data-testid="budget-card">
+      <div className="flex items-center gap-2 mb-3">
+        <Wallet className="h-4 w-4 text-accent-yellow" />
+        <h2 className="text-sm font-semibold text-foreground">예산 알림</h2>
+      </div>
+
+      {/* 진행 바 (예산이 설정된 경우만) */}
+      <div className="space-y-3 mb-4">
+        {renderProgressBar('오늘', todayCost, settings?.dailyUsd ?? null)}
+        {renderProgressBar('이번 달', monthCost, settings?.monthlyUsd ?? null)}
+        {settings?.dailyUsd == null && settings?.monthlyUsd == null && (
+          <p className="text-xs text-muted-foreground">
+            아래에서 예산을 설정하면 임계 도달 시 데스크톱 알림을 받습니다.
+          </p>
+        )}
+      </div>
+
+      {/* 입력 폼 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          일별 예산 ($)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={dailyInput}
+            onChange={(e) => setDailyInput(e.target.value)}
+            placeholder="비활성"
+            data-testid="budget-input-daily"
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground outline-none focus:border-primary"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          월별 예산 ($)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={monthlyInput}
+            onChange={(e) => setMonthlyInput(e.target.value)}
+            placeholder="비활성"
+            data-testid="budget-input-monthly"
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground outline-none focus:border-primary"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          알림 임계 ({alertPercentInput}%)
+          <input
+            type="range"
+            min="50"
+            max="100"
+            step="5"
+            value={alertPercentInput}
+            onChange={(e) => setAlertPercentInput(Number(e.target.value))}
+            data-testid="budget-input-percent"
+            className="accent-primary"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSave}
+          data-testid="budget-save"
+          className="rounded-md px-3 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          저장
+        </button>
+        {savedAt && (
+          <span className="text-xs text-accent-green">
+            저장됨 ({new Date(savedAt).toLocaleTimeString()})
+          </span>
+        )}
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
     </div>
   );
 }
@@ -216,6 +416,9 @@ export function CostTracker(): React.JSX.Element {
           </div>
         )}
       </div>
+
+      {/* 예산 카드 */}
+      <BudgetCard summary={summary} />
 
       {/* 모델별 비용 */}
       <div className="rounded-lg border border-border bg-card p-4">

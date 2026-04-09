@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { homedir } from 'os';
 import { ipcMain } from 'electron';
-import { IPC_CHANNELS, type SearchFilters } from '@shared/types';
+import { IPC_CHANNELS, type SearchFilters, type BudgetSettings } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
@@ -10,6 +10,7 @@ import { scanCostSummary } from './cost-scanner';
 import { scanSessionSubagents } from './subagent-scanner';
 import { scanProjectDocs } from './doc-scanner';
 import { searchSessions } from './search-service';
+import { loadBudgetSettings, saveBudgetSettings, evaluateBudgetAlerts } from './budget-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -46,7 +47,10 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.GET_COST_SUMMARY, async () => {
-    return scanCostSummary();
+    const summary = await scanCostSummary();
+    // 비용 갱신 시 예산 임계 평가 (실패해도 비용 응답에 영향 없음)
+    void evaluateBudgetAlerts(summary).catch(() => {});
+    return summary;
   });
 
   ipcMain.handle(
@@ -66,4 +70,13 @@ export function registerIpcHandlers(): void {
       return searchSessions(query, filters);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.GET_BUDGET_SETTINGS, async () => {
+    return loadBudgetSettings();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SET_BUDGET_SETTINGS, async (_event, settings: BudgetSettings) => {
+    await saveBudgetSettings(settings);
+    return settings;
+  });
 }
