@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import ReactMarkdown from 'react-markdown';
 import { User, Bot, Wrench, Brain } from 'lucide-react';
@@ -138,8 +138,11 @@ interface MessageTimelineProps {
 export function MessageTimeline({ records }: MessageTimelineProps): React.JSX.Element {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // user/assistant 레코드만 필터링
-  const messages = records.filter((r) => r.type === 'user' || r.type === 'assistant');
+  // user/assistant 레코드만 필터링 (메모이제이션으로 불필요한 재렌더링 방지)
+  const messages = useMemo(
+    () => records.filter((r) => r.type === 'user' || r.type === 'assistant'),
+    [records]
+  );
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -153,7 +156,9 @@ export function MessageTimeline({ records }: MessageTimelineProps): React.JSX.El
     if (messages.length > 0) {
       virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
     }
-  }, [messages.length, virtualizer]);
+    // virtualizer는 매 렌더마다 새 인스턴스이므로 deps에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   if (messages.length === 0) {
     return (

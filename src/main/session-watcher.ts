@@ -1,5 +1,6 @@
 import { watch } from 'chokidar';
-import { createReadStream, statSync } from 'fs';
+import { createReadStream } from 'fs';
+import { stat } from 'fs/promises';
 import { createInterface } from 'readline';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -27,7 +28,8 @@ async function parseNewLines(filePath: string): Promise<JsonlRecord[]> {
 
   let fileSize: number;
   try {
-    fileSize = statSync(filePath).size;
+    const fileStat = await stat(filePath);
+    fileSize = fileStat.size;
   } catch {
     return [];
   }
@@ -73,7 +75,7 @@ function sendToRenderer(channel: string, data: unknown): void {
 /**
  * 특정 세션 감시 등록
  */
-export function watchSession(sessionId: string, projectEncoded: string): void {
+export async function watchSession(sessionId: string, projectEncoded: string): Promise<void> {
   const filePath = join(PROJECTS_DIR, projectEncoded, `${sessionId}.jsonl`);
 
   if (watchedSessions.has(sessionId)) return;
@@ -82,8 +84,8 @@ export function watchSession(sessionId: string, projectEncoded: string): void {
 
   // 현재 파일 크기를 초기 오프셋으로 설정 (기존 내용은 이미 로드됨)
   try {
-    const size = statSync(filePath).size;
-    fileOffsets.set(filePath, size);
+    const fileStat = await stat(filePath);
+    fileOffsets.set(filePath, fileStat.size);
   } catch {
     fileOffsets.set(filePath, 0);
   }

@@ -140,32 +140,32 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
 
     const jsonlFiles = files.filter((f) => f.endsWith('.jsonl') && !f.includes('/'));
 
-    for (const jsonlFile of jsonlFiles) {
-      const sessionId = jsonlFile.replace('.jsonl', '');
-      const jsonlPath = join(projectDir, jsonlFile);
+    // 파일 mtime 조회를 병렬로 수행
+    const sessionEntries = await Promise.all(
+      jsonlFiles.map(async (jsonlFile) => {
+        const sessionId = jsonlFile.replace('.jsonl', '');
+        const jsonlPath = join(projectDir, jsonlFile);
 
-      // history에서 첫 메시지와 엔트리 수 가져오기
-      const historyEntries = historyMap.get(sessionId) ?? [];
-      const firstMessage = historyEntries[0]?.display ?? '';
+        const historyEntries = historyMap.get(sessionId) ?? [];
+        const firstMessage = historyEntries[0]?.display ?? '';
+        const fileMtime = await getFileLastActivity(jsonlPath);
+        const historyLatest =
+          historyEntries.length > 0 ? Math.max(...historyEntries.map((e) => e.timestamp)) : 0;
+        const lastActivity = Math.max(historyLatest, fileMtime);
 
-      // 파일 mtime으로 마지막 활동 시간 추출 (전체 파싱 대신 경량 접근)
-      const fileMtime = await getFileLastActivity(jsonlPath);
+        return {
+          sessionId,
+          projectPath,
+          projectName,
+          lastActivity,
+          firstMessage,
+          messageCount: historyEntries.length,
+          isActive: activeMap.has(sessionId),
+        };
+      })
+    );
 
-      // history 타임스탬프와 파일 mtime 중 최신 사용
-      const historyLatest =
-        historyEntries.length > 0 ? Math.max(...historyEntries.map((e) => e.timestamp)) : 0;
-      const lastActivity = Math.max(historyLatest, fileMtime);
-
-      sessions.push({
-        sessionId,
-        projectPath,
-        projectName,
-        lastActivity,
-        firstMessage,
-        messageCount: historyEntries.length,
-        isActive: activeMap.has(sessionId),
-      });
-    }
+    sessions.push(...sessionEntries);
 
     // 최근 활동 순 정렬
     sessions.sort((a, b) => b.lastActivity - a.lastActivity);

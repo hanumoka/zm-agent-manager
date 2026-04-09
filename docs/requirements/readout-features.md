@@ -1,5 +1,7 @@
 # Readout 기능 명세서
 
+> 관련 문서: [`readout-analysis.md`](./readout-analysis.md) — 기술/데이터 중심 분석. 본 문서는 기능 중심 명세.
+
 > 작성일: 2026-04-08
 > 대상: Readout v0.0.11 (macOS)
 > 목적: zm-agent-manager 기획 시 참고할 기능 중심 명세서

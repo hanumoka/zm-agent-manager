@@ -24,9 +24,9 @@
 - Phase 1 완료 후 안정성 확인 뒤 업그레이드 검토
 
 ### Git 워크플로우 정책 미적용
-- M1 스캐폴딩이 main 브랜치에서 직접 진행됨
+- Phase 1 전체(M1~M6)가 main 브랜치에서 직접 커밋됨
 - git-workflow.md 정책: feature/ 브랜치 → PR → main 머지
-- M2부터 feature 브랜치 사용 필요
+- Phase 2부터 feature 브랜치 사용 필요
 
 ## 런타임
 
@@ -74,3 +74,57 @@ _아직 등록된 이슈 없음_
 ### 미해결 — 용어 비일관 (한국어/영어 혼용)
 - "태스크 보드" vs "Task Board" vs "Board" — 문서별로 다르게 표기
 - **조치**: 코딩 착수 시 공식 용어 사전 작성
+
+---
+
+## 코드-문서 정합성 이슈 (2026-04-09 문서 리팩토링 시 발견)
+
+### [해결됨] ROADMAP.md Phase 1 상태 미갱신
+- Phase 1 완료 후에도 "진행중" 상태 유지
+- **수정 완료**: "완료 (F1-F4)"로 갱신
+
+### [해결됨] phase-1-mvp.md 상태 미갱신
+- M1~M6 모두 [x] 상태이나 문서 상태가 "진행중"이었음
+- **수정 완료**: "완료 (2026-04-09)"로 갱신, F11 이관 노트 추가
+
+### [해결됨] SESSION_LOG.md Phase 1 개발 세션 누락
+- 10개 커밋에 해당하는 개발 세션이 기록되지 않았음
+- **수정 완료**: 요약 세션 엔트리 추가
+
+### [해결됨] PRD.md v1 폐기 표시 누락
+- PRD-v2 존재 시 v1에 폐기 안내가 없어 혼란 유발
+- **수정 완료**: Deprecated 배너 추가
+
+### [해결됨] docs/README.md 핵심 문서 링크 오류
+- 요구사항 핵심 문서가 PRD.md(v1)를 가리키고 있었음
+- **수정 완료**: PRD-v2.md로 업데이트
+
+### [해결됨] parseJsonlTail Dead Code 제거
+- `jsonl-parser.ts`의 `parseJsonlTail` 함수가 어디에서도 사용되지 않았음
+- **수정 완료**: 함수 삭제 (-28줄)
+
+### [해결됨] MessageTimeline 렌더링 성능 이슈
+- `messages` 필터가 매 렌더마다 새 배열 생성 (useMemo 누락)
+- `virtualizer`가 useEffect deps에 포함되어 매 렌더마다 불필요한 scroll 실행
+- **수정 완료**: useMemo 추가, virtualizer deps에서 제거
+
+### [해결됨] session-scanner 순차 stat 호출
+- 세션별 `getFileLastActivity` 호출이 순차적이라 다수 세션 시 성능 저하
+- **수정 완료**: `Promise.all`로 병렬화
+
+### [해결됨] session-watcher statSync 비일관
+- async 함수 `parseNewLines`/`watchSession` 내에서 동기 `statSync` 사용
+- **수정 완료**: async `stat`으로 교체, `watchSession`을 async 함수로 변경
+
+### 미해결 — button.tsx 미사용 (Dead Code)
+- `src/renderer/src/components/ui/button.tsx`에 shadcn Button 컴포넌트가 구현되어 있으나 프로젝트 내 어디에서도 import하지 않음
+- **조치**: Phase 2에서 사용 예정이면 유지, 아니면 삭제 검토
+
+### 미해결 — 빈 디렉토리 (hooks/, types/)
+- `src/renderer/src/hooks/`와 `src/renderer/src/types/`가 빈 상태
+- **조치**: Phase 2에서 사용 시 유지, 사용하지 않으면 정리
+
+### 미해결 — Recharts 미사용
+- package.json에 recharts 의존성이 있으나 코드에서 import하지 않음
+- Phase 1에서 차트를 사용하지 않았기 때문
+- **조치**: Phase 2 대시보드/통계 구현 시 사용 예정이면 유지

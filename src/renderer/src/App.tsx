@@ -51,7 +51,7 @@ function Sidebar(): React.JSX.Element {
 function DashboardPage(): React.JSX.Element {
   return (
     <div className="flex items-center justify-center h-full text-muted-foreground">
-      <p>Dashboard — Phase 1 완료 후 구현 예정</p>
+      <p>Dashboard — Phase 2에서 구현 예정</p>
     </div>
   );
 }

@@ -12,6 +12,8 @@
 | `fix/{이름}` | 버그 수정 |
 | `docs/{이름}` | 문서 작업 |
 
+> **참고**: Phase 1 MVP(M1~M6)는 main 브랜치에서 직접 커밋되었다 ([known-issues.md](../troubleshooting/known-issues.md) 참조). Phase 2부터 이 정책을 적용한다.
+
 ## 커밋 메시지 규칙
 
 ```

@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-04-09 | 문서 리팩토링 + 코드 리팩토링
+
+- **목표**: Phase 1 완료 후 코드-문서 전수 검증 및 리팩토링
+- **작업 내용**:
+  - **문서 리팩토링** (14개 파일):
+    - Critical 5건: ROADMAP/phase-1 상태 갱신, SESSION_LOG 누락 세션 추가, PRD v1 Deprecated, README 링크
+    - Major 6건: PRD-v2 실제 결과 노트, feature-spec F17-F20 스텁, CLAUDE.md Recharts 주석, phase-2/3 마일스톤 보강
+    - Minor 3건: git-workflow 노트, readout 교차참조, known-issues 갱신
+  - **코드 리팩토링** (5개 파일):
+    - `MessageTimeline.tsx`: messages 필터 useMemo 추가, virtualizer useEffect deps 수정 (매 렌더 scroll 버그 해결)
+    - `session-scanner.ts`: stat 호출 Promise.all 병렬화
+    - `jsonl-parser.ts`: 미사용 parseJsonlTail 함수 삭제 (-28줄)
+    - `session-watcher.ts`: statSync → async stat 교체, watchSession async 변환
+    - `App.tsx`: DashboardPage 플레이스홀더 텍스트 갱신
+  - lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+- **결과**: 문서 이슈 14건 중 11건 해결 + 코드 이슈 6건 전체 해결. 미해결 3건 추적 등록.
+- **다음 할 일**: Phase 2 착수 결정 (F5-F7 + F11/F1대시보드/F12/F13)
+
+## 2026-04-08~09 | Phase 1 MVP 개발 완료 (M1-M6)
+
+- **목표**: Phase 1 세션 모니터링 MVP 구현 (F1-F4)
+- **작업 내용**:
+  - M1: 프로젝트 스캐폴딩 (Electron + Vite + React + TypeScript)
+  - M2: 세션 목록 구현 (SessionList, session-scanner, history.jsonl 파싱)
+  - M3: JSONL 파싱 서비스 구현 (jsonl-parser, 스트리밍 파서)
+  - M4: 실시간 파일 감시 구현 (session-watcher, chokidar)
+  - M5: 메시지 타임라인 구현 (MessageTimeline, 가상화 리스트, ReactMarkdown)
+  - M6: 도구 호출 추적 구현 (ToolTracker, 도구별 통계/분포 차트)
+  - 코드 리뷰 이슈 수정 3건 + 성능 최적화
+  - E2E 통합 테스트 13개 추가 (실제 ~/.claude/ 데이터 검증)
+- **결과**: Phase 1 MVP (F1-F4) 완료. DashboardPage는 스텁 상태. F11(태스크 보드)은 Phase 2로 이관.
+- **다음 할 일**: 문서 리팩토링 (코드-문서 정합성 교정), 이후 Phase 2 착수 결정
+
 ## 2026-04-08 | Claude Code 최적화 및 요구사항 검증 시스템 구축
 
 - **목표**: Claude Code 커스텀 스킬/에이전트/훅 최적화 + 요구사항 자동 검증 시스템 구축

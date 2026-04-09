@@ -2,7 +2,7 @@
 
 > 버전: 1.0
 > 작성일: 2026-04-08
-> 기반: [`PRD-v2.md`](./PRD-v2.md) (F1~F16)
+> 기반: [`PRD-v2.md`](./PRD-v2.md) (F1~F20)
 > 목적: 각 기능의 입력/출력/로직/UI를 구현 가능한 수준으로 정의
 
 ---
@@ -564,3 +564,25 @@ Props: { icon, title, description }
 | accent-yellow | #ffd60a | 비용, 경고 |
 | accent-orange | #ff9f0a | 주의, dirty |
 | accent-red | #ff453a | 오류, blocking |
+
+---
+
+## F17. 스킬 모니터
+
+> Phase 3+ 기능. 상세 사양은 [`PRD-v2.md`](./PRD-v2.md) Section 4 참조.
+> 프로젝트/글로벌/플러그인 스킬 목록 표시. YAML frontmatter 파싱하여 name, description, tools, model 표시.
+
+## F18. 에이전트 모니터
+
+> Phase 3+ 기능. 상세 사양은 [`PRD-v2.md`](./PRD-v2.md) Section 4 참조.
+> 프로젝트/글로벌 에이전트 목록 표시. YAML 파싱하여 name, description, tools, model 표시. 서브에이전트 사용 이력 연동.
+
+## F19. 메모리 뷰어
+
+> Phase 3+ 기능. 상세 사양은 [`PRD-v2.md`](./PRD-v2.md) Section 4 참조.
+> 프로젝트별 MEMORY.md 내용 표시 + 검색. 라인 수 경고(200줄 초과 시).
+
+## F20. 훅/규칙/MCP 모니터
+
+> Phase 3+ 기능. 상세 사양은 [`PRD-v2.md`](./PRD-v2.md) Section 4 참조.
+> Hooks: 이벤트별 그룹 + 실행 상태. Rules: 경로별 규칙 목록 + 내용 미리보기. MCP: 서버 목록 + 연결 상태. Permissions: allow/deny 목록.

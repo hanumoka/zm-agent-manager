@@ -1,3 +1,6 @@
+> **[Deprecated]** 이 문서는 PRD v1입니다. 최신 버전은 [`PRD-v2.md`](./PRD-v2.md)를 참조하세요.
+> v1은 F1~F10 원본 참고용으로만 보존합니다.
+
 # zm-agent-manager — Product Requirements Document (PRD)
 
 ## 1. 프로젝트 개요

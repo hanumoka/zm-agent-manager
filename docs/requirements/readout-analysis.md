@@ -1,5 +1,7 @@
 # Readout 앱 기술 분석서 (UI/데이터/구현 상세)
 
+> 관련 문서: [`readout-features.md`](./readout-features.md) — 기능 중심 명세. 본 문서는 기술/데이터 중심 분석.
+
 > 분석 일자: 2026-04-08
 > 대상: Readout v0.0.11 (macOS, com.benjitaylor.Readout)
 > 분석 방법: 바이너리 strings 추출 + Python 자동화 캡처(pyobjc + pyautogui) + 웹 리서치 + 데이터 소스 매핑

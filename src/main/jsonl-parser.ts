@@ -107,31 +107,3 @@ export async function parseJsonlFile(filePath: string): Promise<ParsedSession> {
     lastActivity,
   };
 }
-
-/**
- * JSONL 파일의 마지막 N줄만 파싱 (대용량 파일 빠른 미리보기용).
- * 전체 파일을 읽되 마지막 N개 레코드만 유지.
- */
-export async function parseJsonlTail(
-  filePath: string,
-  maxRecords: number = 100
-): Promise<JsonlRecord[]> {
-  const records: JsonlRecord[] = [];
-
-  const stream = createReadStream(filePath, { encoding: 'utf-8' });
-  const rl = createInterface({ input: stream, crlfDelay: Infinity });
-
-  try {
-    for await (const line of rl) {
-      const record = parseLine(line);
-      if (!record) continue;
-      records.push(record);
-    }
-  } finally {
-    rl.close();
-    stream.destroy();
-  }
-
-  // 마지막 N개만 반환
-  return records.slice(-maxRecords);
-}

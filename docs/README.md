@@ -4,7 +4,7 @@ zm-agent-manager 프로젝트 문서를 7개 카테고리로 관리한다.
 
 | # | 카테고리 | 폴더 | 목적 | 핵심 문서 |
 |---|----------|------|------|-----------|
-| 1 | 요구사항 | [`requirements/`](./requirements/) | 프로젝트 기능 요구사항 정의 | [PRD.md](./requirements/PRD.md) |
+| 1 | 요구사항 | [`requirements/`](./requirements/) | 프로젝트 기능 요구사항 정의 | [PRD-v2.md](./requirements/PRD-v2.md) |
 | 2 | 정책 | [`policies/`](./policies/) | 코딩 컨벤션, Git 워크플로우, 문서 관리 규칙 | [coding-conventions.md](./policies/coding-conventions.md) |
 | 3 | 세션 히스토리 | [`sessions/`](./sessions/) | Claude 세션 작업 로그 기록 | [SESSION_LOG.md](./sessions/SESSION_LOG.md) |
 | 4 | 트러블슈팅 | [`troubleshooting/`](./troubleshooting/) | 알려진 이슈 + 해결법 | [known-issues.md](./troubleshooting/known-issues.md) |

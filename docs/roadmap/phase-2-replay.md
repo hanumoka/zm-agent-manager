@@ -27,3 +27,30 @@
 - [ ] 부모-자식 세션 관계 트리 시각화
 - [ ] 서브에이전트 세션 인라인 확장/축소
 - [ ] 서브에이전트 활동 타임라인 통합 표시
+
+## Milestone 4: 태스크 보드 (F11) — Phase 1에서 이관
+
+- [ ] JSONL TaskCreate/TaskUpdate 레코드 파싱
+- [ ] todos/{sessionId}-*.json 읽기
+- [ ] 칸반 보드 UI (Pending / In Progress / Completed)
+- [ ] 태스크 상세 뷰 (상태 변경 이력)
+
+## Milestone 5: 대시보드 전체 구현 (F1) — Phase 1에서 이관
+
+- [ ] StatCard 컴포넌트 (Repos, Commits, Sessions, Cost)
+- [ ] ActivityChart (30일 활동 차트, Recharts)
+- [ ] RecentSessions 리스트
+- [ ] DashboardPage 플레이스홀더 교체
+
+## Milestone 6: 문서 인벤토리 & diff (F12)
+
+- [ ] 관리 문서 목록 스캔 (CLAUDE.md, MEMORY.md, .claude/rules/ 등)
+- [ ] 문서별 메타데이터 (크기, 라인 수, 최종 수정일)
+- [ ] file-history 기반 diff 뷰
+
+## Milestone 7: 비용 실시간 추적 (F13)
+
+- [ ] JSONL usage 필드 파싱 (토큰 수, 모델명)
+- [ ] 모델별 비용 계산
+- [ ] 일별/주별 비용 차트
+- [ ] 예산 설정 및 알림
