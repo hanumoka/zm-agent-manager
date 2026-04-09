@@ -24,38 +24,76 @@ function resolveFile(options: BudgetOptions): string {
   return options.settingsFile ?? DEFAULT_SETTINGS_FILE;
 }
 
+/**
+ * 임의의 값을 유효한 BudgetSettings로 정규화한다.
+ * load/save 양쪽에서 사용하여 save-load 왕복 시 데이터 무결성을 보장한다.
+ *
+ * - 숫자 아닌 값 / NaN / 음수 → null (`dailyUsd`/`monthlyUsd`) 또는 기본값 (`alertPercent`)
+ * - `alertPercent`는 0 초과 100 이하. 범위 밖이면 기본값(80)
+ * - `lastNotifiedKeys`는 string 배열. 아니면 빈 배열
+ */
+export function normalizeBudgetSettings(raw: unknown): BudgetSettings {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+
+  const normalizeUsd = (v: unknown): number | null => {
+    if (typeof v !== 'number') return null;
+    if (!Number.isFinite(v)) return null;
+    if (v < 0) return null;
+    return v;
+  };
+
+  const alertPercent =
+    typeof r.alertPercent === 'number' &&
+    Number.isFinite(r.alertPercent) &&
+    r.alertPercent > 0 &&
+    r.alertPercent <= 100
+      ? r.alertPercent
+      : DEFAULT_SETTINGS.alertPercent;
+
+  const lastNotifiedKeys = Array.isArray(r.lastNotifiedKeys)
+    ? r.lastNotifiedKeys.filter((k): k is string => typeof k === 'string')
+    : [];
+
+  return {
+    dailyUsd: normalizeUsd(r.dailyUsd),
+    monthlyUsd: normalizeUsd(r.monthlyUsd),
+    alertPercent,
+    lastNotifiedKeys,
+  };
+}
+
 /** 설정 파일 로드. 파일이 없거나 파싱 실패 시 기본값 반환. */
 export async function loadBudgetSettings(options: BudgetOptions = {}): Promise<BudgetSettings> {
   const file = resolveFile(options);
   try {
     const raw = await readFile(file, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<BudgetSettings>;
-    return {
-      dailyUsd: typeof parsed.dailyUsd === 'number' ? parsed.dailyUsd : null,
-      monthlyUsd: typeof parsed.monthlyUsd === 'number' ? parsed.monthlyUsd : null,
-      alertPercent:
-        typeof parsed.alertPercent === 'number' && parsed.alertPercent > 0
-          ? parsed.alertPercent
-          : DEFAULT_SETTINGS.alertPercent,
-      lastNotifiedKeys: Array.isArray(parsed.lastNotifiedKeys) ? parsed.lastNotifiedKeys : [],
-    };
+    const parsed = JSON.parse(raw) as unknown;
+    return normalizeBudgetSettings(parsed);
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 
-/** 설정 파일 저장. 디렉토리가 없으면 생성. */
+/**
+ * 설정 파일 저장. 디렉토리가 없으면 생성.
+ * 입력을 `normalizeBudgetSettings`로 한 번 거르므로 악성/버그 값이 파일에 남지 않는다.
+ */
 export async function saveBudgetSettings(
   settings: BudgetSettings,
   options: BudgetOptions = {}
-): Promise<void> {
+): Promise<BudgetSettings> {
   const file = resolveFile(options);
+  const normalized = normalizeBudgetSettings(settings);
   await mkdir(dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(settings, null, 2), 'utf-8');
+  await writeFile(file, JSON.stringify(normalized, null, 2), 'utf-8');
+  return normalized;
 }
 
-/** 오늘 날짜 (로컬) → "YYYY-MM-DD" */
-function todayLocal(now: Date = new Date()): string {
+/**
+ * 오늘 날짜 (로컬) → "YYYY-MM-DD".
+ * cost-scanner의 `byDay[i].date`와 비교되므로 cost-scanner도 반드시 이 헬퍼(또는 동일 로직)를 사용해야 한다.
+ */
+export function todayLocal(now: Date = new Date()): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
@@ -63,22 +101,57 @@ function todayLocal(now: Date = new Date()): string {
 }
 
 /** 이번 달 (로컬) → "YYYY-MM" */
-function monthLocal(now: Date = new Date()): string {
+export function monthLocal(now: Date = new Date()): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   return `${y}-${m}`;
 }
 
 /**
+ * ISO 문자열 또는 epoch ms → 로컬 시각 기준 "YYYY-MM-DD".
+ * 값이 유효하지 않으면 'unknown' 반환.
+ */
+export function timestampToLocalDate(ts: string | number | undefined | null): string {
+  if (ts === undefined || ts === null || ts === '') return 'unknown';
+  const d = new Date(ts);
+  if (!Number.isFinite(d.getTime())) return 'unknown';
+  return todayLocal(d);
+}
+
+/**
+ * 모듈 레벨 직렬화 체인 — Dashboard와 Costs가 동시에 GET_COST_SUMMARY를 호출해도
+ * `evaluateBudgetAlerts`는 순차 실행되어 `lastNotifiedKeys` 쓰기 경쟁을 방지한다.
+ * 성공/실패를 모두 삼켜 다음 호출이 계속 진행되도록 한다.
+ */
+
+let evaluationChain: Promise<void> = Promise.resolve();
+
+/**
  * 비용 요약을 받아 예산 임계 도달 여부를 평가하고 알림을 발송한다.
  * 같은 (날짜+레벨) 키로는 한 번만 발송 (중복 방지).
  *
+ * 모듈 레벨 Promise 체인으로 직렬화되므로 동시 호출 시에도
+ * `lastNotifiedKeys` 읽기-쓰기 경쟁이 발생하지 않는다.
+ *
  * @returns 발송된 알림 키 배열 (테스트/디버깅용)
  */
-export async function evaluateBudgetAlerts(
+export function evaluateBudgetAlerts(
   summary: CostSummary,
   options: BudgetOptions = {},
   now: Date = new Date()
+): Promise<string[]> {
+  const resultPromise = evaluationChain.then(() => doEvaluateBudgetAlerts(summary, options, now));
+  evaluationChain = resultPromise.then(
+    () => undefined,
+    () => undefined
+  );
+  return resultPromise;
+}
+
+async function doEvaluateBudgetAlerts(
+  summary: CostSummary,
+  options: BudgetOptions,
+  now: Date
 ): Promise<string[]> {
   const settings = await loadBudgetSettings(options);
 

@@ -4,6 +4,7 @@ import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import type { CostSummary, ModelCost, DailyCost } from '@shared/types';
+import { timestampToLocalDate } from './budget-service';
 
 const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
@@ -200,10 +201,10 @@ export async function scanCostSummary(): Promise<CostSummary> {
     }
   }
 
-  // 일별 집계
+  // 일별 집계 (로컬 시각 기준 — budget-service.todayLocal과 동일 키 체계)
   const dayMap = new Map<string, DailyCost>();
   for (const u of allUsage) {
-    const date = u.timestamp ? new Date(u.timestamp).toISOString().slice(0, 10) : 'unknown';
+    const date = timestampToLocalDate(u.timestamp);
     const cost = calculateCost(
       u.model,
       u.inputTokens,
