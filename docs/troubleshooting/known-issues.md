@@ -116,13 +116,13 @@ _아직 등록된 이슈 없음_
 - async 함수 `parseNewLines`/`watchSession` 내에서 동기 `statSync` 사용
 - **수정 완료**: async `stat`으로 교체, `watchSession`을 async 함수로 변경
 
-### 미해결 — button.tsx 미사용 (Dead Code)
-- `src/renderer/src/components/ui/button.tsx`에 shadcn Button 컴포넌트가 구현되어 있으나 프로젝트 내 어디에서도 import하지 않음
-- **조치**: Phase 2에서 사용 예정이면 유지, 아니면 삭제 검토
+### [해결됨] button.tsx 미사용 (Dead Code)
+- `src/renderer/src/components/ui/button.tsx`에 shadcn Button 컴포넌트가 미사용이었음
+- **수정 완료**: 파일 삭제
 
-### 미해결 — 빈 디렉토리 (hooks/, types/)
-- `src/renderer/src/hooks/`와 `src/renderer/src/types/`가 빈 상태
-- **조치**: Phase 2에서 사용 시 유지, 사용하지 않으면 정리
+### [해결됨] 빈 디렉토리 (hooks/, types/)
+- `src/renderer/src/hooks/`와 `src/renderer/src/types/`가 빈 상태였음
+- **수정 완료**: 디렉토리 삭제
 
 ### [해결됨] Recharts 미사용
 - package.json에 recharts 의존성이 있으나 Phase 1에서 미사용이었음
