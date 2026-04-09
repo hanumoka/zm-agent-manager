@@ -399,15 +399,61 @@ pending → acknowledged → approved (승인)
 | 영역 | 기술 | 비고 |
 |------|------|------|
 | 프레임워크 | **Electron** | 메인/렌더러 프로세스 구조 |
+| 빌드 도구 | **electron-vite** | Vite 기반 Electron 빌드 |
 | 언어 | **TypeScript** | 전체 코드 (strict mode) |
 | UI 라이브러리 | **React 18** | 렌더러 프로세스 UI |
-| 빌드 도구 | **Vite** | electron-vite 사용 |
-| 파일 감시 | **chokidar** | `~/.claude/` 디렉토리 실시간 감시 |
-| 스타일링 | **Tailwind CSS** | 다크 모드 기본 (Readout 참고) |
+| 디자인 시스템 | **shadcn/ui** | Radix UI 기반 컴포넌트, 복사-소유 방식 |
+| 스타일링 | **Tailwind CSS v4** | 다크 모드 기본 (Readout 색상 매핑) |
+| 아이콘 | **Lucide React** | shadcn 기본 아이콘 세트 |
+| 차트 | **Recharts** | StatCard, 바 차트, 타임라인 차트 |
 | 상태 관리 | **Zustand** | 경량 상태 관리 |
-| JSONL 파싱 | 자체 구현 | 스트리밍 라인 파서 |
+| 라우팅 | **React Router** | hash mode (#/) — Electron 호환 |
+| 파일 감시 | **chokidar** | `~/.claude/` 디렉토리 실시간 감시 |
+| JSONL 파싱 | 자체 구현 | Node.js readline + 스트리밍 라인 파서 |
 | 앱 자체 DB | **JSON 파일** | `~/.zm-agent-manager/` (경량, SQLite 불필요) |
 | 알림 | **Electron Notification API** | 데스크톱 네이티브 알림 |
+| 테스트 | **Vitest + Testing Library** | 유닛/통합 테스트 |
+
+### Readout 스타일 재현 (shadcn/ui 다크 테마 커스텀)
+
+```css
+.dark {
+  --background: 0 0% 0%;           /* #000000 — 윈도우, 사이드바 */
+  --card: 240 2% 12%;              /* #1c1c1e — 콘텐츠 배경 */
+  --card-foreground: 0 0% 100%;    /* #ffffff */
+  --popover: 240 2% 14%;           /* #242425 — 카드 */
+  --primary: 213 56% 57%;          /* #4a90d9 — accent-blue */
+  --destructive: 0 85% 57%;        /* #ff453a — accent-red */
+  --muted: 240 2% 18%;             /* #2c2c2e */
+  --border: 240 2% 22%;            /* #38383a */
+  --accent-green: 142 71% 45%;     /* #34c759 */
+  --accent-yellow: 50 100% 52%;    /* #ffd60a */
+  --accent-orange: 35 100% 52%;    /* #ff9f0a */
+}
+```
+
+### 주요 shadcn/ui 컴포넌트 활용 매핑
+
+| 화면 요소 | shadcn 컴포넌트 |
+|----------|----------------|
+| 사이드바 | Sidebar (shadcn v2 내장) |
+| StatCard | Card + 커스텀 레이아웃 |
+| 모달/다이얼로그 | Dialog |
+| 토스트 알림 | Sonner (Toast) |
+| 드롭다운/필터 | Select, DropdownMenu |
+| 데이터 테이블 | Table + TanStack Table |
+| 토글 스위치 | Switch |
+| 탭 | Tabs |
+| 접이식 섹션 | Collapsible, Accordion |
+| 스켈레톤 로딩 | Skeleton |
+| 뱃지 | Badge (variant 커스텀) |
+| 검색 | Command (Cmd+K) |
+| 툴팁 | Tooltip |
+
+### Electron 템플릿 참고
+
+- [shadcn-electron-app](https://github.com/shadcn/shadcn-electron-app) — shadcn 공식 Electron 템플릿
+- [electron-react-shadcn](https://github.com/terrence-ou/electron-react-shadcn) — Electron + React + shadcn 보일러플레이트
 
 ---
 
