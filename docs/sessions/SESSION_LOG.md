@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-04-09 | Phase 2 대시보드 검토 및 품질 수정
+
+- **목표**: DashboardPage 구현 후 코드 품질 재검토 및 수정
+- **작업 내용**:
+  - `formatTimeAgo` 중복 제거: DashboardPage + SessionList → `lib/utils.ts`로 추출
+  - DashboardPage 에러 처리 추가 (error 상태 체크 + 에러 UI)
+  - known-issues.md "Recharts 미사용" → [해결됨] 갱신
+  - CLAUDE.md Recharts 주석 "(대시보드 ActivityChart에서 사용)"으로 갱신
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
+## 2026-04-09 | Phase 2 대시보드(F1) 구현 + UI 수정
+
+- **목표**: Phase 2 M5 대시보드 전체 구현 + Electron 창 드래그 영역 수정
+- **작업 내용**:
+  - `DashboardPage.tsx` 신규 작성: StatCard 4개 (프로젝트/활성 세션/오늘 세션/총 메시지), ActivityChart 14일 바 차트 (Recharts), RecentSessions 10개 리스트
+  - `App.tsx`: DashboardPage 스텁 제거, 별도 컴포넌트로 교체
+  - `App.tsx`: TitleBar 컴포넌트 추가 (-webkit-app-region: drag), 레이아웃 세로 구조 변경
+  - feature/phase2-dashboard 브랜치에서 작업 (git-workflow 정책 적용 시작)
+- **검증**: lint 0 에러, typecheck 통과
+- **다음 할 일**: 사용자 테스트 확인 후 커밋, Phase 2 다음 마일스톤 착수
+
 ## 2026-04-09 | Electron 창 드래그 영역 수정
 
 - **목표**: `titleBarStyle: 'hiddenInset'`으로 인한 창 이동 불가 문제 해결

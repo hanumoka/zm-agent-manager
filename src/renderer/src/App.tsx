@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, MessageSquare } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
+import { DashboardPage } from '@/components/DashboardPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -53,14 +54,6 @@ function Sidebar(): React.JSX.Element {
         })}
       </nav>
     </aside>
-  );
-}
-
-function DashboardPage(): React.JSX.Element {
-  return (
-    <div className="flex items-center justify-center h-full text-muted-foreground">
-      <p>Dashboard — Phase 2에서 구현 예정</p>
-    </div>
   );
 }
 

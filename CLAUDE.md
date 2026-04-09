@@ -15,7 +15,7 @@ Claude Code 세션 실시간 모니터링 및 리플레이 Electron 데스크톱
 - **chokidar** — 파일 감시
 - **Zustand** — 상태 관리
 - **React Router** — 라우팅 (hash mode)
-- **Recharts** — 차트 (Phase 2 대시보드에서 사용 예정, 현재 미사용)
+- **Recharts** — 차트 (대시보드 ActivityChart에서 사용)
 
 ## 프로젝트 구조
 ```

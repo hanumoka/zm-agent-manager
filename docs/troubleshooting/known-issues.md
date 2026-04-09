@@ -124,7 +124,6 @@ _아직 등록된 이슈 없음_
 - `src/renderer/src/hooks/`와 `src/renderer/src/types/`가 빈 상태
 - **조치**: Phase 2에서 사용 시 유지, 사용하지 않으면 정리
 
-### 미해결 — Recharts 미사용
-- package.json에 recharts 의존성이 있으나 코드에서 import하지 않음
-- Phase 1에서 차트를 사용하지 않았기 때문
-- **조치**: Phase 2 대시보드/통계 구현 시 사용 예정이면 유지
+### [해결됨] Recharts 미사용
+- package.json에 recharts 의존성이 있으나 Phase 1에서 미사용이었음
+- **수정 완료**: Phase 2 대시보드 ActivityChart에서 Recharts 사용 시작

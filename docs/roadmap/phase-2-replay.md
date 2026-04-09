@@ -37,10 +37,10 @@
 
 ## Milestone 5: 대시보드 전체 구현 (F1) — Phase 1에서 이관
 
-- [ ] StatCard 컴포넌트 (Repos, Commits, Sessions, Cost)
-- [ ] ActivityChart (30일 활동 차트, Recharts)
-- [ ] RecentSessions 리스트
-- [ ] DashboardPage 플레이스홀더 교체
+- [x] StatCard 컴포넌트 (프로젝트, 활성 세션, 오늘 세션, 총 메시지)
+- [x] ActivityChart (14일 활동 바 차트, Recharts)
+- [x] RecentSessions 리스트 (최근 10개, 타임라인 이동)
+- [x] DashboardPage 플레이스홀더 교체
 
 ## Milestone 6: 문서 인벤토리 & diff (F12)
 
