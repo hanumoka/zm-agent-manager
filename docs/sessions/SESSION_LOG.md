@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M3 서브에이전트 추적(F7) 구현
+
+- **목표**: 세션 내 서브에이전트 실행 내역 추적 및 시각화
+- **작업 내용**:
+  - `subagent-scanner.ts` 신규: {sessionId}/subagents/ 디렉토리 스캔, .meta.json + .jsonl 파싱
+  - `SubagentPanel.tsx` 신규: 서브에이전트 목록 (타입 아이콘, 통계), 인라인 확장 시 MessageTimeline 재사용
+  - `TimelinePage.tsx`: Agents 탭 추가 (서브에이전트 있을 때만 표시)
+  - types/IPC/preload: SubagentInfo 타입 + GET_SESSION_SUBAGENTS 채널
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
 ## 2026-04-09 | Phase 2 M7 비용 추적(F13) 구현
 
 - **목표**: JSONL usage 필드 기반 비용 추적 기능 구현

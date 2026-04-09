@@ -22,6 +22,7 @@ export const IPC_CHANNELS = {
   SESSION_NEW_RECORDS: 'session:new-records',
   GET_ALL_TASKS: 'tasks:get-all',
   GET_COST_SUMMARY: 'cost:get-summary',
+  GET_SESSION_SUBAGENTS: 'sessions:get-subagents',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -234,6 +235,18 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 서브에이전트 ───
+
+export interface SubagentInfo {
+  agentId: string;
+  agentType: string;
+  description: string;
+  messageCount: number;
+  toolCallCount: number;
+  records: JsonlRecord[];
+  timestamp: number;
 }
 
 // ─── 파싱 결과 ───

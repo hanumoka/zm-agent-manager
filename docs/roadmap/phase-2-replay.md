@@ -1,6 +1,6 @@
 # Phase 2 — 세션 리플레이
 
-**상태**: 진행중 (M4-M5 완료, M7 3/4 완료)
+**상태**: 진행중 (M3-M5 완료, M7 3/4 완료)
 **선행 조건**: Phase 1 완료
 **목표**: 과거 세션을 시간순으로 재생하고, 파일 변경 및 서브에이전트 활동을 시각화
 
@@ -23,10 +23,10 @@
 
 ## Milestone 3: 서브에이전트 추적 (F7)
 
-- [ ] `{sessionId}/subagents/` 디렉토리 스캔
-- [ ] 부모-자식 세션 관계 트리 시각화
-- [ ] 서브에이전트 세션 인라인 확장/축소
-- [ ] 서브에이전트 활동 타임라인 통합 표시
+- [x] `{sessionId}/subagents/` 디렉토리 스캔 + .meta.json 파싱 (subagent-scanner.ts)
+- [x] 부모-자식 세션 관계 시각화 (SubagentPanel, 타입/설명/통계 표시)
+- [x] 서브에이전트 세션 인라인 확장/축소 (MessageTimeline 재사용)
+- [x] 서브에이전트 활동 타임라인 통합 표시 (TimelinePage Agents 탭)
 
 ## Milestone 4: 태스크 보드 (F11) — Phase 1에서 이관
 

@@ -5,6 +5,7 @@ import type {
   JsonlRecord,
   AllTasksResult,
   CostSummary,
+  SubagentInfo,
 } from '@shared/types';
 
 interface AppAPI {
@@ -14,6 +15,7 @@ interface AppAPI {
   unwatchSession: (sessionId: string) => Promise<void>;
   getAllTasks: () => Promise<AllTasksResult>;
   getCostSummary: () => Promise<CostSummary>;
+  getSessionSubagents: (projectEncoded: string, sessionId: string) => Promise<SubagentInfo[]>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

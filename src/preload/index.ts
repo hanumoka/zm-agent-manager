@@ -7,6 +7,7 @@ import type {
   JsonlRecord,
   AllTasksResult,
   CostSummary,
+  SubagentInfo,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -20,6 +21,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.UNWATCH_SESSION, sessionId),
   getAllTasks: (): Promise<AllTasksResult> => ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_TASKS),
   getCostSummary: (): Promise<CostSummary> => ipcRenderer.invoke(IPC_CHANNELS.GET_COST_SUMMARY),
+  getSessionSubagents: (projectEncoded: string, sessionId: string): Promise<SubagentInfo[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_SESSION_SUBAGENTS, projectEncoded, sessionId),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

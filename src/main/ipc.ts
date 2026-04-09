@@ -7,6 +7,7 @@ import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
 import { scanAllTasks } from './task-scanner';
 import { scanCostSummary } from './cost-scanner';
+import { scanSessionSubagents } from './subagent-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -45,4 +46,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.GET_COST_SUMMARY, async () => {
     return scanCostSummary();
   });
+
+  ipcMain.handle(
+    IPC_CHANNELS.GET_SESSION_SUBAGENTS,
+    async (_event, projectEncoded: string, sessionId: string) => {
+      return scanSessionSubagents(projectEncoded, sessionId);
+    }
+  );
 }

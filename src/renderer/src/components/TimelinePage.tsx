@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Wrench } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Wrench, Bot } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { MessageTimeline } from '@/components/MessageTimeline';
 import { ToolTracker } from '@/components/ToolTracker';
+import { SubagentPanel } from '@/components/SubagentPanel';
 
-type TabId = 'messages' | 'tools';
+type TabId = 'messages' | 'tools' | 'subagents';
 
 export function TimelinePage(): React.JSX.Element {
   const { projectEncoded, sessionId } = useParams<{
@@ -14,6 +15,7 @@ export function TimelinePage(): React.JSX.Element {
   }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('messages');
+  const [subagentCount, setSubagentCount] = useState(0);
   const {
     currentSession,
     isParsingSession,
@@ -30,6 +32,16 @@ export function TimelinePage(): React.JSX.Element {
     }
     return () => clearCurrentSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectEncoded, sessionId]);
+
+  // 서브에이전트 수 로드
+  useEffect(() => {
+    if (projectEncoded && sessionId) {
+      window.api
+        ?.getSessionSubagents?.(projectEncoded, sessionId)
+        ?.then((agents) => setSubagentCount(agents.length))
+        ?.catch(() => setSubagentCount(0));
+    }
   }, [projectEncoded, sessionId]);
 
   // 실시간 새 레코드 수신 (별도 effect로 분리하여 리스너 누수 방지)
@@ -83,6 +95,9 @@ export function TimelinePage(): React.JSX.Element {
   const tabs: { id: TabId; label: string; icon: React.ElementType; count: number }[] = [
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: currentSession.messageCount },
     { id: 'tools', label: 'Tools', icon: Wrench, count: currentSession.toolCallCount },
+    ...(subagentCount > 0
+      ? [{ id: 'subagents' as TabId, label: 'Agents', icon: Bot, count: subagentCount }]
+      : []),
   ];
 
   return (
@@ -123,6 +138,9 @@ export function TimelinePage(): React.JSX.Element {
       <div className="flex-1 min-h-0">
         {activeTab === 'messages' && <MessageTimeline records={currentSession.records} />}
         {activeTab === 'tools' && <ToolTracker records={currentSession.records} />}
+        {activeTab === 'subagents' && projectEncoded && sessionId && (
+          <SubagentPanel projectEncoded={projectEncoded} sessionId={sessionId} />
+        )}
       </div>
     </div>
   );
