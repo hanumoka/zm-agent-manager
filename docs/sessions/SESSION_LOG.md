@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M6 문서 인벤토리(F12) 구현
+
+- **목표**: 프로젝트 관리 문서 스캔 및 메타데이터 시각화
+- **작업 내용**:
+  - `doc-scanner.ts` 신규: 프로젝트별 문서 스캔 (CLAUDE.md, rules, skills, agents, docs, MEMORY)
+  - `DocInventory.tsx` 신규: 카테고리별 문서 목록, StatCard 4개, 프로젝트 선택 드롭다운
+  - `App.tsx`: Docs 라우트 + 사이드바 추가
+  - types/IPC/preload: DocInfo 타입 + GET_PROJECT_DOCS 채널
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+- **미완료**: file-history 기반 diff 뷰 (후속 작업)
+
 ## 2026-04-09 | Phase 2 M3 서브에이전트 추적(F7) 구현
 
 - **목표**: 세션 내 서브에이전트 실행 내역 추적 및 시각화

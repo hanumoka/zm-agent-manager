@@ -8,6 +8,7 @@ import { watchSession, unwatchSession } from './session-watcher';
 import { scanAllTasks } from './task-scanner';
 import { scanCostSummary } from './cost-scanner';
 import { scanSessionSubagents } from './subagent-scanner';
+import { scanProjectDocs } from './doc-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -53,4 +54,8 @@ export function registerIpcHandlers(): void {
       return scanSessionSubagents(projectEncoded, sessionId);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.GET_PROJECT_DOCS, async (_event, projectPath: string) => {
+    return scanProjectDocs(projectPath);
+  });
 }

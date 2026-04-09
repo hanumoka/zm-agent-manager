@@ -6,6 +6,7 @@ import type {
   AllTasksResult,
   CostSummary,
   SubagentInfo,
+  DocInfo,
 } from '@shared/types';
 
 interface AppAPI {
@@ -16,6 +17,7 @@ interface AppAPI {
   getAllTasks: () => Promise<AllTasksResult>;
   getCostSummary: () => Promise<CostSummary>;
   getSessionSubagents: (projectEncoded: string, sessionId: string) => Promise<SubagentInfo[]>;
+  getProjectDocs: (projectPath: string) => Promise<DocInfo[]>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

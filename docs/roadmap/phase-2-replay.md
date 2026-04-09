@@ -1,6 +1,6 @@
 # Phase 2 — 세션 리플레이
 
-**상태**: 진행중 (M3-M5 완료, M7 3/4 완료)
+**상태**: 진행중 (M3-M6 부분완료, M7 3/4 완료)
 **선행 조건**: Phase 1 완료
 **목표**: 과거 세션을 시간순으로 재생하고, 파일 변경 및 서브에이전트 활동을 시각화
 
@@ -44,8 +44,8 @@
 
 ## Milestone 6: 문서 인벤토리 & diff (F12)
 
-- [ ] 관리 문서 목록 스캔 (CLAUDE.md, MEMORY.md, .claude/rules/ 등)
-- [ ] 문서별 메타데이터 (크기, 라인 수, 최종 수정일)
+- [x] 관리 문서 목록 스캔 (CLAUDE.md, MEMORY.md, .claude/rules/, skills/, agents/, docs/)
+- [x] 문서별 메타데이터 (크기, 라인 수, 최종 수정일) + 카테고리별 그룹핑
 - [ ] file-history 기반 diff 뷰
 
 ## Milestone 7: 비용 실시간 추적 (F13)

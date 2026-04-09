@@ -23,6 +23,7 @@ export const IPC_CHANNELS = {
   GET_ALL_TASKS: 'tasks:get-all',
   GET_COST_SUMMARY: 'cost:get-summary',
   GET_SESSION_SUBAGENTS: 'sessions:get-subagents',
+  GET_PROJECT_DOCS: 'docs:get-project',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -235,6 +236,18 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 문서 인벤토리 ───
+
+export interface DocInfo {
+  name: string;
+  path: string;
+  relativePath: string;
+  category: string;
+  sizeBytes: number;
+  lineCount: number;
+  lastModified: number;
 }
 
 // ─── 서브에이전트 ───

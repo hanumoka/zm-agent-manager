@@ -8,6 +8,7 @@ import type {
   AllTasksResult,
   CostSummary,
   SubagentInfo,
+  DocInfo,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -23,6 +24,8 @@ const api = {
   getCostSummary: (): Promise<CostSummary> => ipcRenderer.invoke(IPC_CHANNELS.GET_COST_SUMMARY),
   getSessionSubagents: (projectEncoded: string, sessionId: string): Promise<SubagentInfo[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_SESSION_SUBAGENTS, projectEncoded, sessionId),
+  getProjectDocs: (projectPath: string): Promise<DocInfo[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_DOCS, projectPath),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {
