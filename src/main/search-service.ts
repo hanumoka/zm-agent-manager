@@ -6,8 +6,16 @@ import { createInterface } from 'readline';
 import type { SearchResult, SearchResponse, SearchFilters } from '@shared/types';
 import { parseHistoryFile } from './history-parser';
 
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 const MAX_RESULTS = 100;
+
+/** 검색 서비스 옵션 (테스트에서 fixture 디렉토리 주입). */
+export interface SearchOptions {
+  /** 프로젝트 JSONL이 들어있는 루트 디렉토리. 기본값: `~/.claude/projects` */
+  projectsDir?: string;
+  /** history.jsonl 경로. 기본값: `~/.claude/history.jsonl` */
+  historyFile?: string;
+}
 
 /**
  * 타임스탬프(string | number)를 epoch ms로 변환. 변환 실패 시 0.
@@ -152,24 +160,26 @@ function extractSnippet(text: string, lowerQuery: string, contextLen: number = 8
  */
 export async function searchSessions(
   query: string,
-  filters: SearchFilters = {}
+  filters: SearchFilters = {},
+  options: SearchOptions = {}
 ): Promise<SearchResponse> {
   if (!query.trim()) {
     return { query, results: [], totalMatches: 0 };
   }
 
-  const { projectPathMap } = await parseHistoryFile();
+  const projectsDir = options.projectsDir ?? DEFAULT_PROJECTS_DIR;
+  const { projectPathMap } = await parseHistoryFile(options.historyFile);
   const allResults: SearchResult[] = [];
 
   let projectDirs: string[];
   try {
-    projectDirs = await readdir(PROJECTS_DIR);
+    projectDirs = await readdir(projectsDir);
   } catch {
     return { query, results: [], totalMatches: 0 };
   }
 
   for (const encodedDir of projectDirs) {
-    const projectDir = join(PROJECTS_DIR, encodedDir);
+    const projectDir = join(projectsDir, encodedDir);
 
     try {
       const s = await stat(projectDir);
