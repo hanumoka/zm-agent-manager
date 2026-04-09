@@ -51,16 +51,8 @@ export function ReplayPlayer({ records }: ReplayPlayerProps): React.JSX.Element 
     };
   }, [isPlaying, speed, maxIndex]);
 
-  // 플레이헤드까지의 레코드만 전달
-  const visibleRecords = useMemo(
-    () =>
-      records.filter((r) => {
-        if (r.type !== 'user' && r.type !== 'assistant') return false;
-        const msgIndex = messages.indexOf(r);
-        return msgIndex < playheadIndex;
-      }),
-    [records, messages, playheadIndex]
-  );
+  // 플레이헤드까지의 메시지만 전달
+  const visibleRecords = useMemo(() => messages.slice(0, playheadIndex), [messages, playheadIndex]);
 
   const togglePlay = useCallback(() => {
     if (playheadIndex >= maxIndex) {

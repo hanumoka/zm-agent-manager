@@ -48,14 +48,14 @@ export function TimelinePage(): React.JSX.Element {
 
   // 실시간 새 레코드 수신 (별도 effect로 분리하여 리스너 누수 방지)
   useEffect(() => {
+    if (!window.api?.onNewRecords) return;
     const unsubscribe = window.api.onNewRecords((data) => {
       if (data.sessionId === sessionId) {
         addNewRecords(data.records);
       }
     });
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, addNewRecords]);
 
   if (isParsingSession) {
     return (

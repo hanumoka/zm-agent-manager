@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-04-09 | Q1+Q2 런타임 오류 9건 수정
+
+- **목표**: E2E 검토에서 발견된 런타임 오류 High 2건 + Medium 6건 + Low 1건 중 9건 수정
+- **작업 내용**:
+  - **High**:
+    - `MessageTimeline.tsx`: optional chaining 누락 수정 (record.message?.content + 가드)
+    - `TimelinePage.tsx`: window.api?.onNewRecords 가드 + addNewRecords deps 추가
+  - **Medium**:
+    - `ReplayPlayer.tsx`: indexOf → messages.slice() 단순화
+    - `SubagentPanel/CostTracker/DocInventory/TaskBoard.tsx`: useEffect isMounted 플래그
+    - `SearchPage.tsx`: useCallback 비동기에 isMountedRef 패턴
+    - `CostTracker.tsx`: date.slice(5) → split('-') 안전 파싱
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+- **잔여**: Low 1건 (session-store addNewRecords race condition)
+- **다음 할 일**: Q3 Playwright `_electron` E2E 인프라 구축
+
+## 2026-04-09 | E2E 테스트 전략 수립 + 런타임 오류 분석
+
+- **목표**: 메뉴 오류 검토, E2E 자동화 방안 조사, 품질 마일스톤 정의
+- **작업 내용**:
+  - 전체 컴포넌트 런타임 오류 검토 (10건 발견: High 2, Medium 7, Low 1)
+    - High: MessageTimeline optional chaining, TimelinePage window.api 가드
+    - Medium: ReplayPlayer indexOf, 5개 컴포넌트 unmount setState, deps 누락, date 형식
+    - Low: session-store race condition
+  - 웹 검색으로 Electron E2E 테스트 최신 (2026) 동향 조사
+    - Playwright `_electron` 공식 지원 확인
+    - Electron MCP 서버 4종 발견 (playwright-mcp-electron, Choreograph 등)
+  - `docs/policies/testing-strategy.md` 신규 작성 (단위/E2E/MCP 3계층 전략)
+  - `docs/roadmap/ROADMAP.md`에 품질 마일스톤 Q (Q1-Q6) 추가
+  - `docs/troubleshooting/known-issues.md`에 10건 이슈 추가
+- **결과**: 런타임 이슈 10건 추적 등록, E2E 테스트 로드맵 확정
+- **다음 할 일**: Q1 (High 이슈 2건) 수정 → Q2 → Playwright E2E 인프라
+
 ## 2026-04-09 | 품질 정리 + Phase 3 M2 검색(F9) 착수
 
 - **목표**: dead code 정리 + Phase 3 검색 기능 구현
@@ -110,23 +143,5 @@
   - 사이드바 헤더에서 타이틀 제거 (타이틀바로 이관)
 - **검증**: lint 0 에러, typecheck 통과
 - **다음 할 일**: 사용자 테스트 확인 후 커밋
-
-## 2026-04-09 | 문서 리팩토링 + 코드 리팩토링
-
-- **목표**: Phase 1 완료 후 코드-문서 전수 검증 및 리팩토링
-- **작업 내용**:
-  - **문서 리팩토링** (14개 파일):
-    - Critical 5건: ROADMAP/phase-1 상태 갱신, SESSION_LOG 누락 세션 추가, PRD v1 Deprecated, README 링크
-    - Major 6건: PRD-v2 실제 결과 노트, feature-spec F17-F20 스텁, CLAUDE.md Recharts 주석, phase-2/3 마일스톤 보강
-    - Minor 3건: git-workflow 노트, readout 교차참조, known-issues 갱신
-  - **코드 리팩토링** (5개 파일):
-    - `MessageTimeline.tsx`: messages 필터 useMemo 추가, virtualizer useEffect deps 수정 (매 렌더 scroll 버그 해결)
-    - `session-scanner.ts`: stat 호출 Promise.all 병렬화
-    - `jsonl-parser.ts`: 미사용 parseJsonlTail 함수 삭제 (-28줄)
-    - `session-watcher.ts`: statSync → async stat 교체, watchSession async 변환
-    - `App.tsx`: DashboardPage 플레이스홀더 텍스트 갱신
-  - lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
-- **결과**: 문서 이슈 14건 중 11건 해결 + 코드 이슈 6건 전체 해결. 미해결 3건 추적 등록.
-- **다음 할 일**: Phase 2 착수 결정 (F5-F7 + F11/F1대시보드/F12/F13)
 
 _(이전 세션은 [archive/2026-04.md](./archive/2026-04.md) 참조)_

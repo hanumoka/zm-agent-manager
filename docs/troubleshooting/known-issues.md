@@ -127,3 +127,33 @@ _아직 등록된 이슈 없음_
 ### [해결됨] Recharts 미사용
 - package.json에 recharts 의존성이 있으나 Phase 1에서 미사용이었음
 - **수정 완료**: Phase 2 대시보드 ActivityChart에서 Recharts 사용 시작
+
+---
+
+## 런타임 오류 가능성 (2026-04-09 E2E 테스트 검토 시 발견)
+
+### [해결됨] High: MessageTimeline optional chaining 누락
+- `MessageTimeline.tsx:77, 125`: `record.message.content` 직접 접근
+- **수정 완료**: `record.message?.content` + 가드 추가, undefined 시 null 반환
+
+### [해결됨] High: TimelinePage window.api 가드 부재
+- `TimelinePage.tsx:51`: `window.api.onNewRecords` 직접 호출
+- **수정 완료**: `window.api?.onNewRecords` 가드 + early return + deps에 addNewRecords 추가
+
+### [해결됨] Medium: ReplayPlayer indexOf 비효율 + race condition
+- `ReplayPlayer.tsx:55-63`: `messages.indexOf(r)`로 visibleRecords 계산
+- **수정 완료**: `messages.slice(0, playheadIndex)`로 단순화
+
+### [해결됨] Medium: 5개 컴포넌트 unmount 시 setState 경고
+- `SubagentPanel`, `CostTracker`, `DocInventory`, `TaskBoard`, `SearchPage`
+- **수정 완료**: useEffect는 `isMounted` 플래그, SearchPage는 `isMountedRef` 패턴 적용
+
+### [해결됨] Medium: TimelinePage useEffect deps 누락
+- **수정 완료**: deps에 `addNewRecords` 추가
+
+### [해결됨] Medium: CostTracker date 형식 가정
+- **수정 완료**: `split('-')` 기반 안전 파싱, 형식 다를 시 원본 사용
+
+### 미해결 — Low: session-store addNewRecords race condition
+- 동시 호출 시 messageCount 부정확 가능
+- **조치**: 함수형 set으로 변경 (Q3 이후)

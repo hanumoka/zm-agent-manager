@@ -74,7 +74,8 @@ function ContentBlocks({ blocks }: { blocks: ContentBlock[] }): React.JSX.Elemen
 
 function MessageRow({ record }: { record: JsonlRecord }): React.JSX.Element | null {
   if (record.type === 'user') {
-    const content = record.message.content;
+    const content = record.message?.content;
+    if (content === undefined) return null;
     // tool_result 메시지는 스킵 (도구 응답)
     if (typeof content !== 'string' && Array.isArray(content)) {
       if (content.length > 0 && content[0].type === 'tool_result') return null;
@@ -107,6 +108,8 @@ function MessageRow({ record }: { record: JsonlRecord }): React.JSX.Element | nu
   }
 
   if (record.type === 'assistant') {
+    const content = record.message?.content;
+    if (!content) return null;
     return (
       <div className="flex gap-3 bg-card/50 px-4 py-3">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-green/20">
@@ -122,7 +125,7 @@ function MessageRow({ record }: { record: JsonlRecord }): React.JSX.Element | nu
               <span className="text-xs text-muted-foreground font-mono">{record.slug}</span>
             )}
           </div>
-          <ContentBlocks blocks={record.message.content} />
+          <ContentBlocks blocks={content} />
         </div>
       </div>
     );

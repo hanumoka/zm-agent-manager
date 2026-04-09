@@ -78,20 +78,23 @@ export function DocInventory(): React.JSX.Element {
   // 선택된 프로젝트의 문서 스캔
   useEffect(() => {
     if (!selectedProject) return;
-
+    let isMounted = true;
     async function load(): Promise<void> {
       setIsLoading(true);
       setError(null);
       try {
         const result = await window.api.getProjectDocs(selectedProject);
-        setDocs(result);
+        if (isMounted) setDocs(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '문서 스캔 실패');
+        if (isMounted) setError(err instanceof Error ? err.message : '문서 스캔 실패');
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedProject]);
 
   // 카테고리별 그룹핑

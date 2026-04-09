@@ -82,28 +82,36 @@ export function CostTracker(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     async function load(): Promise<void> {
       setIsLoading(true);
       setError(null);
       try {
         const result = await window.api.getCostSummary();
-        setSummary(result);
+        if (isMounted) setSummary(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '비용 조회 실패');
+        if (isMounted) setError(err instanceof Error ? err.message : '비용 조회 실패');
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 차트 데이터: 최근 14일만
+  // 차트 데이터: 최근 14일만 — "YYYY-MM-DD" 안전 파싱
   const chartData = useMemo(() => {
     if (!summary) return [];
-    return summary.byDay.slice(-14).map((d) => ({
-      date: d.date.slice(5), // MM-DD
-      cost: Math.round(d.cost * 1000) / 1000,
-    }));
+    return summary.byDay.slice(-14).map((d) => {
+      const parts = d.date.split('-');
+      const label = parts.length === 3 ? `${parts[1]}-${parts[2]}` : d.date;
+      return {
+        date: label,
+        cost: Math.round(d.cost * 1000) / 1000,
+      };
+    });
   }, [summary]);
 
   if (isLoading) {

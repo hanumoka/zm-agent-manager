@@ -145,19 +145,23 @@ export function TaskBoard(): React.JSX.Element {
   const [selectedProject, setSelectedProject] = useState<string>('all');
 
   useEffect(() => {
+    let isMounted = true;
     async function load(): Promise<void> {
       setIsLoading(true);
       setError(null);
       try {
         const result = await window.api.getAllTasks();
-        setTasks(result.tasks);
+        if (isMounted) setTasks(result.tasks);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '태스크 조회 실패');
+        if (isMounted) setError(err instanceof Error ? err.message : '태스크 조회 실패');
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 프로젝트 목록 추출

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Bot, Wrench } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
@@ -89,6 +89,14 @@ export function SearchPage(): React.JSX.Element {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleSearch = useCallback(
     async (e: React.FormEvent) => {
@@ -100,11 +108,11 @@ export function SearchPage(): React.JSX.Element {
       setError(null);
       try {
         const result = await window.api.searchSessions(trimmed);
-        setResponse(result);
+        if (isMountedRef.current) setResponse(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '검색 실패');
+        if (isMountedRef.current) setError(err instanceof Error ? err.message : '검색 실패');
       } finally {
-        setIsSearching(false);
+        if (isMountedRef.current) setIsSearching(false);
       }
     },
     [query]

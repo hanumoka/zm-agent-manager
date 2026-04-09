@@ -94,19 +94,23 @@ export function SubagentPanel({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     async function load(): Promise<void> {
       setIsLoading(true);
       setError(null);
       try {
         const result = await window.api.getSessionSubagents(projectEncoded, sessionId);
-        setSubagents(result);
+        if (isMounted) setSubagents(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '서브에이전트 조회 실패');
+        if (isMounted) setError(err instanceof Error ? err.message : '서브에이전트 조회 실패');
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, [projectEncoded, sessionId]);
 
   if (isLoading) {
