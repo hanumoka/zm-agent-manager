@@ -222,3 +222,50 @@ _아직 등록된 이슈 없음_
   - evaluateBudgetAlerts: 일+월 동시 / 다음날 / trim(60) / race 직렬화
   - normalizeBudgetSettings: NaN/음수/잘못 타입 보정 / 유효값 보존 / save 왕복
   - timestampToLocalDate: ISO / epoch ms / 빈값·null·undefined / 파싱 불가
+
+---
+
+## Phase 2 M7 예산 알림 추가 재검토 (2026-04-09 두 번째 세션)
+
+> `4162654` 시점 독립 재검토에서 **앞선 감사 이후 여전히 남아 있던** 이슈 8건 발견.
+> 같은 세션에서 High 2 + Medium 3 수정 커밋, Low 3은 남김.
+
+### [해결됨] High: `BudgetCard.handleSave`가 `lastNotifiedKeys`를 무조건 초기화
+- **위치**: `src/renderer/src/components/CostTracker.tsx:120-126`
+- **현상**: 저장 버튼을 누를 때마다 `lastNotifiedKeys: []`로 강제 리셋. 값 변경 여부 무관.
+- **영향**: 임계 알림을 받은 뒤 입력 변경 없이 저장만 눌러도 다음 `cost:get-summary`에 동일 알림 재발송.
+- **수정 완료**: `daily/monthly/alertPercent` 중 하나라도 변경된 경우에만 리셋. 변경 없으면 기존 `lastNotifiedKeys`를 유지.
+
+### [해결됨] High: `SET_BUDGET_SETTINGS` 핸들러가 sanitized return을 버림
+- **위치**: `src/main/ipc.ts:78-81`
+- **현상**: `saveBudgetSettings`는 `normalizeBudgetSettings`로 정규화된 값을 return하지만, 핸들러는 원본 `settings` 인자를 그대로 돌려주어 렌더러가 보정 전 값을 받음.
+- **수정 완료**: `const saved = await saveBudgetSettings(settings); return saved;` — 렌더러가 정규화된 결과를 받도록 연결.
+
+### [해결됨] Medium: `lastNotifiedKeys` FIFO 트리밍이 월별 키를 밀어낼 수 있음
+- **위치**: `src/main/budget-service.ts:214` (`newKeys.slice(-60)`)
+- **시나리오**: daily warn/exceed 키가 매일 2개씩 쌓여 30일 후 60개 초과 시 FIFO로 월별 키가 밀려 같은 달 재발송 가능.
+- **수정 완료**: `trimLastNotifiedKeys(keys)` 헬퍼 신규 — period별 분리 유지 (daily 최근 60, monthly 최근 12, other 최근 20). 월별 키가 daily 폭증에 밀리지 않는다.
+
+### [해결됨] Medium: `evaluateBudgetAlerts` 실패 완전 무음
+- **위치**: `src/main/ipc.ts:52` (`.catch(() => {})`)
+- **현상**: 디스크 권한/파싱/Notification 실패 시 로그 없음 → 디버깅 불가.
+- **수정 완료**: `.catch((err) => console.error('[budget] evaluate failed', err))` — 응답 흐름 영향 없이 로그만 남김.
+
+### [해결됨] Medium: BudgetCard `data-testid`가 한국어 라벨 조건 분기
+- **위치**: `src/renderer/src/components/CostTracker.tsx:164` — `label === '오늘' ? 'daily' : 'monthly'`
+- **현상**: 라벨 문자열을 testid 키로 분기. i18n·라벨 변경 시 E2E 테스트 붕괴.
+- **수정 완료**: `renderProgressBar`에 `period: 'daily' | 'monthly'` 첫 파라미터 추가. 라벨과 testid 분리.
+
+### 미해결 — Low: BudgetCard unmount 가드 패턴 불일치
+- **위치**: `src/renderer/src/components/CostTracker.tsx:77-94`
+- **현상**: Q1/Q2 리팩터로 다른 컴포넌트는 `isMountedRef` 패턴이지만 `BudgetCard`는 `let mounted` 클로저. 기능상 동일하나 일관성 미달.
+- **조치**: 다음 quality 라운드에서 일괄 통일.
+
+### [해결됨] Low: 진행 바 "150%" 텍스트 vs 100% 너비 캡 불일치
+- **위치**: `src/renderer/src/components/CostTracker.tsx:162-163`
+- **수정 완료**: 초과 시 텍스트를 `>100%`로 변경하여 바 너비 캡과 일관. 초과량 정보는 여전히 색상(destructive)으로 표현.
+
+### 미해결 — Low: `todayLocal`/`monthLocal` 헬퍼 main/renderer 양쪽 중복
+- **위치**: `src/main/budget-service.ts` vs `src/renderer/src/components/CostTracker.tsx`
+- **현상**: 동일 로직이 양쪽 존재. 메인/렌더러 분리 때문에 의도적이지만 `CostSummary.byDay` 포맷 규약 문서화는 필요.
+- **조치**: 추후 `shared/time-utils.ts` 또는 JSDoc으로 계약 명시 검토.

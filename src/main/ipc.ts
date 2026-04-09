@@ -48,8 +48,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_COST_SUMMARY, async () => {
     const summary = await scanCostSummary();
-    // 비용 갱신 시 예산 임계 평가 (실패해도 비용 응답에 영향 없음)
-    void evaluateBudgetAlerts(summary).catch(() => {});
+    // 비용 갱신 시 예산 임계 평가 (실패해도 비용 응답에 영향 없음, 로그는 남김)
+    void evaluateBudgetAlerts(summary).catch((err) => {
+      console.error('[budget] evaluate failed', err);
+    });
     return summary;
   });
 
@@ -76,7 +78,9 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.SET_BUDGET_SETTINGS, async (_event, settings: BudgetSettings) => {
-    await saveBudgetSettings(settings);
-    return settings;
+    // saveBudgetSettings는 normalizeBudgetSettings로 정규화된 값을 반환한다.
+    // 렌더러는 보정된 값을 받아야 하므로 원본 인자가 아닌 반환값을 전달한다.
+    const saved = await saveBudgetSettings(settings);
+    return saved;
   });
 }

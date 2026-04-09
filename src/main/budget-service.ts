@@ -209,13 +209,34 @@ async function doEvaluateBudgetAlerts(
   checkAndNotify('daily', '오늘', settings.dailyUsd, todayCost, today);
   checkAndNotify('monthly', '이번 달', settings.monthlyUsd, monthCost, month);
 
-  // 새 키 저장 + 오래된 키 정리 (최근 60개만 유지)
+  // 새 키 저장 + period별 분리 만료
+  // - daily 키는 최근 60개(약 30일) 유지
+  // - monthly 키는 최근 12개(1년) 유지
+  // 이렇게 분리해야 daily 키 폭증이 monthly 키를 FIFO로 밀어내 중복 알림을 일으키는 것을 방지한다.
   if (sent.length > 0) {
-    const trimmed = newKeys.slice(-60);
+    const trimmed = trimLastNotifiedKeys(newKeys);
     await saveBudgetSettings({ ...settings, lastNotifiedKeys: trimmed }, options);
   }
 
   return sent;
+}
+
+/**
+ * `lastNotifiedKeys`를 period별로 분리 유지한다.
+ * - daily: 최근 60개 (하루 최대 2개 × 30일)
+ * - monthly: 최근 12개 (월 최대 2개 × 6개월)
+ * daily 키가 폭증해도 monthly 키가 FIFO로 밀려 같은 달 재발송되는 버그를 방지.
+ */
+export function trimLastNotifiedKeys(keys: string[]): string[] {
+  const daily: string[] = [];
+  const monthly: string[] = [];
+  const other: string[] = [];
+  for (const k of keys) {
+    if (k.startsWith('daily-')) daily.push(k);
+    else if (k.startsWith('monthly-')) monthly.push(k);
+    else other.push(k);
+  }
+  return [...other.slice(-20), ...daily.slice(-60), ...monthly.slice(-12)];
 }
 
 function sendNotification(options: BudgetOptions, title: string, body: string): void {

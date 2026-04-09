@@ -117,12 +117,19 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
       setError('월별 예산은 0 이상 숫자여야 합니다');
       return;
     }
+
+    // 예산/임계값 중 하나라도 변경되었을 때만 lastNotifiedKeys를 초기화한다.
+    // 값 변경 없이 저장만 눌러도 리셋하면 같은 알림이 재발송되는 버그 방지.
+    const changed =
+      daily !== settings.dailyUsd ||
+      monthly !== settings.monthlyUsd ||
+      alertPercentInput !== settings.alertPercent;
+
     const next: BudgetSettings = {
       dailyUsd: daily,
       monthlyUsd: monthly,
       alertPercent: alertPercentInput,
-      // 임계값/예산이 변경되었으므로 알림 키 초기화 (재평가 가능)
-      lastNotifiedKeys: [],
+      lastNotifiedKeys: changed ? [] : settings.lastNotifiedKeys,
     };
     try {
       const saved = await window.api.setBudgetSettings(next);
@@ -135,12 +142,13 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
   }, [settings, dailyInput, monthlyInput, alertPercentInput]);
 
   const renderProgressBar = (
+    period: 'daily' | 'monthly',
     label: string,
     actual: number,
     budget: number | null
   ): React.JSX.Element | null => {
     if (budget === null || budget <= 0) return null;
-    const ratio = Math.min(actual / budget, 1.5);
+    const ratio = actual / budget;
     const pct = Math.round(ratio * 100);
     const overBudget = ratio >= 1;
     const reachedAlert = ratio >= alertPercentInput / 100;
@@ -154,14 +162,14 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{label}</span>
           <span>
-            {formatCost(actual)} / {formatCost(budget)} ({pct}%)
+            {formatCost(actual)} / {formatCost(budget)} ({overBudget ? '>100%' : `${pct}%`})
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
             className={`h-full ${barColor} transition-all`}
             style={{ width: `${Math.min(pct, 100)}%` }}
-            data-testid={`budget-bar-${label === '오늘' ? 'daily' : 'monthly'}`}
+            data-testid={`budget-bar-${period}`}
           />
         </div>
       </div>
@@ -177,8 +185,8 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
 
       {/* 진행 바 (예산이 설정된 경우만) */}
       <div className="space-y-3 mb-4">
-        {renderProgressBar('오늘', todayCost, settings?.dailyUsd ?? null)}
-        {renderProgressBar('이번 달', monthCost, settings?.monthlyUsd ?? null)}
+        {renderProgressBar('daily', '오늘', todayCost, settings?.dailyUsd ?? null)}
+        {renderProgressBar('monthly', '이번 달', monthCost, settings?.monthlyUsd ?? null)}
         {settings?.dailyUsd == null && settings?.monthlyUsd == null && (
           <p className="text-xs text-muted-foreground">
             아래에서 예산을 설정하면 임계 도달 시 데스크톱 알림을 받습니다.
