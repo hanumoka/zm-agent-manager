@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/session-store';
 import type { SessionMeta } from '@shared/types';
 
@@ -14,9 +15,25 @@ function formatTimeAgo(timestamp: number): string {
   return `${days}일 전`;
 }
 
-function SessionCard({ session }: { session: SessionMeta }): React.JSX.Element {
+/**
+ * 프로젝트 경로를 Claude 인코딩 형식으로 변환
+ * /Users/hanumoka/projects/zm → -Users-hanumoka-projects-zm
+ */
+function encodeProjectPath(projectPath: string): string {
+  return projectPath.replace(/\//g, '-');
+}
+
+interface SessionCardProps {
+  session: SessionMeta;
+  onSelect: (session: SessionMeta) => void;
+}
+
+function SessionCard({ session, onSelect }: SessionCardProps): React.JSX.Element {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 hover:bg-popover transition-colors">
+    <button
+      onClick={() => onSelect(session)}
+      className="w-full text-left rounded-lg border border-border bg-card p-4 hover:bg-popover transition-colors cursor-pointer"
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {session.isActive && (
@@ -35,16 +52,22 @@ function SessionCard({ session }: { session: SessionMeta }): React.JSX.Element {
         <span>{session.messageCount}개 메시지</span>
         {session.isActive && <span className="text-accent-green font-medium">활성</span>}
       </div>
-    </div>
+    </button>
   );
 }
 
 export function SessionList(): React.JSX.Element {
   const { groups, isLoading, error, fetchSessions } = useSessionStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  const handleSelect = (session: SessionMeta): void => {
+    const encoded = encodeProjectPath(session.projectPath);
+    navigate(`/timeline/${encoded}/${session.sessionId}`);
+  };
 
   if (isLoading) {
     return (
@@ -84,7 +107,7 @@ export function SessionList(): React.JSX.Element {
           </h2>
           <div className="space-y-2">
             {group.sessions.map((session) => (
-              <SessionCard key={session.sessionId} session={session} />
+              <SessionCard key={session.sessionId} session={session} onSelect={handleSelect} />
             ))}
           </div>
         </div>

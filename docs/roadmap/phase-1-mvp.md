@@ -49,10 +49,10 @@
 
 ## Milestone 5: 메시지 타임라인 (F3)
 
-- [ ] `user`/`assistant` 메시지 타임라인 UI
-- [ ] `parentUuid` 기반 메시지 체인 시각화
-- [ ] 메시지 내용 렌더링 (Markdown 지원)
-- [ ] 가상화 리스트 적용 (대량 메시지 성능)
+- [x] `user`/`assistant` 메시지 타임라인 UI
+- [x] `parentUuid` 기반 메시지 체인 시각화
+- [x] 메시지 내용 렌더링 (Markdown 지원)
+- [x] 가상화 리스트 적용 (대량 메시지 성능)
 
 ## Milestone 6: 도구 호출 추적 (F4)
 

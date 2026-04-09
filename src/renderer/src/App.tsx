@@ -1,10 +1,16 @@
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, MessageSquare } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
+import { TimelinePage } from '@/components/TimelinePage';
 
 const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/sessions', label: 'Sessions', icon: MessageSquare },
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
+  {
+    path: '/sessions',
+    label: 'Sessions',
+    icon: MessageSquare,
+    matchPaths: ['/sessions', '/timeline'],
+  },
 ] as const;
 
 function Sidebar(): React.JSX.Element {
@@ -16,8 +22,12 @@ function Sidebar(): React.JSX.Element {
         <h1 className="text-sm font-bold text-primary">zm-agent-manager</h1>
       </div>
       <nav className="flex-1 space-y-1 px-2 pt-2">
-        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
-          const isActive = location.pathname === path;
+        {NAV_ITEMS.map(({ path, label, icon: Icon, matchPaths }) => {
+          const isActive = matchPaths.some(
+            (mp) =>
+              location.pathname === mp || (mp !== '/' && location.pathname.startsWith(mp + '/'))
+          );
+
           return (
             <Link
               key={path}
@@ -55,6 +65,7 @@ function App(): React.JSX.Element {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/sessions" element={<SessionList />} />
+            <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
           </Routes>
         </main>
       </div>
