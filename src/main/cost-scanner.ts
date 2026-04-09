@@ -176,7 +176,7 @@ export async function scanCostSummary(): Promise<CostSummary> {
       u.cacheWriteTokens
     );
     totalCost += cost;
-    totalInputTokens += u.inputTokens + u.cacheReadTokens + u.cacheWriteTokens;
+    totalInputTokens += u.inputTokens;
     totalOutputTokens += u.outputTokens;
 
     const existing = modelMap.get(u.model);
