@@ -4,27 +4,12 @@ import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import type { HistoryEntry, ActiveSessionInfo, SessionMeta, ProjectGroup } from '@shared/types';
+import { encodeProjectPath } from '@shared/types';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
 const HISTORY_FILE = join(CLAUDE_DIR, 'history.jsonl');
 const SESSIONS_DIR = join(CLAUDE_DIR, 'sessions');
-
-/**
- * 프로젝트 경로 인코딩: /를 -로 치환
- * 예: /Users/hanumoka/projects/zm-agent-manager → -Users-hanumoka-projects-zm-agent-manager
- */
-function encodeProjectPath(projectPath: string): string {
-  return projectPath.replace(/\//g, '-');
-}
-
-/**
- * 프로젝트 경로에서 이름 추출
- * 예: /Users/hanumoka/projects/zm-agent-manager → zm-agent-manager
- */
-function extractProjectName(projectPath: string): string {
-  return basename(projectPath);
-}
 
 interface HistoryParseResult {
   sessionMap: Map<string, HistoryEntry[]>;
@@ -99,47 +84,15 @@ async function getActiveSessions(): Promise<Map<string, ActiveSessionInfo>> {
 }
 
 /**
- * JSONL 파일에서 메시지 수와 마지막 활동 시간 추출 (경량 스캔)
+ * JSONL 파일의 마지막 활동 시간을 파일 mtime으로 추출 (경량)
  */
-async function getSessionStats(
-  jsonlPath: string
-): Promise<{ messageCount: number; lastActivity: number }> {
-  let messageCount = 0;
-  let lastActivity = 0;
-
-  let stream: ReturnType<typeof createReadStream> | null = null;
-  let rl: ReturnType<typeof createInterface> | null = null;
-
+async function getFileLastActivity(jsonlPath: string): Promise<number> {
   try {
-    stream = createReadStream(jsonlPath, { encoding: 'utf-8' });
-    rl = createInterface({ input: stream, crlfDelay: Infinity });
-
-    for await (const line of rl) {
-      if (!line.trim()) continue;
-      try {
-        const record = JSON.parse(line) as { type?: string; timestamp?: string | number };
-        if (record.type === 'user' || record.type === 'assistant') {
-          messageCount++;
-        }
-        if (record.timestamp) {
-          const ts =
-            typeof record.timestamp === 'string'
-              ? new Date(record.timestamp).getTime()
-              : record.timestamp;
-          if (ts > lastActivity) lastActivity = ts;
-        }
-      } catch {
-        // 잘못된 라인 스킵
-      }
-    }
+    const s = await stat(jsonlPath);
+    return s.mtimeMs;
   } catch {
-    // 파일 읽기 실패
-  } finally {
-    rl?.close();
-    stream?.destroy();
+    return 0;
   }
-
-  return { messageCount, lastActivity };
 }
 
 /**
@@ -169,9 +122,12 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
       continue;
     }
 
-    // history.jsonl에서 실제 프로젝트 경로 조회, 없으면 인코딩된 이름 사용
+    // history.jsonl에서 실제 프로젝트 경로 조회
     const projectPath = projectPathMap.get(encodedDir) ?? encodedDir;
-    const projectName = extractProjectName(projectPath);
+    // fallback: 인코딩된 디렉토리명에서 마지막 세그먼트 추출 (앞 '-' 제거)
+    const projectName = projectPathMap.has(encodedDir)
+      ? basename(projectPath)
+      : (encodedDir.split('-').pop() ?? encodedDir);
     const sessions: SessionMeta[] = [];
 
     // .jsonl 파일 스캔
@@ -188,18 +144,17 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
       const sessionId = jsonlFile.replace('.jsonl', '');
       const jsonlPath = join(projectDir, jsonlFile);
 
-      // history에서 첫 메시지 가져오기
+      // history에서 첫 메시지와 엔트리 수 가져오기
       const historyEntries = historyMap.get(sessionId) ?? [];
       const firstMessage = historyEntries[0]?.display ?? '';
 
-      // JSONL 파일에서 통계 추출
-      const stats = await getSessionStats(jsonlPath);
+      // 파일 mtime으로 마지막 활동 시간 추출 (전체 파싱 대신 경량 접근)
+      const fileMtime = await getFileLastActivity(jsonlPath);
 
-      // history 타임스탬프가 없으면 JSONL 마지막 활동 사용
-      const lastActivity =
-        historyEntries.length > 0
-          ? Math.max(...historyEntries.map((e) => e.timestamp))
-          : stats.lastActivity;
+      // history 타임스탬프와 파일 mtime 중 최신 사용
+      const historyLatest =
+        historyEntries.length > 0 ? Math.max(...historyEntries.map((e) => e.timestamp)) : 0;
+      const lastActivity = Math.max(historyLatest, fileMtime);
 
       sessions.push({
         sessionId,
@@ -207,7 +162,7 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
         projectName,
         lastActivity,
         firstMessage,
-        messageCount: stats.messageCount,
+        messageCount: historyEntries.length,
         isActive: activeMap.has(sessionId),
       });
     }

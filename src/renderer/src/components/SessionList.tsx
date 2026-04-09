@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/session-store';
+import { encodeProjectPath } from '@shared/types';
 import type { SessionMeta } from '@shared/types';
 
 function formatTimeAgo(timestamp: number): string {
@@ -13,14 +14,6 @@ function formatTimeAgo(timestamp: number): string {
   if (hours < 24) return `${hours}시간 전`;
   const days = Math.floor(hours / 24);
   return `${days}일 전`;
-}
-
-/**
- * 프로젝트 경로를 Claude 인코딩 형식으로 변환
- * /Users/hanumoka/projects/zm → -Users-hanumoka-projects-zm
- */
-function encodeProjectPath(projectPath: string): string {
-  return projectPath.replace(/\//g, '-');
 }
 
 interface SessionCardProps {

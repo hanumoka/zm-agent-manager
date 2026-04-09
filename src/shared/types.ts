@@ -2,6 +2,16 @@
  * 메인 프로세스와 렌더러 프로세스 간 공유 타입 정의
  */
 
+// ─── 유틸 함수 ───
+
+/**
+ * 프로젝트 경로를 Claude 디렉토리 인코딩 형식으로 변환
+ * /Users/hanumoka/projects/zm-agent-manager → -Users-hanumoka-projects-zm-agent-manager
+ */
+export function encodeProjectPath(projectPath: string): string {
+  return projectPath.replace(/\//g, '-');
+}
+
 // ─── IPC 채널 ───
 
 export const IPC_CHANNELS = {
