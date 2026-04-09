@@ -24,6 +24,7 @@ export const IPC_CHANNELS = {
   GET_COST_SUMMARY: 'cost:get-summary',
   GET_SESSION_SUBAGENTS: 'sessions:get-subagents',
   GET_PROJECT_DOCS: 'docs:get-project',
+  SEARCH_SESSIONS: 'search:sessions',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -236,6 +237,24 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 검색 ───
+
+export interface SearchResult {
+  sessionId: string;
+  projectName: string;
+  projectPath: string;
+  matchText: string;
+  recordType: 'user' | 'assistant';
+  timestamp: string | number;
+  toolName?: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+  totalMatches: number;
 }
 
 // ─── 문서 인벤토리 ───

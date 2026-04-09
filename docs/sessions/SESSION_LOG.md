@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-04-09 | 품질 정리 + Phase 3 M2 검색(F9) 착수
+
+- **목표**: dead code 정리 + Phase 3 검색 기능 구현
+- **작업 내용**:
+  - 품질 정리: button.tsx 삭제, 빈 디렉토리 hooks/types/ 제거
+  - `search-service.ts` 신규: 전체 세션 JSONL 텍스트 검색 (메시지 + tool_use)
+  - `SearchPage.tsx` 신규: 검색 입력, 결과 리스트, 하이라이트, 타임라인 이동
+  - `App.tsx`: Search 라우트 + 사이드바 추가
+  - types/IPC/preload: SearchResult, SearchResponse + SEARCH_SESSIONS 채널
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+- **미완료**: 프로젝트/기간 필터링 (후속)
+
 ## 2026-04-09 | Phase 2 M1 리플레이(F5) + M2 파일 변경(F6) 구현
 
 - **목표**: 세션 리플레이 플레이어 + 파일 변경 추적 구현

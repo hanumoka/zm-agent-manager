@@ -9,6 +9,7 @@ import type {
   CostSummary,
   SubagentInfo,
   DocInfo,
+  SearchResponse,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -26,6 +27,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_SESSION_SUBAGENTS, projectEncoded, sessionId),
   getProjectDocs: (projectPath: string): Promise<DocInfo[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_DOCS, projectPath),
+  searchSessions: (query: string): Promise<SearchResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SEARCH_SESSIONS, query),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

@@ -1,11 +1,19 @@
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, ClipboardList, DollarSign, FileText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  MessageSquare,
+  ClipboardList,
+  DollarSign,
+  FileText,
+  Search,
+} from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
 import { DashboardPage } from '@/components/DashboardPage';
 import { TaskBoard } from '@/components/TaskBoard';
 import { CostTracker } from '@/components/CostTracker';
 import { DocInventory } from '@/components/DocInventory';
+import { SearchPage } from '@/components/SearchPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -18,6 +26,7 @@ const NAV_ITEMS = [
   { path: '/tasks', label: 'Tasks', icon: ClipboardList, matchPaths: ['/tasks'] },
   { path: '/costs', label: 'Costs', icon: DollarSign, matchPaths: ['/costs'] },
   { path: '/docs', label: 'Docs', icon: FileText, matchPaths: ['/docs'] },
+  { path: '/search', label: 'Search', icon: Search, matchPaths: ['/search'] },
 ] as const;
 
 function TitleBar(): React.JSX.Element {
@@ -78,6 +87,7 @@ function App(): React.JSX.Element {
               <Route path="/tasks" element={<TaskBoard />} />
               <Route path="/costs" element={<CostTracker />} />
               <Route path="/docs" element={<DocInventory />} />
+              <Route path="/search" element={<SearchPage />} />
             </Routes>
           </main>
         </div>

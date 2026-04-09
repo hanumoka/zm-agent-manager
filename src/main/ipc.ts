@@ -9,6 +9,7 @@ import { scanAllTasks } from './task-scanner';
 import { scanCostSummary } from './cost-scanner';
 import { scanSessionSubagents } from './subagent-scanner';
 import { scanProjectDocs } from './doc-scanner';
+import { searchSessions } from './search-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -57,5 +58,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_PROJECT_DOCS, async (_event, projectPath: string) => {
     return scanProjectDocs(projectPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SEARCH_SESSIONS, async (_event, query: string) => {
+    return searchSessions(query);
   });
 }
