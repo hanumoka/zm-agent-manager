@@ -5,6 +5,7 @@ import { IPC_CHANNELS } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
+import { scanAllTasks } from './task-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -33,5 +34,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.UNWATCH_SESSION, async (_event, sessionId: string) => {
     unwatchSession(sessionId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_ALL_TASKS, async () => {
+    const tasks = await scanAllTasks();
+    return { tasks };
   });
 }

@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M4/M5 재검토 및 품질 수정
+
+- **목표**: Phase 2 구현물 전체 교차검증 및 발견된 이슈 수정
+- **작업 내용**:
+  - ROADMAP.md + phase-2-replay.md 상태 "대기" → "진행중 (M4-M5 완료)" 갱신
+  - `history-parser.ts` 공유 유틸 추출: session-scanner + task-scanner 중복 코드 제거
+  - `formatTimeAgo` 타입 안전성 보강: string/number 모두 지원, TaskBoard 수동 변환 제거
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
+## 2026-04-09 | Phase 2 M4 태스크 보드(F11) 구현
+
+- **목표**: JSONL TaskCreate/TaskUpdate 기반 칸반 태스크 보드 구현
+- **작업 내용**:
+  - `src/main/task-scanner.ts` 신규: 전체 세션 JSONL 스캔, TaskCreate/TaskUpdate 추출 및 태스크 상태 재구성
+  - `src/shared/types.ts`: TaskInfo, TaskEvent, TaskStatus, AllTasksResult 타입 + GET_ALL_TASKS IPC 채널 추가
+  - `src/main/ipc.ts`: GET_ALL_TASKS 핸들러 등록
+  - `src/preload/index.ts + index.d.ts`: getAllTasks API 노출
+  - `src/renderer/src/components/TaskBoard.tsx` 신규: 칸반 보드 (3레인), TaskCard (펼침/상태이력), 프로젝트 필터, 삭제 토글, 통계
+  - `src/renderer/src/App.tsx`: Tasks 라우트 + 사이드바 네비게이션 추가
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
 ## 2026-04-09 | Phase 2 대시보드 검토 및 품질 수정
 
 - **목표**: DashboardPage 구현 후 코드 품질 재검토 및 수정

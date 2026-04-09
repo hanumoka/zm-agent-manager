@@ -7,10 +7,13 @@ export function cn(...inputs: ClassValue[]): string {
 
 /**
  * 타임스탬프를 상대 시간 문자열로 변환 (예: "3분 전", "2시간 전")
+ * string/number 타임스탬프 모두 지원
  */
-export function formatTimeAgo(timestamp: number): string {
+export function formatTimeAgo(timestamp: string | number): string {
   if (!timestamp) return '';
-  const diff = Date.now() - timestamp;
+  const ts = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
+  if (isNaN(ts)) return '';
+  const diff = Date.now() - ts;
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return '방금 전';
   if (minutes < 60) return `${minutes}분 전`;

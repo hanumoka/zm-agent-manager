@@ -1,6 +1,6 @@
 # Phase 2 — 세션 리플레이
 
-**상태**: 대기
+**상태**: 진행중 (M4-M5 완료)
 **선행 조건**: Phase 1 완료
 **목표**: 과거 세션을 시간순으로 재생하고, 파일 변경 및 서브에이전트 활동을 시각화
 
@@ -30,10 +30,10 @@
 
 ## Milestone 4: 태스크 보드 (F11) — Phase 1에서 이관
 
-- [ ] JSONL TaskCreate/TaskUpdate 레코드 파싱
-- [ ] todos/{sessionId}-*.json 읽기
-- [ ] 칸반 보드 UI (Pending / In Progress / Completed)
-- [ ] 태스크 상세 뷰 (상태 변경 이력)
+- [x] JSONL TaskCreate/TaskUpdate 레코드 파싱 (task-scanner.ts)
+- [x] 전체 세션 스캔으로 태스크 재구성 (todos/ 대신 JSONL 기반)
+- [x] 칸반 보드 UI (Pending / In Progress / Completed) + 프로젝트 필터 + 삭제 토글
+- [x] 태스크 상세 뷰 (상태 변경 이력 타임라인)
 
 ## Milestone 5: 대시보드 전체 구현 (F1) — Phase 1에서 이관
 

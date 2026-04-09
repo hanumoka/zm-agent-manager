@@ -20,6 +20,7 @@ export const IPC_CHANNELS = {
   WATCH_SESSION: 'sessions:watch',
   UNWATCH_SESSION: 'sessions:unwatch',
   SESSION_NEW_RECORDS: 'session:new-records',
+  GET_ALL_TASKS: 'tasks:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -179,6 +180,33 @@ export type JsonlRecord =
   | SystemRecord
   | FileHistorySnapshotRecord
   | PermissionModeRecord;
+
+// ─── 태스크 보드 ───
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'deleted';
+
+export interface TaskEvent {
+  type: 'create' | 'update';
+  timestamp: string | number;
+  sessionId: string;
+  status?: TaskStatus;
+}
+
+export interface TaskInfo {
+  taskId: string;
+  subject: string;
+  description: string;
+  activeForm: string;
+  status: TaskStatus;
+  sessionId: string;
+  projectName: string;
+  createdAt: string | number;
+  events: TaskEvent[];
+}
+
+export interface AllTasksResult {
+  tasks: TaskInfo[];
+}
 
 // ─── 파싱 결과 ───
 

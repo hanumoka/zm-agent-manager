@@ -1,62 +1,12 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename } from 'path';
 import { homedir } from 'os';
-import { createReadStream } from 'fs';
-import { createInterface } from 'readline';
-import type { HistoryEntry, ActiveSessionInfo, SessionMeta, ProjectGroup } from '@shared/types';
-import { encodeProjectPath } from '@shared/types';
+import type { ActiveSessionInfo, SessionMeta, ProjectGroup } from '@shared/types';
+import { parseHistoryFile } from './history-parser';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
-const HISTORY_FILE = join(CLAUDE_DIR, 'history.jsonl');
 const SESSIONS_DIR = join(CLAUDE_DIR, 'sessions');
-
-interface HistoryParseResult {
-  sessionMap: Map<string, HistoryEntry[]>;
-  /** 인코딩된 디렉토리명 → 실제 프로젝트 경로 */
-  projectPathMap: Map<string, string>;
-}
-
-/**
- * history.jsonl 파싱 — 세션별 메시지 맵 + 프로젝트 경로 맵 생성
- */
-async function parseHistoryFile(): Promise<HistoryParseResult> {
-  const sessionMap = new Map<string, HistoryEntry[]>();
-  const projectPathMap = new Map<string, string>();
-
-  let stream: ReturnType<typeof createReadStream> | null = null;
-  let rl: ReturnType<typeof createInterface> | null = null;
-
-  try {
-    stream = createReadStream(HISTORY_FILE, { encoding: 'utf-8' });
-    rl = createInterface({ input: stream, crlfDelay: Infinity });
-
-    for await (const line of rl) {
-      if (!line.trim()) continue;
-      try {
-        const entry = JSON.parse(line) as HistoryEntry;
-        const existing = sessionMap.get(entry.sessionId) ?? [];
-        existing.push(entry);
-        sessionMap.set(entry.sessionId, existing);
-
-        // 프로젝트 경로 맵 갱신 (history.jsonl의 project 필드가 실제 경로)
-        if (entry.project) {
-          const encoded = encodeProjectPath(entry.project);
-          projectPathMap.set(encoded, entry.project);
-        }
-      } catch {
-        // 잘못된 JSON 라인 스킵
-      }
-    }
-  } catch {
-    // history.jsonl이 없으면 빈 맵 반환
-  } finally {
-    rl?.close();
-    stream?.destroy();
-  }
-
-  return { sessionMap, projectPathMap };
-}
 
 /**
  * 활성 세션 목록 조회 — sessions/{pid}.json 스캔

@@ -1,8 +1,9 @@
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, ClipboardList } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
 import { DashboardPage } from '@/components/DashboardPage';
+import { TaskBoard } from '@/components/TaskBoard';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
     icon: MessageSquare,
     matchPaths: ['/sessions', '/timeline'],
   },
+  { path: '/tasks', label: 'Tasks', icon: ClipboardList, matchPaths: ['/tasks'] },
 ] as const;
 
 function TitleBar(): React.JSX.Element {
@@ -69,6 +71,7 @@ function App(): React.JSX.Element {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/sessions" element={<SessionList />} />
               <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
+              <Route path="/tasks" element={<TaskBoard />} />
             </Routes>
           </main>
         </div>
