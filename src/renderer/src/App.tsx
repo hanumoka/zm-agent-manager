@@ -13,14 +13,22 @@ const NAV_ITEMS = [
   },
 ] as const;
 
+function TitleBar(): React.JSX.Element {
+  return (
+    <div
+      className="flex h-11 shrink-0 items-center border-b border-border bg-background pl-[78px]"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
+      <h1 className="text-xs font-semibold text-muted-foreground">zm-agent-manager</h1>
+    </div>
+  );
+}
+
 function Sidebar(): React.JSX.Element {
   const location = useLocation();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-border bg-background">
-      <div className="flex h-14 items-center px-4">
-        <h1 className="text-sm font-bold text-primary">zm-agent-manager</h1>
-      </div>
+    <aside className="flex w-60 flex-col border-r border-border bg-background">
       <nav className="flex-1 space-y-1 px-2 pt-2">
         {NAV_ITEMS.map(({ path, label, icon: Icon, matchPaths }) => {
           const isActive = matchPaths.some(
@@ -59,15 +67,18 @@ function DashboardPage(): React.JSX.Element {
 function App(): React.JSX.Element {
   return (
     <HashRouter>
-      <div className="flex h-screen bg-background text-foreground">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/sessions" element={<SessionList />} />
-            <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
-          </Routes>
-        </main>
+      <div className="flex h-screen flex-col bg-background text-foreground">
+        <TitleBar />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto">
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/sessions" element={<SessionList />} />
+              <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </HashRouter>
   );

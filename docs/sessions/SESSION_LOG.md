@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-09 | Electron 창 드래그 영역 수정
+
+- **목표**: `titleBarStyle: 'hiddenInset'`으로 인한 창 이동 불가 문제 해결
+- **작업 내용**:
+  - `src/renderer/src/App.tsx`: TitleBar 컴포넌트 추가 (`-webkit-app-region: drag`)
+  - macOS traffic light 버튼 공간 확보 (`pl-[78px]`)
+  - 레이아웃 구조 변경: 전체 상단 타이틀바 → 사이드바+메인 세로 배치
+  - 사이드바 헤더에서 타이틀 제거 (타이틀바로 이관)
+- **검증**: lint 0 에러, typecheck 통과
+- **다음 할 일**: 사용자 테스트 확인 후 커밋
+
 ## 2026-04-09 | 문서 리팩토링 + 코드 리팩토링
 
 - **목표**: Phase 1 완료 후 코드-문서 전수 검증 및 리팩토링
