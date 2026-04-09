@@ -42,10 +42,10 @@
 
 ## Milestone 4: 실시간 파일 감시 (F2)
 
-- [ ] chokidar 기반 JSONL 파일 감시 서비스
-- [ ] 새 라인 추가 시 incremental 파싱
-- [ ] IPC 채널로 실시간 이벤트 전달
-- [ ] 감시 대상 세션 선택적 등록/해제
+- [x] chokidar 기반 JSONL 파일 감시 서비스
+- [x] 새 라인 추가 시 incremental 파싱
+- [x] IPC 채널로 실시간 이벤트 전달
+- [x] 감시 대상 세션 선택적 등록/해제
 
 ## Milestone 5: 메시지 타임라인 (F3)
 

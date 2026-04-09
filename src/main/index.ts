@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { registerIpcHandlers } from './ipc';
+import { initWatcher, stopWatcher } from './session-watcher';
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -39,6 +40,7 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.hanumoka.zm-agent-manager');
 
   registerIpcHandlers();
+  initWatcher();
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -55,4 +57,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('will-quit', async () => {
+  await stopWatcher();
 });

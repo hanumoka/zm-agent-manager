@@ -4,6 +4,7 @@ import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
+import { watchSession, unwatchSession } from './session-watcher';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -22,4 +23,15 @@ export function registerIpcHandlers(): void {
       return parseJsonlFile(jsonlPath);
     }
   );
+
+  ipcMain.handle(
+    IPC_CHANNELS.WATCH_SESSION,
+    async (_event, sessionId: string, projectEncoded: string) => {
+      watchSession(sessionId, projectEncoded);
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.UNWATCH_SESSION, async (_event, sessionId: string) => {
+    unwatchSession(sessionId);
+  });
 }
