@@ -30,11 +30,23 @@ zm-agent-manager의 테스트 인프라와 전략을 정의한다.
 
 ### 3. 탐색 테스트 (MCP 서버) — 개발 단계 활용
 - **목적**: AI 기반 인터랙티브 버그 탐색 (CI 대체 아님)
-- **MCP 서버 옵션** (2026):
-  - `@hotnsoursoup/playwright-mcp-electron`
-  - `robertn702/playwright-mcp-electron`
-  - Snowfort Choreograph (Browser + Electron 통합)
+- **도입 완료**: `electron-test-mcp` v0.1.0 (`.mcp.json` 등록)
 - **사용 시나리오**: Claude Code가 직접 메뉴 클릭 → 콘솔 에러/시각 이상 탐지
+
+#### 사용 방법
+1. Claude Code 재시작 (`.mcp.json` 변경 반영)
+2. `npm run build`로 최신 빌드 생성
+3. Claude Code에 요청: "electron-test-mcp으로 앱을 launch해서 사이드바 메뉴를 모두 클릭해보고 오류를 찾아줘"
+4. MCP 도구 호출:
+   - `launch({ appPath: "./out/main/index.js" })`
+   - `screenshot()`, `click()`, `getText()` 등으로 탐색
+   - `evaluateMain()`로 메인 프로세스 검사
+
+#### 지원 도구
+- **연결**: connect, disconnect, launch, close
+- **상호작용**: click, fill, type, hover, press, drag, selectOption
+- **검사**: screenshot, snapshot, getText, getAttribute, isVisible, count
+- **고급**: wait, evaluate, evaluateMain
 
 ## CI 통합 (GitHub Actions)
 

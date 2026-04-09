@@ -2,7 +2,16 @@
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/hanumoka/projects/zm-agent-manager"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/hanumoka/projects/zm-agent-manager"
+      ],
+      "env": {}
+    },
+    "electron-test": {
+      "command": "npx",
+      "args": ["-y", "electron-test-mcp"],
       "env": {}
     }
   }

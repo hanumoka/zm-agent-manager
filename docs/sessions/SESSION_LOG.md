@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-04-09 | Q5 Electron MCP 서버 도입
+
+- **목표**: Claude Code가 직접 앱을 탐색 테스트할 수 있는 MCP 서버 등록
+- **작업 내용**:
+  - 웹 검색으로 Electron MCP 서버 옵션 비교 (electron-test-mcp 선정)
+  - `.mcp.json`에 `electron-test` 서버 등록 (`npx -y electron-test-mcp`)
+  - 패키지 사전 캐싱 (`npm view electron-test-mcp` v0.1.0)
+  - `testing-strategy.md`에 사용법 + 지원 도구 목록 추가
+- **결과**: Claude Code 재시작 후 `launch({ appPath })` → 앱 자동 탐색 가능
+- **지원 도구**: launch/close, click, screenshot, snapshot, getText, evaluate, evaluateMain 등
+- **다음 할 일**: Claude Code 재시작 후 MCP로 앱 탐색 테스트 시연
+
 ## 2026-04-09 | Q3+Q4 Playwright E2E 인프라 구축
 
 - **목표**: Playwright `_electron` E2E 테스트 인프라 구축 + 사이드바 6개 페이지 smoke test
@@ -114,18 +126,6 @@
   - ROADMAP.md + phase-2-replay.md 상태 "대기" → "진행중 (M4-M5 완료)" 갱신
   - `history-parser.ts` 공유 유틸 추출: session-scanner + task-scanner 중복 코드 제거
   - `formatTimeAgo` 타입 안전성 보강: string/number 모두 지원, TaskBoard 수동 변환 제거
-- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
-
-## 2026-04-09 | Phase 2 M4 태스크 보드(F11) 구현
-
-- **목표**: JSONL TaskCreate/TaskUpdate 기반 칸반 태스크 보드 구현
-- **작업 내용**:
-  - `src/main/task-scanner.ts` 신규: 전체 세션 JSONL 스캔, TaskCreate/TaskUpdate 추출 및 태스크 상태 재구성
-  - `src/shared/types.ts`: TaskInfo, TaskEvent, TaskStatus, AllTasksResult 타입 + GET_ALL_TASKS IPC 채널 추가
-  - `src/main/ipc.ts`: GET_ALL_TASKS 핸들러 등록
-  - `src/preload/index.ts + index.d.ts`: getAllTasks API 노출
-  - `src/renderer/src/components/TaskBoard.tsx` 신규: 칸반 보드 (3레인), TaskCard (펼침/상태이력), 프로젝트 필터, 삭제 토글, 통계
-  - `src/renderer/src/App.tsx`: Tasks 라우트 + 사이드바 네비게이션 추가
 - **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
 
 _(이전 세션은 [archive/2026-04.md](./archive/2026-04.md) 참조)_
