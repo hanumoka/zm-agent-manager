@@ -14,12 +14,12 @@
 - [ ] 모델별 토큰 사용량 시각화
 - [ ] 비용 추정 표시
 
-## Milestone 2: 검색 기능 (F9)
+## Milestone 2: 검색 기능 (F9) — **완료**
 
 - [x] 세션 내 메시지 텍스트 전문 검색 — search-service.ts (전체 세션)
 - [x] 도구 호출 내용 검색 (파일 경로, 명령어 등) — tool_use input JSON 검색
 - [x] 검색 결과 하이라이트 + 해당 위치 이동 (HighlightedText, 클릭 시 타임라인 이동)
-- [ ] 프로젝트/기간 필터링
+- [x] 프로젝트/기간 필터링 — `SearchFilters` 타입 + SearchPage 드롭다운/날짜 입력 (2026-04-09)
 
 ## Milestone 3: 세션 비교 (F10)
 

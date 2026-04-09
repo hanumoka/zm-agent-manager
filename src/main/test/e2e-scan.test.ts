@@ -45,7 +45,7 @@ describeIfClaude('E2E: scanAllSessions (실제 데이터)', () => {
     expect(session.projectName).toBe('zm-agent-manager');
     expect(typeof session.lastActivity).toBe('number');
     expect(session.lastActivity).toBeGreaterThan(0);
-    expect(typeof session.messageCount).toBe('number');
+    expect(typeof session.promptCount).toBe('number');
     expect(typeof session.isActive).toBe('boolean');
   });
 

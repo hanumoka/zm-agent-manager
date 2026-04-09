@@ -109,7 +109,7 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
           projectName,
           lastActivity,
           firstMessage,
-          messageCount: historyEntries.length,
+          promptCount: historyEntries.length,
           isActive: activeMap.has(sessionId),
         };
       })

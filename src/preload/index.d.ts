@@ -8,6 +8,7 @@ import type {
   SubagentInfo,
   DocInfo,
   SearchResponse,
+  SearchFilters,
 } from '@shared/types';
 
 interface AppAPI {
@@ -19,7 +20,7 @@ interface AppAPI {
   getCostSummary: () => Promise<CostSummary>;
   getSessionSubagents: (projectEncoded: string, sessionId: string) => Promise<SubagentInfo[]>;
   getProjectDocs: (projectPath: string) => Promise<DocInfo[]>;
-  searchSessions: (query: string) => Promise<SearchResponse>;
+  searchSessions: (query: string, filters?: SearchFilters) => Promise<SearchResponse>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

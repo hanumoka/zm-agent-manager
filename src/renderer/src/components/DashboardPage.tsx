@@ -59,7 +59,7 @@ function RecentSessionItem({ session, onSelect }: RecentSessionItemProps): React
       </div>
       <div className="text-right shrink-0">
         <p className="text-xs text-muted-foreground">{formatTimeAgo(session.lastActivity)}</p>
-        <p className="text-xs text-muted-foreground">{session.messageCount}개</p>
+        <p className="text-xs text-muted-foreground">{session.promptCount}개</p>
       </div>
     </button>
   );
@@ -115,8 +115,7 @@ export function DashboardPage(): React.JSX.Element {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todaySessions = allSessions.filter((s) => s.lastActivity >= todayStart.getTime()).length;
-    const totalMessages = allSessions.reduce((acc, s) => acc + s.messageCount, 0);
-    return { projects: groups.length, activeSessions, todaySessions, totalMessages };
+    return { projects: groups.length, activeSessions, todaySessions };
   }, [groups, allSessions]);
 
   const chartData = useMemo(() => buildDailyActivity(allSessions), [allSessions]);

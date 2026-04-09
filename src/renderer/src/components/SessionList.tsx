@@ -31,7 +31,7 @@ function SessionCard({ session, onSelect }: SessionCardProps): React.JSX.Element
         {session.firstMessage || '(메시지 없음)'}
       </p>
       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-        <span>{session.messageCount}개 메시지</span>
+        <span>{session.promptCount}개 프롬프트</span>
         {session.isActive && <span className="text-accent-green font-medium">활성</span>}
       </div>
     </button>

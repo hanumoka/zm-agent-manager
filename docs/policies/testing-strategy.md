@@ -48,6 +48,21 @@ zm-agent-manager의 테스트 인프라와 전략을 정의한다.
 - **검사**: screenshot, snapshot, getText, getAttribute, isVisible, count
 - **고급**: wait, evaluate, evaluateMain
 
+#### 주의: `launch` 실패 시 `connect` 우회 (2026-04-09 첫 탐색에서 확인)
+- `npx -y electron-test-mcp`로 실행되는 임시 디렉토리에는 `electron` 패키지가 없어
+  Playwright `_electron.launch`가 `executablePath not found` 오류로 실패할 수 있다.
+- 우회: 프로젝트의 electron 바이너리로 직접 띄우고 CDP 포트로 connect.
+  ```bash
+  ./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . --remote-debugging-port=9222
+  ```
+  → MCP 호출: `connect({ port: 9222 })`
+- 이 방식은 앱 종료를 자동으로 해주지 않으므로, 탐색 종료 후 백그라운드 프로세스를 직접 정리한다.
+
+#### 첫 탐색 결과 (2026-04-09)
+- 사이드바 6개 + TimelinePage 5탭 + 검색 입력까지 콘솔 에러 0건
+- 데이터 정합성/UX 이슈 4건 발견 → `docs/troubleshooting/known-issues.md`의
+  "MCP 탐색 테스트 발견 이슈" 섹션 참조 (High 1, Low 3)
+
 ## CI 통합 (GitHub Actions)
 
 ### 런너

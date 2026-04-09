@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Bot, Wrench } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
-import type { SearchResult, SearchResponse } from '@shared/types';
+import type { SearchResult, SearchResponse, SearchFilters } from '@shared/types';
+import { useSessionStore } from '@/stores/session-store';
 
 // ─── 하이라이트 ───
 
@@ -83,8 +84,23 @@ function ResultItem({ result, query, onSelect }: ResultItemProps): React.JSX.Ele
 
 // ─── SearchPage ───
 
+/** YYYY-MM-DD 입력을 해당 일자의 epoch ms(로컬)로 변환. 빈 값이면 undefined. */
+function dateInputToMs(value: string, endOfDay = false): number | undefined {
+  if (!value) return undefined;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return undefined;
+  const date = endOfDay
+    ? new Date(y, m - 1, d, 23, 59, 59, 999)
+    : new Date(y, m - 1, d, 0, 0, 0, 0);
+  return date.getTime();
+}
+
 export function SearchPage(): React.JSX.Element {
+  const { groups, fetchSessions } = useSessionStore();
   const [query, setQuery] = useState('');
+  const [projectFilter, setProjectFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,16 +114,36 @@ export function SearchPage(): React.JSX.Element {
     };
   }, []);
 
+  // 프로젝트 드롭다운 옵션은 세션 스토어에서 추출
+  useEffect(() => {
+    if (groups.length === 0) fetchSessions();
+  }, [groups.length, fetchSessions]);
+
+  const projectOptions = useMemo(
+    () =>
+      Array.from(new Set(groups.map((g) => g.projectName)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [groups]
+  );
+
   const handleSearch = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       const trimmed = query.trim();
       if (!trimmed) return;
 
+      const filters: SearchFilters = {};
+      if (projectFilter) filters.projectName = projectFilter;
+      const fromMs = dateInputToMs(dateFrom, false);
+      const toMs = dateInputToMs(dateTo, true);
+      if (fromMs !== undefined) filters.dateFromMs = fromMs;
+      if (toMs !== undefined) filters.dateToMs = toMs;
+
       setIsSearching(true);
       setError(null);
       try {
-        const result = await window.api.searchSessions(trimmed);
+        const result = await window.api.searchSessions(trimmed, filters);
         if (isMountedRef.current) setResponse(result);
       } catch (err) {
         if (isMountedRef.current) setError(err instanceof Error ? err.message : '검색 실패');
@@ -115,7 +151,7 @@ export function SearchPage(): React.JSX.Element {
         if (isMountedRef.current) setIsSearching(false);
       }
     },
-    [query]
+    [query, projectFilter, dateFrom, dateTo]
   );
 
   const handleSelect = (result: SearchResult): void => {
@@ -125,8 +161,8 @@ export function SearchPage(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col" data-testid="page-search">
-      {/* 검색 바 */}
-      <div className="border-b border-border px-4 py-3">
+      {/* 검색 바 + 필터 */}
+      <div className="border-b border-border px-4 py-3 space-y-2">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -148,6 +184,55 @@ export function SearchPage(): React.JSX.Element {
             {isSearching ? '검색 중...' : '검색'}
           </button>
         </form>
+        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          <label className="flex items-center gap-1">
+            프로젝트
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              data-testid="search-filter-project"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+            >
+              <option value="">전체</option>
+              {projectOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1">
+            기간
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              data-testid="search-filter-from"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+            />
+            <span>~</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              data-testid="search-filter-to"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-primary"
+            />
+          </label>
+          {(projectFilter || dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setProjectFilter('');
+                setDateFrom('');
+                setDateTo('');
+              }}
+              className="rounded-md px-2 py-1 text-xs hover:bg-accent/30 transition-colors"
+            >
+              필터 초기화
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 결과 */}

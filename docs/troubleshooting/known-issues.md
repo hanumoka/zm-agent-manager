@@ -157,3 +157,38 @@ _아직 등록된 이슈 없음_
 ### 미해결 — Low: session-store addNewRecords race condition
 - 동시 호출 시 messageCount 부정확 가능
 - **조치**: 함수형 set으로 변경 (Q3 이후)
+
+---
+
+## MCP 탐색 테스트 발견 이슈 (2026-04-09 electron-test-mcp 탐색)
+
+> Claude Code가 electron-test-mcp으로 사이드바 6개 메뉴 + TimelinePage 5탭 + 검색을 직접 클릭하며 발견. 콘솔 에러는 0건이었으나 데이터 정합성/UX 이슈 4건 식별.
+
+### [해결됨] High: `Session.messageCount` 필드 의미 불일치
+- **현상**: Sessions 카드 "36개 메시지" vs 동일 세션 TimelinePage Messages 탭 "1455"
+- **원인**:
+  - `src/main/session-scanner.ts:112` — `messageCount: historyEntries.length` (history.jsonl 사용자 프롬프트만)
+  - `src/main/jsonl-parser.ts:87` — `record.type === 'user' || 'assistant'`인 모든 레코드 카운팅
+  - 동일 필드명 `messageCount`가 두 가지 다른 의미로 사용됨
+- **수정 완료** (Option A 채택, 2026-04-09):
+  - `SessionMeta.messageCount` → `promptCount`로 이름 변경 (`types.ts`, `session-scanner.ts`)
+  - UI 라벨: "36개 메시지" → "36개 프롬프트" (`SessionList.tsx`, `DashboardPage.tsx`)
+  - `ParsedSession.messageCount`는 의미 정확하므로 그대로 유지 (TimelinePage Messages 탭)
+  - Dead code `stats.totalMessages`(미사용) 함께 제거
+  - 검증: typecheck/lint/vitest 19/Playwright 7 모두 통과
+
+### 미해결 — Low: Dashboard "예상 비용" vs Costs "총 비용" 약간 차이
+- **현상**: Dashboard 표시 직후 Costs로 이동하면 비용 값이 다름 (예: $1278.98 → $1282.65)
+- **원인**: 두 페이지가 동일 IPC `getCostSummary`를 다른 시점에 호출. 그 사이 새 활동(현재 세션) 누적
+- **영향**: 정상 동작이지만 사용자에게 데이터 불일치로 보임
+- **조치 후보**: Zustand 스토어로 결과 캐싱 + 명시적 refresh 버튼, 또는 Dashboard 라벨을 "스냅샷 비용"으로 변경
+
+### 미해결 — Low: TimelinePage 탭에 `data-testid` 누락
+- **현상**: `[role="tab"]`도 잡히지 않아 E2E/MCP에서 텍스트 기반 셀렉터(`text=Tools`)에 의존
+- **위치**: `src/renderer/src/components/TimelinePage.tsx` 탭 렌더링 부분
+- **조치**: 각 탭에 `data-testid="tab-{messages|tools|agents|files|replay}"` 추가 (사이드바 nav 패턴과 일관성)
+
+### 미해결 — Low: Docs 페이지 Memory 카테고리 경로 가독성
+- **현상**: Memory 카테고리 문서 경로가 `../../.claude/projects/-Users-hanumoka-projects-zm-agent-manager/memory/MEMORY.md` 형태로 매우 김
+- **영향**: 상대 경로 접두사(`../../`)가 도구상 의미 없고, 실제 정보(파일명)는 끝부분이라 파악 어려움
+- **조치 후보**: Memory 카테고리는 `~/.claude/projects/{enc}/memory/` 표시 또는 파일명 + 작은 글씨로 디렉토리 분리 표시

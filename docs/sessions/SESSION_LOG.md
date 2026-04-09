@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-04-09 | MCP 탐색 테스트 + High 이슈 수정 + Phase 3 M2 검색 필터 완료
+
+- **목표**: Q5 후속 MCP 탐색 시연 → 발견 이슈 처리 → Phase 3 M2(검색 필터) 마무리
+- **작업 내용**:
+  - **MCP 탐색 테스트** (`electron-test-mcp` 첫 활용):
+    - `launch`가 npx 임시 디렉토리에 electron이 없어 실패 → CDP 9222 포트로 직접 띄우고 `connect` 우회 (testing-strategy.md에 노트 추가)
+    - 사이드바 6개 메뉴 + TimelinePage 5탭 + 검색 동작 모두 콘솔 에러 0건
+    - 데이터/UX 이슈 4건 발견 → known-issues.md "MCP 탐색 테스트 발견 이슈" 섹션 신규
+  - **High 이슈 수정** — `Session.messageCount` 필드 의미 분리:
+    - 동일 필드명이 SessionList(history.jsonl 기반)와 TimelinePage(JSONL 레코드 기반)에서 상이하게 사용되어 사용자 혼란 (예: 36 vs 1455)
+    - `SessionMeta.messageCount` → `promptCount`로 이름 변경 (types.ts, session-scanner.ts)
+    - UI 라벨: "N개 메시지" → "N개 프롬프트" (SessionList, DashboardPage)
+    - dead code `stats.totalMessages`(미사용) 제거
+    - `ParsedSession.messageCount`는 의미 정확하므로 유지
+  - **Phase 3 M2 검색 필터(F9 4/4)** 완료:
+    - `SearchFilters` 타입 신규 (`projectName`, `dateFromMs`, `dateToMs`)
+    - `search-service.ts`: record 단위 timestamp 필터 + 디렉토리 단위 projectName 필터
+    - IPC/preload 시그니처 확장 (`searchSessions(query, filters?)`)
+    - `SearchPage.tsx`: 프로젝트 드롭다운 + date input 2개 + "필터 초기화" 버튼
+    - MCP 시각 검증: 2026-04-08 필터 시 108건 모두 "22시간 전" 표시로 정확 동작 확인
+- **검증**: typecheck/lint/vitest 19/Playwright 7 모두 통과 (각 단계마다)
+- **문서 갱신**: known-issues.md(4건 추가, High 1건 [해결됨]), testing-strategy.md(connect 우회), phase-3-analysis.md(M2 [x]), ROADMAP.md(Phase 3 상태)
+- **다음 할 일**: Phase 2 M7 예산 알림 → Phase 3 M1 통계 대시보드 (사용자 결정 대기)
+
 ## 2026-04-09 | Q5 Electron MCP 서버 도입
 
 - **목표**: Claude Code가 직접 앱을 탐색 테스트할 수 있는 MCP 서버 등록

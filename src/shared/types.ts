@@ -57,7 +57,8 @@ export interface SessionMeta {
   projectName: string;
   lastActivity: number;
   firstMessage: string;
-  messageCount: number;
+  /** history.jsonl 기반 사용자 프롬프트 입력 횟수. JSONL 레코드 수와 다르다 (`ParsedSession.messageCount` 참조). */
+  promptCount: number;
   isActive: boolean;
 }
 
@@ -249,6 +250,15 @@ export interface SearchResult {
   recordType: 'user' | 'assistant';
   timestamp: string | number;
   toolName?: string;
+}
+
+export interface SearchFilters {
+  /** 프로젝트명으로 제한 (정확 일치). 미지정 시 전체 프로젝트 검색. */
+  projectName?: string;
+  /** 시작 시각(epoch ms, inclusive). 미지정 시 제한 없음. */
+  dateFromMs?: number;
+  /** 종료 시각(epoch ms, inclusive). 미지정 시 제한 없음. */
+  dateToMs?: number;
 }
 
 export interface SearchResponse {

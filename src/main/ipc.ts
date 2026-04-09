@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { homedir } from 'os';
 import { ipcMain } from 'electron';
-import { IPC_CHANNELS } from '@shared/types';
+import { IPC_CHANNELS, type SearchFilters } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
@@ -60,7 +60,10 @@ export function registerIpcHandlers(): void {
     return scanProjectDocs(projectPath);
   });
 
-  ipcMain.handle(IPC_CHANNELS.SEARCH_SESSIONS, async (_event, query: string) => {
-    return searchSessions(query);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SEARCH_SESSIONS,
+    async (_event, query: string, filters?: SearchFilters) => {
+      return searchSessions(query, filters);
+    }
+  );
 }

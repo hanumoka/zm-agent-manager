@@ -3,11 +3,20 @@ import { join, basename } from 'path';
 import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import type { SearchResult, SearchResponse } from '@shared/types';
+import type { SearchResult, SearchResponse, SearchFilters } from '@shared/types';
 import { parseHistoryFile } from './history-parser';
 
 const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 const MAX_RESULTS = 100;
+
+/**
+ * 타임스탬프(string | number)를 epoch ms로 변환. 변환 실패 시 0.
+ */
+function toEpochMs(ts: string | number): number {
+  if (typeof ts === 'number') return ts;
+  const parsed = new Date(ts).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 /**
  * 단일 JSONL 파일에서 쿼리 텍스트 검색
@@ -17,7 +26,8 @@ async function searchInJsonl(
   query: string,
   sessionId: string,
   projectName: string,
-  projectPath: string
+  projectPath: string,
+  filters: SearchFilters
 ): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
   const lowerQuery = query.toLowerCase();
@@ -43,6 +53,13 @@ async function searchInJsonl(
         if (!message?.content) continue;
 
         const timestamp = (raw.timestamp as string | number) ?? '';
+
+        // 기간 필터: 범위 밖이면 스킵
+        if (filters.dateFromMs !== undefined || filters.dateToMs !== undefined) {
+          const tsMs = toEpochMs(timestamp);
+          if (filters.dateFromMs !== undefined && tsMs < filters.dateFromMs) continue;
+          if (filters.dateToMs !== undefined && tsMs > filters.dateToMs) continue;
+        }
 
         // user 메시지: string content
         if (type === 'user' && typeof message.content === 'string') {
@@ -131,9 +148,12 @@ function extractSnippet(text: string, lowerQuery: string, contextLen: number = 8
 }
 
 /**
- * 전체 세션에서 텍스트 검색
+ * 전체 세션에서 텍스트 검색 (옵션: 프로젝트명 / 기간 필터)
  */
-export async function searchSessions(query: string): Promise<SearchResponse> {
+export async function searchSessions(
+  query: string,
+  filters: SearchFilters = {}
+): Promise<SearchResponse> {
   if (!query.trim()) {
     return { query, results: [], totalMatches: 0 };
   }
@@ -163,6 +183,9 @@ export async function searchSessions(query: string): Promise<SearchResponse> {
       ? basename(projectPath)
       : (encodedDir.split('-').pop() ?? encodedDir);
 
+    // 프로젝트 필터: 정확 일치 외 스킵
+    if (filters.projectName && filters.projectName !== projectName) continue;
+
     let files: string[];
     try {
       files = await readdir(projectDir);
@@ -175,7 +198,14 @@ export async function searchSessions(query: string): Promise<SearchResponse> {
     for (const jsonlFile of jsonlFiles) {
       const sessionId = jsonlFile.replace('.jsonl', '');
       const filePath = join(projectDir, jsonlFile);
-      const results = await searchInJsonl(filePath, query, sessionId, projectName, projectPath);
+      const results = await searchInJsonl(
+        filePath,
+        query,
+        sessionId,
+        projectName,
+        projectPath,
+        filters
+      );
       allResults.push(...results);
 
       if (allResults.length >= MAX_RESULTS) break;
