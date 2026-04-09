@@ -1,8 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Wrench } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { MessageTimeline } from '@/components/MessageTimeline';
+import { ToolTracker } from '@/components/ToolTracker';
+
+type TabId = 'messages' | 'tools';
 
 export function TimelinePage(): React.JSX.Element {
   const { projectEncoded, sessionId } = useParams<{
@@ -10,6 +13,7 @@ export function TimelinePage(): React.JSX.Element {
     sessionId: string;
   }>();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabId>('messages');
   const {
     currentSession,
     isParsingSession,
@@ -74,6 +78,11 @@ export function TimelinePage(): React.JSX.Element {
     );
   }
 
+  const tabs: { id: TabId; label: string; icon: React.ElementType; count: number }[] = [
+    { id: 'messages', label: 'Messages', icon: MessageSquare, count: currentSession.messageCount },
+    { id: 'tools', label: 'Tools', icon: Wrench, count: currentSession.toolCallCount },
+  ];
+
   return (
     <div className="flex h-full flex-col">
       {/* 헤더 */}
@@ -84,26 +93,34 @@ export function TimelinePage(): React.JSX.Element {
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-mono text-muted-foreground">
-            {currentSession.sessionId.slice(0, 8)}
-          </span>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <MessageSquare className="h-3 w-3" />
-            {currentSession.messageCount}
-          </span>
-          <span className="flex items-center gap-1">
-            <Wrench className="h-3 w-3" />
-            {currentSession.toolCallCount}
-          </span>
+        <span className="text-sm font-mono text-muted-foreground">
+          {currentSession.sessionId.slice(0, 8)}
+        </span>
+        <div className="flex-1" />
+        {/* 탭 */}
+        <div className="flex gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent/50'
+              }`}
+            >
+              <tab.icon className="h-3 w-3" />
+              {tab.label}
+              <span className="text-muted-foreground">({tab.count})</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 타임라인 */}
+      {/* 콘텐츠 */}
       <div className="flex-1 min-h-0">
-        <MessageTimeline records={currentSession.records} />
+        {activeTab === 'messages' && <MessageTimeline records={currentSession.records} />}
+        {activeTab === 'tools' && <ToolTracker records={currentSession.records} />}
       </div>
     </div>
   );

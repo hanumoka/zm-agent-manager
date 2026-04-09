@@ -56,7 +56,7 @@
 
 ## Milestone 6: 도구 호출 추적 (F4)
 
-- [ ] `assistant` 응답 내 `tool_use` 블록 파싱
-- [ ] 도구별 아이콘/색상 시각화 (Read, Write, Bash, Grep 등)
-- [ ] 도구 호출 결과 토글 표시
-- [ ] 도구 사용 통계 요약 (세션 내)
+- [x] `assistant` 응답 내 `tool_use` 블록 파싱
+- [x] 도구별 아이콘/색상 시각화 (Read, Write, Bash, Grep 등)
+- [x] 도구 호출 결과 토글 표시
+- [x] 도구 사용 통계 요약 (세션 내)
