@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
-import type { JsonlRecord, AssistantRecord, ToolUseBlock } from '@shared/types';
+import type { JsonlRecord } from '@shared/types';
 
 // 도구별 아이콘 매핑
 const TOOL_ICONS: Record<string, React.ElementType> = {
@@ -57,16 +57,15 @@ function extractToolCalls(records: JsonlRecord[]): ToolCall[] {
 
   for (const record of records) {
     if (record.type !== 'assistant') continue;
-    const assistant = record as AssistantRecord;
+    if (!record.message?.content) continue;
 
-    for (const block of assistant.message.content) {
+    for (const block of record.message.content) {
       if (block.type === 'tool_use') {
-        const toolBlock = block as ToolUseBlock;
         calls.push({
-          name: toolBlock.name,
-          id: toolBlock.id,
-          input: toolBlock.input,
-          timestamp: assistant.timestamp,
+          name: block.name,
+          id: block.id,
+          input: block.input,
+          timestamp: record.timestamp,
         });
       }
     }

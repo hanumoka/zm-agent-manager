@@ -11,11 +11,11 @@ const HISTORY_FILE = join(CLAUDE_DIR, 'history.jsonl');
 const SESSIONS_DIR = join(CLAUDE_DIR, 'sessions');
 
 /**
- * 프로젝트 인코딩 경로를 원래 경로로 디코딩
- * 예: -Users-hanumoka-projects-zm-agent-manager → /Users/hanumoka/projects/zm-agent-manager
+ * 프로젝트 경로 인코딩: /를 -로 치환
+ * 예: /Users/hanumoka/projects/zm-agent-manager → -Users-hanumoka-projects-zm-agent-manager
  */
-function decodeProjectPath(encoded: string): string {
-  return encoded.replace(/^-/, '/').replace(/-/g, '/');
+function encodeProjectPath(projectPath: string): string {
+  return projectPath.replace(/\//g, '-');
 }
 
 /**
@@ -26,11 +26,18 @@ function extractProjectName(projectPath: string): string {
   return basename(projectPath);
 }
 
+interface HistoryParseResult {
+  sessionMap: Map<string, HistoryEntry[]>;
+  /** 인코딩된 디렉토리명 → 실제 프로젝트 경로 */
+  projectPathMap: Map<string, string>;
+}
+
 /**
- * history.jsonl 파싱 — 세션별 첫 메시지와 타임스탬프 맵 생성
+ * history.jsonl 파싱 — 세션별 메시지 맵 + 프로젝트 경로 맵 생성
  */
-async function parseHistoryFile(): Promise<Map<string, HistoryEntry[]>> {
+async function parseHistoryFile(): Promise<HistoryParseResult> {
   const sessionMap = new Map<string, HistoryEntry[]>();
+  const projectPathMap = new Map<string, string>();
 
   let stream: ReturnType<typeof createReadStream> | null = null;
   let rl: ReturnType<typeof createInterface> | null = null;
@@ -46,6 +53,12 @@ async function parseHistoryFile(): Promise<Map<string, HistoryEntry[]>> {
         const existing = sessionMap.get(entry.sessionId) ?? [];
         existing.push(entry);
         sessionMap.set(entry.sessionId, existing);
+
+        // 프로젝트 경로 맵 갱신 (history.jsonl의 project 필드가 실제 경로)
+        if (entry.project) {
+          const encoded = encodeProjectPath(entry.project);
+          projectPathMap.set(encoded, entry.project);
+        }
       } catch {
         // 잘못된 JSON 라인 스킵
       }
@@ -57,7 +70,7 @@ async function parseHistoryFile(): Promise<Map<string, HistoryEntry[]>> {
     stream?.destroy();
   }
 
-  return sessionMap;
+  return { sessionMap, projectPathMap };
 }
 
 /**
@@ -133,7 +146,8 @@ async function getSessionStats(
  * 전체 세션 목록을 프로젝트별로 그룹핑하여 반환
  */
 export async function scanAllSessions(): Promise<ProjectGroup[]> {
-  const [historyMap, activeMap] = await Promise.all([parseHistoryFile(), getActiveSessions()]);
+  const [historyResult, activeMap] = await Promise.all([parseHistoryFile(), getActiveSessions()]);
+  const { sessionMap: historyMap, projectPathMap } = historyResult;
 
   let projectDirs: string[];
   try {
@@ -155,7 +169,8 @@ export async function scanAllSessions(): Promise<ProjectGroup[]> {
       continue;
     }
 
-    const projectPath = decodeProjectPath(encodedDir);
+    // history.jsonl에서 실제 프로젝트 경로 조회, 없으면 인코딩된 이름 사용
+    const projectPath = projectPathMap.get(encodedDir) ?? encodedDir;
     const projectName = extractProjectName(projectPath);
     const sessions: SessionMeta[] = [];
 

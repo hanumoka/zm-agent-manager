@@ -23,23 +23,25 @@ export function TimelinePage(): React.JSX.Element {
     addNewRecords,
   } = useSessionStore();
 
+  // 세션 로드/정리
   useEffect(() => {
     if (projectEncoded && sessionId) {
       loadSession(projectEncoded, sessionId);
     }
+    return () => clearCurrentSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectEncoded, sessionId]);
 
-    // 실시간 새 레코드 수신
+  // 실시간 새 레코드 수신 (별도 effect로 분리하여 리스너 누수 방지)
+  useEffect(() => {
     const unsubscribe = window.api.onNewRecords((data) => {
       if (data.sessionId === sessionId) {
         addNewRecords(data.records);
       }
     });
-
-    return () => {
-      unsubscribe();
-      clearCurrentSession();
-    };
-  }, [projectEncoded, sessionId, loadSession, clearCurrentSession, addNewRecords]);
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   if (isParsingSession) {
     return (
