@@ -35,10 +35,10 @@
 
 ## Milestone 3: JSONL 파싱 서비스 (F2 기반)
 
-- [ ] 스트리밍 JSONL 라인 파서 구현
-- [ ] 레코드 타입별 TypeScript 타입 정의 (`shared/types.ts`)
-- [ ] 대용량 파일 처리 (100MB+) 성능 테스트
-- [ ] 에러 핸들링 (잘못된 JSON 라인 스킵)
+- [x] 스트리밍 JSONL 라인 파서 구현
+- [x] 레코드 타입별 TypeScript 타입 정의 (`shared/types.ts`)
+- [x] 대용량 파일 처리 (100MB+) 성능 테스트
+- [x] 에러 핸들링 (잘못된 JSON 라인 스킵)
 
 ## Milestone 4: 실시간 파일 감시 (F2)
 
