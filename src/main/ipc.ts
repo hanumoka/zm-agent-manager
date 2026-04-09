@@ -6,6 +6,7 @@ import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
 import { scanAllTasks } from './task-scanner';
+import { scanCostSummary } from './cost-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -39,5 +40,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.GET_ALL_TASKS, async () => {
     const tasks = await scanAllTasks();
     return { tasks };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_COST_SUMMARY, async () => {
+    return scanCostSummary();
   });
 }

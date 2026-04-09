@@ -50,7 +50,7 @@
 
 ## Milestone 7: 비용 실시간 추적 (F13)
 
-- [ ] JSONL usage 필드 파싱 (토큰 수, 모델명)
-- [ ] 모델별 비용 계산
-- [ ] 일별/주별 비용 차트
+- [x] JSONL usage 필드 파싱 (토큰 수, 모델명) — cost-scanner.ts
+- [x] 모델별 비용 계산 (Opus/Sonnet/Haiku 가격 테이블)
+- [x] 일별 비용 차트 (Recharts) + 대시보드 StatCard 연동
 - [ ] 예산 설정 및 알림

@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M7 비용 추적(F13) 구현
+
+- **목표**: JSONL usage 필드 기반 비용 추적 기능 구현
+- **작업 내용**:
+  - `cost-scanner.ts` 신규: 전체 세션 usage 파싱, 모델별 가격 테이블 (Opus/Sonnet/Haiku), 일별 집계
+  - `CostTracker.tsx` 신규: StatCard 4개 (총 비용/요청/입출력 토큰), 일별 비용 차트, 모델별 상세
+  - `DashboardPage.tsx`: "예상 비용" StatCard 추가 (getCostSummary 연동)
+  - `App.tsx`: Costs 라우트 + 사이드바 추가
+  - types/IPC/preload: CostSummary 타입 + GET_COST_SUMMARY 채널
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
 ## 2026-04-09 | Phase 2 M4/M5 재검토 및 품질 수정
 
 - **목표**: Phase 2 구현물 전체 교차검증 및 발견된 이슈 수정

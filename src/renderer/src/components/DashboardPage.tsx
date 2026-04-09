@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { FolderOpen, Activity, MessageSquare, Zap } from 'lucide-react';
+import { FolderOpen, Activity, DollarSign, Zap } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
@@ -98,9 +98,14 @@ function buildDailyActivity(allSessions: SessionMeta[], days: number = 14): Dail
 export function DashboardPage(): React.JSX.Element {
   const { groups, isLoading, error, fetchSessions } = useSessionStore();
   const navigate = useNavigate();
+  const [totalCost, setTotalCost] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSessions();
+    window.api
+      ?.getCostSummary?.()
+      ?.then((s) => setTotalCost(s.totalCost))
+      ?.catch(() => {});
   }, [fetchSessions]);
 
   const allSessions = useMemo(() => groups.flatMap((g) => g.sessions), [groups]);
@@ -170,9 +175,9 @@ export function DashboardPage(): React.JSX.Element {
           color="bg-accent-yellow/20 text-accent-yellow"
         />
         <StatCard
-          label="총 메시지"
-          value={stats.totalMessages.toLocaleString()}
-          icon={MessageSquare}
+          label="예상 비용"
+          value={totalCost !== null ? `$${totalCost.toFixed(2)}` : '...'}
+          icon={DollarSign}
           color="bg-accent-orange/20 text-accent-orange"
         />
       </div>

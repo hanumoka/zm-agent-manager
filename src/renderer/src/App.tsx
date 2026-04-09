@@ -1,9 +1,10 @@
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, ClipboardList, DollarSign } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
 import { DashboardPage } from '@/components/DashboardPage';
 import { TaskBoard } from '@/components/TaskBoard';
+import { CostTracker } from '@/components/CostTracker';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
     matchPaths: ['/sessions', '/timeline'],
   },
   { path: '/tasks', label: 'Tasks', icon: ClipboardList, matchPaths: ['/tasks'] },
+  { path: '/costs', label: 'Costs', icon: DollarSign, matchPaths: ['/costs'] },
 ] as const;
 
 function TitleBar(): React.JSX.Element {
@@ -72,6 +74,7 @@ function App(): React.JSX.Element {
               <Route path="/sessions" element={<SessionList />} />
               <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
               <Route path="/tasks" element={<TaskBoard />} />
+              <Route path="/costs" element={<CostTracker />} />
             </Routes>
           </main>
         </div>

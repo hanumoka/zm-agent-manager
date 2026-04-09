@@ -21,6 +21,7 @@ export const IPC_CHANNELS = {
   UNWATCH_SESSION: 'sessions:unwatch',
   SESSION_NEW_RECORDS: 'session:new-records',
   GET_ALL_TASKS: 'tasks:get-all',
+  GET_COST_SUMMARY: 'cost:get-summary',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -206,6 +207,33 @@ export interface TaskInfo {
 
 export interface AllTasksResult {
   tasks: TaskInfo[];
+}
+
+// ─── 비용 추적 ───
+
+export interface ModelCost {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  cost: number;
+  requestCount: number;
+}
+
+export interface DailyCost {
+  date: string;
+  cost: number;
+  requestCount: number;
+}
+
+export interface CostSummary {
+  totalCost: number;
+  totalRequests: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  byModel: ModelCost[];
+  byDay: DailyCost[];
 }
 
 // ─── 파싱 결과 ───

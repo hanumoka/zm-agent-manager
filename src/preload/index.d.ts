@@ -1,5 +1,11 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
-import type { ProjectGroup, ParsedSession, JsonlRecord, AllTasksResult } from '@shared/types';
+import type {
+  ProjectGroup,
+  ParsedSession,
+  JsonlRecord,
+  AllTasksResult,
+  CostSummary,
+} from '@shared/types';
 
 interface AppAPI {
   getSessions: () => Promise<ProjectGroup[]>;
@@ -7,6 +13,7 @@ interface AppAPI {
   watchSession: (sessionId: string, projectEncoded: string) => Promise<void>;
   unwatchSession: (sessionId: string) => Promise<void>;
   getAllTasks: () => Promise<AllTasksResult>;
+  getCostSummary: () => Promise<CostSummary>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

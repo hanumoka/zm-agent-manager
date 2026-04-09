@@ -1,7 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
 import { IPC_CHANNELS } from '@shared/types';
-import type { ProjectGroup, ParsedSession, JsonlRecord, AllTasksResult } from '@shared/types';
+import type {
+  ProjectGroup,
+  ParsedSession,
+  JsonlRecord,
+  AllTasksResult,
+  CostSummary,
+} from '@shared/types';
 
 // 앱 전용 API
 const api = {
@@ -13,6 +19,7 @@ const api = {
   unwatchSession: (sessionId: string): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.UNWATCH_SESSION, sessionId),
   getAllTasks: (): Promise<AllTasksResult> => ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_TASKS),
+  getCostSummary: (): Promise<CostSummary> => ipcRenderer.invoke(IPC_CHANNELS.GET_COST_SUMMARY),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {
