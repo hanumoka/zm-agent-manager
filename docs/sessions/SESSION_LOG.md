@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-04-09 | Q3+Q4 Playwright E2E 인프라 구축
+
+- **목표**: Playwright `_electron` E2E 테스트 인프라 구축 + 사이드바 6개 페이지 smoke test
+- **작업 내용**:
+  - `@playwright/test@1.59.1` 설치
+  - `playwright.config.ts` 설정 (단일 worker, trace/screenshot/video 옵션)
+  - `e2e/sidebar-nav.spec.ts`: 7개 테스트 (사이드바 + 6개 페이지)
+  - `data-testid` 속성 추가: sidebar, nav-{label}, page-{name}
+  - `vitest.config.ts`: e2e/ 디렉토리 제외 (Playwright 충돌 방지)
+  - `package.json`: `test:e2e` + `test:e2e:headed` 스크립트 추가
+  - `.gitignore`: test-results, playwright-report 추가
+  - `eslint.config.mjs`: e2e 산출물 제외
+- **검증**: lint 0 에러, typecheck 통과, vitest 19개 + Playwright 7개 = 26개 테스트 전체 통과
+- **결과**: 빌드 + E2E 7개 테스트가 약 2.2초에 완료
+- **다음 할 일**: Q5 (Electron MCP 서버 도입), Q6 (GitHub Actions CI)
+
 ## 2026-04-09 | Q1+Q2 런타임 오류 9건 수정
 
 - **목표**: E2E 검토에서 발견된 런타임 오류 High 2건 + Medium 6건 + Low 1건 중 9건 수정
@@ -111,37 +127,5 @@
   - `src/renderer/src/components/TaskBoard.tsx` 신규: 칸반 보드 (3레인), TaskCard (펼침/상태이력), 프로젝트 필터, 삭제 토글, 통계
   - `src/renderer/src/App.tsx`: Tasks 라우트 + 사이드바 네비게이션 추가
 - **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
-
-## 2026-04-09 | Phase 2 대시보드 검토 및 품질 수정
-
-- **목표**: DashboardPage 구현 후 코드 품질 재검토 및 수정
-- **작업 내용**:
-  - `formatTimeAgo` 중복 제거: DashboardPage + SessionList → `lib/utils.ts`로 추출
-  - DashboardPage 에러 처리 추가 (error 상태 체크 + 에러 UI)
-  - known-issues.md "Recharts 미사용" → [해결됨] 갱신
-  - CLAUDE.md Recharts 주석 "(대시보드 ActivityChart에서 사용)"으로 갱신
-- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
-
-## 2026-04-09 | Phase 2 대시보드(F1) 구현 + UI 수정
-
-- **목표**: Phase 2 M5 대시보드 전체 구현 + Electron 창 드래그 영역 수정
-- **작업 내용**:
-  - `DashboardPage.tsx` 신규 작성: StatCard 4개 (프로젝트/활성 세션/오늘 세션/총 메시지), ActivityChart 14일 바 차트 (Recharts), RecentSessions 10개 리스트
-  - `App.tsx`: DashboardPage 스텁 제거, 별도 컴포넌트로 교체
-  - `App.tsx`: TitleBar 컴포넌트 추가 (-webkit-app-region: drag), 레이아웃 세로 구조 변경
-  - feature/phase2-dashboard 브랜치에서 작업 (git-workflow 정책 적용 시작)
-- **검증**: lint 0 에러, typecheck 통과
-- **다음 할 일**: 사용자 테스트 확인 후 커밋, Phase 2 다음 마일스톤 착수
-
-## 2026-04-09 | Electron 창 드래그 영역 수정
-
-- **목표**: `titleBarStyle: 'hiddenInset'`으로 인한 창 이동 불가 문제 해결
-- **작업 내용**:
-  - `src/renderer/src/App.tsx`: TitleBar 컴포넌트 추가 (`-webkit-app-region: drag`)
-  - macOS traffic light 버튼 공간 확보 (`pl-[78px]`)
-  - 레이아웃 구조 변경: 전체 상단 타이틀바 → 사이드바+메인 세로 배치
-  - 사이드바 헤더에서 타이틀 제거 (타이틀바로 이관)
-- **검증**: lint 0 에러, typecheck 통과
-- **다음 할 일**: 사용자 테스트 확인 후 커밋
 
 _(이전 세션은 [archive/2026-04.md](./archive/2026-04.md) 참조)_

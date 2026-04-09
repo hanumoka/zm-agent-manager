@@ -144,7 +144,7 @@ export function CostTracker(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6 p-6 overflow-y-auto h-full">
+    <div className="space-y-6 p-6 overflow-y-auto h-full" data-testid="page-costs">
       {/* StatCards */}
       <div className="flex gap-4">
         <StatCard

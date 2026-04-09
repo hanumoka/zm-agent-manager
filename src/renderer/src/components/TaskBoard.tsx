@@ -220,7 +220,7 @@ export function TaskBoard(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="page-tasks">
       {/* 헤더 */}
       <div className="flex items-center gap-4 border-b border-border px-4 py-3">
         <ClipboardList className="h-4 w-4 text-muted-foreground" />

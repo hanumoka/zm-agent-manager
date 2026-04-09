@@ -27,3 +27,8 @@ Thumbs.db
 # Temp docs (keep .gitkeep)
 docs/temp/*
 !docs/temp/.gitkeep
+
+# Playwright E2E test artifacts
+test-results/
+playwright-report/
+playwright/.cache/

@@ -124,7 +124,7 @@ export function SearchPage(): React.JSX.Element {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="page-search">
       {/* 검색 바 */}
       <div className="border-b border-border px-4 py-3">
         <form onSubmit={handleSearch} className="flex items-center gap-2">

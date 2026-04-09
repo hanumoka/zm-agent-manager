@@ -44,7 +44,10 @@ function Sidebar(): React.JSX.Element {
   const location = useLocation();
 
   return (
-    <aside className="flex w-60 flex-col border-r border-border bg-background">
+    <aside
+      className="flex w-60 flex-col border-r border-border bg-background"
+      data-testid="sidebar"
+    >
       <nav className="flex-1 space-y-1 px-2 pt-2">
         {NAV_ITEMS.map(({ path, label, icon: Icon, matchPaths }) => {
           const isActive = matchPaths.some(
@@ -56,6 +59,7 @@ function Sidebar(): React.JSX.Element {
             <Link
               key={path}
               to={path}
+              data-testid={`nav-${label.toLowerCase()}`}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                 isActive
                   ? 'bg-accent text-accent-foreground'

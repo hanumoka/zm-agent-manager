@@ -124,7 +124,7 @@ export function DocInventory(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="page-docs">
       {/* 헤더 */}
       <div className="flex items-center gap-4 border-b border-border px-4 py-3">
         <FolderOpen className="h-4 w-4 text-muted-foreground" />

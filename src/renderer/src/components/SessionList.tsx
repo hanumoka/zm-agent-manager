@@ -78,7 +78,7 @@ export function SessionList(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6" data-testid="page-sessions">
       {groups.map((group) => (
         <div key={group.projectPath}>
           <h2 className="mb-3 text-sm font-semibold text-foreground">
