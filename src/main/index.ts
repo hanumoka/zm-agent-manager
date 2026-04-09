@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
+import { registerIpcHandlers } from './ipc';
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -36,6 +37,8 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.hanumoka.zm-agent-manager');
+
+  registerIpcHandlers();
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);

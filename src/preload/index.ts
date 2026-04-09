@@ -1,15 +1,23 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
+import { IPC_CHANNELS } from '@shared/types';
+import type { ProjectGroup } from '@shared/types';
 
-// contextBridge를 통해 렌더러에 API 노출
-// Phase 1 M2에서 세션 관련 IPC 핸들러 추가 예정
+// 앱 전용 API
+const api = {
+  getSessions: (): Promise<ProjectGroup[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_SESSIONS),
+};
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI);
+    contextBridge.exposeInMainWorld('api', api);
   } catch (error) {
     console.error(error);
   }
 } else {
   // @ts-expect-error (contextIsolation 비활성화 시 fallback)
   window.electron = electronAPI;
+  // @ts-expect-error contextIsolation 비활성화 시 fallback
+  window.api = api;
 }

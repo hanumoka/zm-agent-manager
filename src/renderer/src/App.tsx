@@ -1,16 +1,47 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, MessageSquare } from 'lucide-react';
+import { SessionList } from '@/components/SessionList';
 
-function Dashboard(): React.JSX.Element {
+const NAV_ITEMS = [
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/sessions', label: 'Sessions', icon: MessageSquare },
+] as const;
+
+function Sidebar(): React.JSX.Element {
+  const location = useLocation();
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-primary">zm-agent-manager</h1>
-        <p className="mt-2 text-muted-foreground">Claude Code 세션 모니터링 데스크톱 앱</p>
-        <Button className="mt-4" variant="default">
-          시작하기
-        </Button>
+    <aside className="flex h-screen w-60 flex-col border-r border-border bg-background">
+      <div className="flex h-14 items-center px-4">
+        <h1 className="text-sm font-bold text-primary">zm-agent-manager</h1>
       </div>
+      <nav className="flex-1 space-y-1 px-2 pt-2">
+        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+          const isActive = location.pathname === path;
+          return (
+            <Link
+              key={path}
+              to={path}
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+                isActive
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
+
+function DashboardPage(): React.JSX.Element {
+  return (
+    <div className="flex items-center justify-center h-full text-muted-foreground">
+      <p>Dashboard — Phase 1 완료 후 구현 예정</p>
     </div>
   );
 }
@@ -18,9 +49,15 @@ function Dashboard(): React.JSX.Element {
 function App(): React.JSX.Element {
   return (
     <HashRouter>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-      </Routes>
+      <div className="flex h-screen bg-background text-foreground">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/sessions" element={<SessionList />} />
+          </Routes>
+        </main>
+      </div>
     </HashRouter>
   );
 }
