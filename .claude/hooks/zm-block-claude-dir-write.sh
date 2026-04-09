@@ -14,7 +14,11 @@ if [ -n "$FILE_PATH" ]; then
 
   # ~/.claude/ 경로인 경우에만 검사
   if echo "$FILE_PATH" | grep -q "^${CLAUDE_HOME}/"; then
-    # 사용자 세션 데이터 경로만 차단
+    # 자동 메모리 디렉토리는 허용 (~/.claude/projects/*/memory/)
+    if echo "$FILE_PATH" | grep -qE "^${CLAUDE_HOME}/projects/[^/]+/memory/"; then
+      exit 0
+    fi
+    # 사용자 세션 데이터 경로 차단
     if echo "$FILE_PATH" | grep -qE "^${CLAUDE_HOME}/(projects/|history\.jsonl|stats-cache\.json)"; then
       echo "차단: 사용자의 Claude 세션 데이터는 읽기 전용입니다. (${FILE_PATH})" >&2
       exit 2
