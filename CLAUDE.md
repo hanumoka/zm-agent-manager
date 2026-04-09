@@ -5,13 +5,17 @@ Claude Code 세션 실시간 모니터링 및 리플레이 Electron 데스크톱
 `~/.claude/` 디렉토리의 세션 데이터(JSONL)를 읽어 시각화한다.
 
 ## 기술 스택
+- **Node.js 22 LTS** — 런타임 (`.nvmrc` 참조, Tailwind v4 네이티브 바인딩 요구)
 - **Electron** — 메인 프레임워크 (메인/렌더러 프로세스)
 - **TypeScript** — 전체 코드 (strict mode)
 - **React 18** — 렌더러 UI
 - **Vite** — 빌드 도구 (electron-vite)
+- **shadcn/ui** — UI 컴포넌트 (Radix UI 기반)
+- **Tailwind CSS v4** — 스타일링 (다크 모드 기본)
 - **chokidar** — 파일 감시
-- **Tailwind CSS** — 스타일링
 - **Zustand** — 상태 관리
+- **React Router** — 라우팅 (hash mode)
+- **Recharts** — 차트
 
 ## 프로젝트 구조
 ```
@@ -41,11 +45,17 @@ src/
 - 통계 캐시: `~/.claude/stats-cache.json`
 - JSONL 레코드 타입: `file-history-snapshot`, `user`, `assistant`
 
-## 개발 명령어
+## 개발 환경 설정
 ```bash
+# Node 22 LTS 사용 (필수)
+nvm use 22
+
 # 의존성 설치
 npm install
+```
 
+## 개발 명령어
+```bash
 # 개발 모드 실행
 npm run dev
 
@@ -54,6 +64,12 @@ npm run build
 
 # 린트
 npm run lint
+
+# 타입 체크
+npm run typecheck
+
+# 테스트
+npm run test
 ```
 
 ## 문서 관리

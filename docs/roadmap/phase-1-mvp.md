@@ -1,6 +1,6 @@
 # Phase 1 — 세션 모니터링 (MVP)
 
-**상태**: 대기
+**상태**: 진행중
 **목표**: Electron 앱에서 Claude Code 세션을 실시간으로 모니터링하는 기본 기능 완성
 
 ---
@@ -19,11 +19,11 @@
 
 ## Milestone 1: 프로젝트 스캐폴딩
 
-- [ ] Electron + Vite + React + TypeScript 프로젝트 초기 설정
-- [ ] electron-vite 설정 (`electron.vite.config.ts`)
-- [ ] Tailwind CSS 설정
-- [ ] ESLint + Prettier 설정
-- [ ] 메인/렌더러/프리로드/공유 디렉토리 구조 생성
+- [x] Electron + Vite + React + TypeScript 프로젝트 초기 설정
+- [x] electron-vite 설정 (`electron.vite.config.ts`)
+- [x] Tailwind CSS 설정
+- [x] ESLint + Prettier 설정
+- [x] 메인/렌더러/프리로드/공유 디렉토리 구조 생성
 
 ## Milestone 2: 세션 목록 (F1)
 

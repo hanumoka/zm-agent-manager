@@ -6,7 +6,27 @@
 
 ## 빌드 / 환경설정
 
-_아직 등록된 이슈 없음_
+### [해결됨] Node.js 18에서 Tailwind v4 네이티브 바인딩 실패
+- `@tailwindcss/oxide`가 Node >= 20 요구
+- **해결**: `.nvmrc`에 Node 22 지정, CLAUDE.md에 요구사항 명시
+
+### [해결됨] 의존성 카테고리 오류
+- `tailwindcss`, `@tailwindcss/vite`, `tw-animate-css`가 dependencies에 있었음
+- **해결**: devDependencies로 이동 (빌드 타임 전용)
+
+### [해결됨] tw-animate-css import 누락
+- `main.css`에 `@import 'tw-animate-css'`가 없어 shadcn 애니메이션 미동작
+- **해결**: import 추가
+
+### electron-vite v3 → v5 업그레이드 미검증
+- 현재 v3.1.0 사용 중, 최신은 v5.0.0
+- v3은 vite 6 지원하므로 당장 문제 없음
+- Phase 1 완료 후 안정성 확인 뒤 업그레이드 검토
+
+### Git 워크플로우 정책 미적용
+- M1 스캐폴딩이 main 브랜치에서 직접 진행됨
+- git-workflow.md 정책: feature/ 브랜치 → PR → main 머지
+- M2부터 feature 브랜치 사용 필요
 
 ## 런타임
 
