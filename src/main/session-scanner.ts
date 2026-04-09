@@ -32,9 +32,12 @@ function extractProjectName(projectPath: string): string {
 async function parseHistoryFile(): Promise<Map<string, HistoryEntry[]>> {
   const sessionMap = new Map<string, HistoryEntry[]>();
 
+  let stream: ReturnType<typeof createReadStream> | null = null;
+  let rl: ReturnType<typeof createInterface> | null = null;
+
   try {
-    const stream = createReadStream(HISTORY_FILE, { encoding: 'utf-8' });
-    const rl = createInterface({ input: stream, crlfDelay: Infinity });
+    stream = createReadStream(HISTORY_FILE, { encoding: 'utf-8' });
+    rl = createInterface({ input: stream, crlfDelay: Infinity });
 
     for await (const line of rl) {
       if (!line.trim()) continue;
@@ -49,6 +52,9 @@ async function parseHistoryFile(): Promise<Map<string, HistoryEntry[]>> {
     }
   } catch {
     // history.jsonl이 없으면 빈 맵 반환
+  } finally {
+    rl?.close();
+    stream?.destroy();
   }
 
   return sessionMap;
@@ -88,9 +94,12 @@ async function getSessionStats(
   let messageCount = 0;
   let lastActivity = 0;
 
+  let stream: ReturnType<typeof createReadStream> | null = null;
+  let rl: ReturnType<typeof createInterface> | null = null;
+
   try {
-    const stream = createReadStream(jsonlPath, { encoding: 'utf-8' });
-    const rl = createInterface({ input: stream, crlfDelay: Infinity });
+    stream = createReadStream(jsonlPath, { encoding: 'utf-8' });
+    rl = createInterface({ input: stream, crlfDelay: Infinity });
 
     for await (const line of rl) {
       if (!line.trim()) continue;
@@ -112,6 +121,9 @@ async function getSessionStats(
     }
   } catch {
     // 파일 읽기 실패
+  } finally {
+    rl?.close();
+    stream?.destroy();
   }
 
   return { messageCount, lastActivity };

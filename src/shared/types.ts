@@ -6,7 +6,6 @@
 
 export const IPC_CHANNELS = {
   GET_SESSIONS: 'sessions:get-all',
-  GET_SESSION_DETAIL: 'sessions:get-detail',
   PARSE_SESSION: 'sessions:parse',
   WATCH_SESSION: 'sessions:watch',
   UNWATCH_SESSION: 'sessions:unwatch',

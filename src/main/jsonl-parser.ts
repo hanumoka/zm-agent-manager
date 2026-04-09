@@ -6,8 +6,9 @@ import type { JsonlRecord, ParsedSession, ContentBlock } from '@shared/types';
 /**
  * JSONL 라인을 파싱하여 타입이 지정된 레코드로 변환.
  * 잘못된 JSON 라인은 null을 반환하여 스킵.
+ * session-scanner, session-watcher에서도 재사용.
  */
-function parseLine(line: string): JsonlRecord | null {
+export function parseLine(line: string): JsonlRecord | null {
   if (!line.trim()) return null;
 
   try {
@@ -74,23 +75,28 @@ export async function parseJsonlFile(filePath: string): Promise<ParsedSession> {
     );
   }
 
-  for await (const line of rl) {
-    const record = parseLine(line);
-    if (!record) continue;
+  try {
+    for await (const line of rl) {
+      const record = parseLine(line);
+      if (!record) continue;
 
-    records.push(record);
+      records.push(record);
 
-    // 통계 수집
-    if (record.type === 'user' || record.type === 'assistant') {
-      messageCount++;
+      // 통계 수집
+      if (record.type === 'user' || record.type === 'assistant') {
+        messageCount++;
 
-      const ts = toTimestampMs(record.timestamp);
-      if (ts > lastActivity) lastActivity = ts;
+        const ts = toTimestampMs(record.timestamp);
+        if (ts > lastActivity) lastActivity = ts;
+      }
+
+      if (record.type === 'assistant' && record.message?.content) {
+        toolCallCount += countToolCalls(record.message.content);
+      }
     }
-
-    if (record.type === 'assistant' && record.message?.content) {
-      toolCallCount += countToolCalls(record.message.content);
-    }
+  } finally {
+    rl.close();
+    stream.destroy();
   }
 
   return {
@@ -115,10 +121,15 @@ export async function parseJsonlTail(
   const stream = createReadStream(filePath, { encoding: 'utf-8' });
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
 
-  for await (const line of rl) {
-    const record = parseLine(line);
-    if (!record) continue;
-    records.push(record);
+  try {
+    for await (const line of rl) {
+      const record = parseLine(line);
+      if (!record) continue;
+      records.push(record);
+    }
+  } finally {
+    rl.close();
+    stream.destroy();
   }
 
   // 마지막 N개만 반환

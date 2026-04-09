@@ -6,6 +6,7 @@ import { homedir } from 'os';
 import { BrowserWindow } from 'electron';
 import { IPC_CHANNELS } from '@shared/types';
 import type { JsonlRecord } from '@shared/types';
+import { parseLine } from './jsonl-parser';
 
 const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
@@ -43,17 +44,14 @@ async function parseNewLines(filePath: string): Promise<JsonlRecord[]> {
   });
   const rl = createInterface({ input: stream, crlfDelay: Infinity });
 
-  for await (const line of rl) {
-    if (!line.trim()) continue;
-    try {
-      const raw = JSON.parse(line) as Record<string, unknown>;
-      const type = raw.type as string;
-      if (type === 'user' || type === 'assistant' || type === 'system') {
-        records.push(raw as unknown as JsonlRecord);
-      }
-    } catch {
-      // 잘못된 라인 스킵
+  try {
+    for await (const line of rl) {
+      const record = parseLine(line);
+      if (record) records.push(record);
     }
+  } finally {
+    rl.close();
+    stream.destroy();
   }
 
   fileOffsets.set(filePath, fileSize);
@@ -123,6 +121,10 @@ export function initWatcher(): void {
       stabilityThreshold: 200,
       pollInterval: 100,
     },
+  });
+
+  watcher.on('error', (error) => {
+    console.error({ context: 'session-watcher', error });
   });
 
   watcher.on('change', async (filePath) => {
