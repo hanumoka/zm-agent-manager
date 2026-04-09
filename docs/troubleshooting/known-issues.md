@@ -192,3 +192,33 @@ _아직 등록된 이슈 없음_
 - **현상**: Memory 카테고리 문서 경로가 `../../.claude/projects/-Users-hanumoka-projects-zm-agent-manager/memory/MEMORY.md` 형태로 매우 김
 - **영향**: 상대 경로 접두사(`../../`)가 도구상 의미 없고, 실제 정보(파일명)는 끝부분이라 파악 어려움
 - **조치 후보**: Memory 카테고리는 `~/.claude/projects/{enc}/memory/` 표시 또는 파일명 + 작은 글씨로 디렉토리 분리 표시
+
+---
+
+## Phase 2 M7 예산 알림 감사 이슈 (2026-04-09 병렬 Explore 재검토)
+
+> M7 커밋 `129f1c6` 완료 후 재검토에서 발견된 4건. 모두 같은 세션 내 수정됨.
+
+### [해결됨] High: 타임존 불일치 — cost-scanner UTC vs budget-service 로컬
+- **현상**: `cost-scanner.ts:206`이 `new Date(u.timestamp).toISOString().slice(0,10)`로 **UTC 기준** date 키 생성. 반면 `budget-service.ts`의 `todayLocal`/`monthLocal` 및 `CostTracker.tsx`의 `todayLocalKey`/`monthLocalKey`는 **로컬 시각**
+- **영향**: 자정 부근 활동이 서로 다른 날짜 키로 집계되어 일별/월별 예산 평가 부정확. 예: KST 02:00 활동 → cost-scanner는 `2026-04-08`, budget-service는 `2026-04-09`
+- **수정 완료**: `budget-service`에 `timestampToLocalDate()` 공유 헬퍼 추가, `cost-scanner`가 이를 사용하여 로컬 시각 기준으로 통일
+- **검증**: 수정 후 오늘 비용이 $955.60 → $1021.18로 증가 (KST 새벽 활동이 올바르게 "오늘"로 분류됨)
+
+### [해결됨] High: 입력 검증 부재
+- **현상**: `SET_BUDGET_SETTINGS` IPC 핸들러가 런타임 검증 없이 값을 파일에 저장. `load`에서만 보정 → save-load 왕복 시 원본 값 손실
+- **예시**: `setBudgetSettings({ alertPercent: -1, dailyUsd: NaN, ... })` 호출 시 파일에 그대로 저장, load에서는 보정된 값 반환
+- **수정 완료**: `normalizeBudgetSettings(raw: unknown)` 공유 헬퍼 추출. `load`와 `save` 양쪽에서 사용하여 진입 시점에 NaN/음수/잘못된 타입을 모두 정규화
+- **추가**: `saveBudgetSettings` 반환 타입을 `Promise<BudgetSettings>`로 조정하여 정규화된 결과를 호출자가 확인 가능
+
+### [해결됨] Medium: evaluateBudgetAlerts race condition
+- **현상**: `ipc.ts`에서 `GET_COST_SUMMARY` 응답 후 `void evaluateBudgetAlerts(summary).catch(() => {})` fire-and-forget. Dashboard와 Costs가 동시에 호출 시 `lastNotifiedKeys` 쓰기 경쟁 (TOCTOU) → 같은 알림 2회 발송 가능
+- **수정 완료**: `budget-service` 모듈 레벨 `evaluationChain: Promise<void>`로 직렬화. 후속 호출은 항상 이전 호출 완료 후 실행. Electron main 단일 스레드 특성상 Promise 체인만으로 충분
+- **검증**: 단위 테스트에서 `Promise.all([evaluate, evaluate])` 동시 호출 시 알림이 1회만 발송되는지 확인
+
+### [해결됨] Low-Medium: budget-service 테스트 엣지 케이스 누락
+- **현상**: 기존 9개 테스트가 주요 시나리오만 커버. 동시 임계 도달/다음날 재발송/`lastNotifiedKeys` trim/입력 정규화/`timestampToLocalDate` 미검증
+- **수정 완료**: 11개 테스트 추가 (9 → 20), 위 이슈 1~3 회귀 방지 포함
+  - evaluateBudgetAlerts: 일+월 동시 / 다음날 / trim(60) / race 직렬화
+  - normalizeBudgetSettings: NaN/음수/잘못 타입 보정 / 유효값 보존 / save 왕복
+  - timestampToLocalDate: ISO / epoch ms / 빈값·null·undefined / 파싱 불가

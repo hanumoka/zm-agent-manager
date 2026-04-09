@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-04-09 | M7 예산 알림 재검토 + 수정 (타임존/검증/race)
+
+- **목표**: M7 커밋 `129f1c6` 후 병렬 Explore 감사로 발견된 4건 이슈 수정
+- **작업 내용** (3개 커밋):
+  1. **fix(budget)** `3d01218`:
+     - 타임존 통일 — `cost-scanner`가 `toISOString()`(UTC)에서 `timestampToLocalDate()`(로컬)로 변경
+     - 입력 검증 — `normalizeBudgetSettings` 헬퍼 추출, `load`/`save` 양쪽에서 적용
+     - race 직렬화 — 모듈 레벨 `evaluationChain: Promise<void>`로 `evaluateBudgetAlerts` 순차 실행
+  2. **test(budget)** `000059e`: 엣지 케이스 11개 추가 (9 → 20)
+  3. **docs**: known-issues.md "M7 감사 이슈" 섹션 신규, 4건 [해결됨] 기록 + SESSION_LOG
+- **검증**:
+  - typecheck / lint / vitest **45**(34→45) / Playwright 7 모두 통과
+  - MCP 시각 확인: 오늘 비용 $955.60 → $1021.18 (KST 새벽 활동이 올바르게 "오늘"로 재분류됨 — 타임존 수정 효과)
+- **다음 할 일**: Phase 3 M1 통계 대시보드 (F8) — 가장 사용자 가치 높음
+
+---
+
 ## 2026-04-09 | Phase 2 M7 예산 알림 완료 (F13 4/4)
 
 - **목표**: Phase 2 M7의 마지막 항목 "예산 설정 및 알림" 구현 → F13 비용 추적 100%
