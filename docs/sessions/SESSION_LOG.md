@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-04-09 | Phase 2 M1 리플레이(F5) + M2 파일 변경(F6) 구현
+
+- **목표**: 세션 리플레이 플레이어 + 파일 변경 추적 구현
+- **작업 내용**:
+  - `ReplayPlayer.tsx` 신규: 재생/일시정지, 속도(0.5x-4x), 스텝 앞/뒤, 스크러버, MessageTimeline 재사용
+  - `FileChangePanel.tsx` 신규: Write/Edit/Read tool_use에서 파일 변경 추출, 파일별 통계
+  - `TimelinePage.tsx`: Files 탭 + Replay 버튼 추가
+- **검증**: lint 0 에러, typecheck 통과, 테스트 19개 전체 통과
+
 ## 2026-04-09 | Phase 2 M6 문서 인벤토리(F12) 구현
 
 - **목표**: 프로젝트 관리 문서 스캔 및 메타데이터 시각화

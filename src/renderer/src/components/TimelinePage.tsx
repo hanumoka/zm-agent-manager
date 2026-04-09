@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Wrench, Bot } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Wrench, Bot, FolderOpen, Play } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { MessageTimeline } from '@/components/MessageTimeline';
 import { ToolTracker } from '@/components/ToolTracker';
 import { SubagentPanel } from '@/components/SubagentPanel';
+import { FileChangePanel } from '@/components/FileChangePanel';
+import { ReplayPlayer } from '@/components/ReplayPlayer';
 
-type TabId = 'messages' | 'tools' | 'subagents';
+type TabId = 'messages' | 'tools' | 'subagents' | 'files' | 'replay';
 
 export function TimelinePage(): React.JSX.Element {
   const { projectEncoded, sessionId } = useParams<{
@@ -92,11 +94,26 @@ export function TimelinePage(): React.JSX.Element {
     );
   }
 
+  // 파일 변경 수 계산
+  const fileChangeCount = currentSession.records.filter(
+    (r) =>
+      r.type === 'assistant' &&
+      r.message?.content?.some(
+        (b) =>
+          b.type === 'tool_use' &&
+          (b.name === 'Write' || b.name === 'Edit') &&
+          'file_path' in (b.input as Record<string, unknown>)
+      )
+  ).length;
+
   const tabs: { id: TabId; label: string; icon: React.ElementType; count: number }[] = [
     { id: 'messages', label: 'Messages', icon: MessageSquare, count: currentSession.messageCount },
     { id: 'tools', label: 'Tools', icon: Wrench, count: currentSession.toolCallCount },
     ...(subagentCount > 0
       ? [{ id: 'subagents' as TabId, label: 'Agents', icon: Bot, count: subagentCount }]
+      : []),
+    ...(fileChangeCount > 0
+      ? [{ id: 'files' as TabId, label: 'Files', icon: FolderOpen, count: fileChangeCount }]
       : []),
   ];
 
@@ -113,6 +130,18 @@ export function TimelinePage(): React.JSX.Element {
         <span className="text-sm font-mono text-muted-foreground">
           {currentSession.sessionId.slice(0, 8)}
         </span>
+        {/* Replay 버튼 */}
+        <button
+          onClick={() => setActiveTab(activeTab === 'replay' ? 'messages' : 'replay')}
+          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors ${
+            activeTab === 'replay'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          <Play className="h-3 w-3" />
+          Replay
+        </button>
         <div className="flex-1" />
         {/* 탭 */}
         <div className="flex gap-1">
@@ -141,6 +170,8 @@ export function TimelinePage(): React.JSX.Element {
         {activeTab === 'subagents' && projectEncoded && sessionId && (
           <SubagentPanel projectEncoded={projectEncoded} sessionId={sessionId} />
         )}
+        {activeTab === 'files' && <FileChangePanel records={currentSession.records} />}
+        {activeTab === 'replay' && <ReplayPlayer records={currentSession.records} />}
       </div>
     </div>
   );
