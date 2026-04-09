@@ -24,7 +24,8 @@
   --accent-red: #ff453a;
   --accent-purple: #bf5af2;
 }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-window); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-window); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.app-container { display: flex; flex: 1; overflow: hidden; }
 
 /* Sidebar */
 .sidebar { width: 240px; min-width: 240px; background: var(--bg-window); padding: 16px 8px; overflow-y: auto; border-right: 1px solid var(--bg-divider); }
@@ -165,6 +166,41 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .budget-slider { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .budget-slider input[type=range] { flex: 1; accent-color: var(--accent-blue); }
 
+/* Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--bg-content); border:1px solid var(--bg-divider); border-radius:16px; padding:24px; width:520px; max-height:80vh; overflow-y:auto; position:relative; }
+.modal-title { font-size:18px; font-weight:700; margin-bottom:16px; }
+.modal-close { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-tertiary); font-size:18px; cursor:pointer; }
+.modal-close:hover { color:var(--text-primary); }
+.modal-actions { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+.modal-actions button { padding:8px 16px; border:none; border-radius:8px; font-size:13px; cursor:pointer; }
+.modal textarea { width:100%; min-height:80px; background:var(--bg-card); border:1px solid var(--bg-divider); color:var(--text-primary); border-radius:8px; padding:10px; font-size:13px; resize:vertical; font-family:inherit; }
+.modal label { font-size:13px; color:var(--text-secondary); display:block; margin-bottom:4px; margin-top:12px; }
+
+/* Toast */
+.toast-container { position:fixed; bottom:24px; right:24px; z-index:200; display:flex; flex-direction:column; gap:8px; }
+.toast { background:var(--bg-card); border:1px solid var(--bg-divider); border-radius:10px; padding:12px 16px; font-size:13px; display:flex; align-items:center; gap:8px; animation:slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards; min-width:280px; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+@keyframes slideIn { from { transform:translateX(100px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+@keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
+
+/* Tool result expandable */
+.tool-result { display:none; background:#1a1a1c; border-radius:6px; padding:8px 10px; margin-top:4px; font-size:12px; color:var(--text-tertiary); font-family:monospace; max-height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+.tool-result.show { display:block; }
+.tool-toggle { color:var(--accent-blue); cursor:pointer; font-size:11px; margin-left:8px; }
+.tool-toggle:hover { text-decoration:underline; }
+
+/* Thinking expandable */
+.thinking-content { display:none; margin-top:4px; font-size:12px; color:var(--text-tertiary); line-height:1.5; max-height:200px; overflow-y:auto; }
+.thinking-content.show { display:block; }
+
+/* Notification badge animation */
+@keyframes badgeBounce { 0%,100% { transform:scale(1); } 50% { transform:scale(1.3); } }
+.badge-notify { animation: badgeBounce 0.3s; }
+
+/* Status bar */
+.status-bar { height:28px; background:var(--bg-window); border-top:1px solid var(--bg-divider); display:flex; align-items:center; padding:0 16px; font-size:11px; color:var(--text-tertiary); gap:16px; }
+
 /* Settings */
 .setting-group { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .setting-group-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
@@ -198,6 +234,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </style>
 </head>
 <body>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- APP CONTAINER -->
+<div class="app-container">
 
 <!-- SIDEBAR -->
 <nav class="sidebar">
@@ -546,24 +593,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="timeline-item assistant">
       <span class="time">14:23</span>
       <div class="card-title">Assistant</div>
-      <div class="thinking-block" onclick="this.style.maxHeight=this.style.maxHeight?'':'200px';this.style.overflow='hidden'">
-        ▶ Thinking (접기/펼치기) — "각 영역의 부족한 부분을 체계적으로 보강하겠습니다..."
+      <div class="thinking-block" onclick="toggleThinking(this)">
+        ▶ Thinking (클릭하여 펼치기)
+        <div class="thinking-content">각 영역의 부족한 부분을 체계적으로 보강하겠습니다. 현재 문서를 전체 검토한 결과, 기능 로직 측면에서 96% 준비 완료 상태입니다. 미캡처 서브뷰(세션 상세/리플레이)는 Phase 2에서 직접 구현하면서 보강하면 됩니다.</div>
       </div>
       <div class="msg">각 영역의 부족한 부분을 체계적으로 보강하겠습니다.</div>
       <div class="tool-call">
         <span class="name">🔧 Read</span>
         <span class="input"> docs/requirements/readout-analysis.md</span>
         <span class="duration"> ⏱ 0.3s</span>
+        <span class="tool-toggle" onclick="toggleToolResult(this)">결과 보기 ▼</span>
+        <div class="tool-result"># Readout 앱 기술 분석서 (UI/데이터/구현 상세)\n\n> 분석 일자: 2026-04-08\n> 대상: Readout v0.0.11\n... (1519 lines)</div>
       </div>
       <div class="tool-call">
         <span class="name">🔧 Bash</span>
-        <span class="input"> python3 << 'PYEOF' ... (Readout 캡처 스크립트)</span>
+        <span class="input"> python3 << 'PYEOF' (Readout 캡처 스크립트)</span>
         <span class="duration"> ⏱ 45.2s</span>
+        <span class="tool-toggle" onclick="toggleToolResult(this)">결과 보기 ▼</span>
+        <div class="tool-result">캡처 완료: 23개\n  /tmp/readout-01-overview.png\n  /tmp/readout-02-assistant.png\n  /tmp/readout-03-live.png\n  ...</div>
       </div>
       <div class="tool-call">
         <span class="name">🔧 Edit</span>
         <span class="input"> docs/requirements/readout-analysis.md</span>
         <span class="duration"> ⏱ 0.1s</span>
+        <span class="tool-toggle" onclick="toggleToolResult(this)">결과 보기 ▼</span>
+        <div class="tool-result">The file has been updated successfully.\n+233 insertions, -18 deletions</div>
       </div>
     </div>
 
@@ -668,7 +722,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="kanban">
     <div class="kanban-lane">
       <div class="kanban-lane-title">Pending <span class="badge badge-orange">3</span></div>
-      <div class="task-card blocking" onclick="document.getElementById('task-detail').style.display='block'">
+      <div class="task-card blocking" onclick="showTaskModal('화면설계서 리뷰','screen-design.md 사용자 리뷰 대기 — 561줄','blocking','approve','<div class=history-item>● 14:40 TaskCreate → pending</div><div class=history-item>● 14:41 acknowledged</div>')">
         <div class="subject">🔴 화면설계서 리뷰</div>
         <div class="desc">screen-design.md 사용자 리뷰 대기</div>
         <div class="meta"><span class="badge badge-red">blocking</span> <span class="badge badge-gray">approve</span> 📁 zm-agt ⏱ 5m</div>
@@ -921,9 +975,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 
   <div style="margin-top:16px;display:flex;gap:8px">
-    <button class="btn-approve" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="alert('Approved!')">✅ Approve</button>
-    <button class="btn-reject" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="alert('Rejected!')">❌ Reject</button>
-    <button class="btn-ack" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;background:var(--bg-card);color:var(--text-secondary)">💬 Comment</button>
+    <button class="btn-approve" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="approveDoc()">✅ Approve</button>
+    <button class="btn-reject" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px" onclick="showRejectModal()">❌ Reject</button>
+    <button class="btn-ack" style="padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:13px;background:var(--bg-card);color:var(--text-secondary)" onclick="showCommentModal()">💬 Comment</button>
   </div>
 </div>
 
@@ -1269,6 +1323,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 </main>
 
+</div><!-- /app-container -->
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="status-bar">
+  <span>● 1 active session</span>
+  <span>📌 2 tasks in progress</span>
+  <span>📄 2 pending reviews</span>
+  <span style="margin-left:auto">zm-agent-manager v0.1.0</span>
+</div>
+
 <script>
 // Navigation
 function showPage(id) {
@@ -1312,6 +1376,124 @@ document.querySelectorAll('.speed-chip').forEach(chip => {
   };
 });
 
+// ============ MODAL ============
+function openModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ============ TOAST ============
+function showToast(icon, message) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span>${icon}</span> ${message}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ============ DOC ACTIONS ============
+function approveDoc() {
+  showToast('✅', 'PRD-v2.md 승인 완료');
+  updateDocBadge(-1);
+}
+function showRejectModal() {
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">❌ 문서 반려</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">PRD-v2.md <span class="badge badge-red">blocking</span></div>
+    <label>반려 사유</label>
+    <textarea placeholder="반려 사유를 입력하세요..."></textarea>
+    <div class="modal-actions">
+      <button style="background:var(--bg-divider);color:var(--text-secondary)" onclick="closeModal()">취소</button>
+      <button style="background:var(--accent-red);color:#fff" onclick="closeModal();showToast('❌','PRD-v2.md 반려됨');updateDocBadge(-1)">반려</button>
+    </div>
+  `);
+}
+function showCommentModal() {
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">💬 코멘트 추가</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">PRD-v2.md <span class="badge badge-red">blocking</span></div>
+    <label>코멘트</label>
+    <textarea placeholder="코멘트를 입력하세요..."></textarea>
+    <div class="modal-actions">
+      <button style="background:var(--bg-divider);color:var(--text-secondary)" onclick="closeModal()">취소</button>
+      <button style="background:var(--accent-blue);color:#fff" onclick="closeModal();showToast('💬','코멘트 추가됨')">저장</button>
+    </div>
+  `);
+}
+function updateDocBadge(delta) {
+  const badges = document.querySelectorAll('.sidebar-item .badge');
+  badges.forEach(b => {
+    if (b.textContent.trim().match(/^\d+$/)) {
+      const n = Math.max(0, parseInt(b.textContent) + delta);
+      b.textContent = n;
+      b.classList.add('badge-notify');
+      if (n === 0) b.style.display = 'none';
+    }
+  });
+}
+
+// ============ TASK DETAIL MODAL ============
+function showTaskModal(subject, desc, severity, intent, history) {
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">📌 ${subject}</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">${desc}</div>
+    <div style="margin-bottom:12px">
+      Severity: <span class="badge badge-${severity==='blocking'?'red':severity==='important'?'orange':'gray'}">${severity}</span>
+      &nbsp; Type: <span class="badge badge-gray">${intent}</span>
+    </div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px">상태 이력:</div>
+    ${history}
+    <div style="margin-top:12px;font-size:13px">
+      소속 세션: <span style="color:var(--accent-blue);cursor:pointer" onclick="closeModal();showPage('session-detail')">zm-agent-manager #20b85cb8 →</span>
+    </div>
+    <div class="modal-actions">
+      <button style="background:var(--bg-divider);color:var(--text-secondary)" onclick="closeModal()">닫기</button>
+    </div>
+  `);
+}
+
+// ============ TOOL RESULT TOGGLE ============
+function toggleToolResult(el) {
+  const result = el.parentElement.querySelector('.tool-result');
+  if (result.classList.contains('show')) {
+    result.classList.remove('show');
+    el.textContent = '결과 보기 ▼';
+  } else {
+    result.classList.add('show');
+    el.textContent = '접기 ▲';
+  }
+}
+
+// ============ THINKING TOGGLE ============
+function toggleThinking(el) {
+  const content = el.querySelector('.thinking-content');
+  if (content.classList.contains('show')) {
+    content.classList.remove('show');
+    el.childNodes[0].textContent = '▶ Thinking (클릭하여 펼치기)';
+  } else {
+    content.classList.add('show');
+    el.childNodes[0].textContent = '▼ Thinking (클릭하여 접기)';
+  }
+}
+
+// ============ REPLAY SCRUBBER ============
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('replay-track') || e.target.closest('.replay-track')) {
+    const track = e.target.classList.contains('replay-track') ? e.target : e.target.closest('.replay-track');
+    const rect = track.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    track.querySelector('.replay-fill').style.width = pct + '%';
+    track.querySelector('.replay-head').style.left = pct + '%';
+  }
+});
+
 // Hook tabs
 function showHookTab(tabId) {
   ['hooks-tab','rules-tab','mcp-tab','perms-tab'].forEach(id => {
@@ -1326,15 +1508,15 @@ function showHookTab(tabId) {
 
 // Onboarding
 function showOnboarding() {
-  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.sidebar').style.display='none';document.getElementById('status-bar').style.display='none';
   showPage('onboarding');
 }
 function showNoClaude() {
-  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.sidebar').style.display='none';document.getElementById('status-bar').style.display='none';
   showPage('no-claude');
 }
 function showNoProjects() {
-  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.sidebar').style.display='none';document.getElementById('status-bar').style.display='none';
   showPage('no-projects');
 }
 
@@ -1343,7 +1525,7 @@ function startAutoScan() {
   document.getElementById('onboard-scanning').style.display = 'block';
   document.getElementById('onboard-result').style.display = 'none';
   showPage('onboarding');
-  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.sidebar').style.display='none';document.getElementById('status-bar').style.display='none';
 
   // 스캔 애니메이션
   let progress = 0;
@@ -1371,7 +1553,7 @@ function startManualSelect() {
 }
 
 function completeOnboarding() {
-  document.querySelector('.sidebar').style.display = '';
+  document.querySelector('.sidebar').style.display='';document.getElementById('status-bar').style.display='';
   showPage('dashboard');
 }
 
