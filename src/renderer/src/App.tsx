@@ -6,6 +6,7 @@ import {
   DollarSign,
   FileText,
   Search,
+  BarChart3,
 } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
@@ -14,6 +15,7 @@ import { TaskBoard } from '@/components/TaskBoard';
 import { CostTracker } from '@/components/CostTracker';
 import { DocInventory } from '@/components/DocInventory';
 import { SearchPage } from '@/components/SearchPage';
+import { StatsPage } from '@/components/StatsPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -24,6 +26,7 @@ const NAV_ITEMS = [
     matchPaths: ['/sessions', '/timeline'],
   },
   { path: '/tasks', label: 'Tasks', icon: ClipboardList, matchPaths: ['/tasks'] },
+  { path: '/stats', label: 'Stats', icon: BarChart3, matchPaths: ['/stats'] },
   { path: '/costs', label: 'Costs', icon: DollarSign, matchPaths: ['/costs'] },
   { path: '/docs', label: 'Docs', icon: FileText, matchPaths: ['/docs'] },
   { path: '/search', label: 'Search', icon: Search, matchPaths: ['/search'] },
@@ -89,6 +92,7 @@ function App(): React.JSX.Element {
               <Route path="/sessions" element={<SessionList />} />
               <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
               <Route path="/tasks" element={<TaskBoard />} />
+              <Route path="/stats" element={<StatsPage />} />
               <Route path="/costs" element={<CostTracker />} />
               <Route path="/docs" element={<DocInventory />} />
               <Route path="/search" element={<SearchPage />} />
