@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import { FileText, FolderOpen } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
+import { classifyDocImportance, IMPORTANCE_CONFIG } from '@/lib/doc-importance';
 import type { DocInfo } from '@shared/types';
 
 // ─── 포맷 ───
@@ -29,7 +30,9 @@ const CATEGORY_COLORS: Record<string, string> = {
  * 단일 문서 행. 부모(DocInventory) 리렌더 시 doc이 동일하면 다시 렌더하지 않는다.
  */
 const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
-  const color = CATEGORY_COLORS[doc.category] ?? 'bg-muted text-muted-foreground';
+  const categoryColor = CATEGORY_COLORS[doc.category] ?? 'bg-muted text-muted-foreground';
+  const importance = classifyDocImportance(doc.relativePath || doc.path);
+  const imp = IMPORTANCE_CONFIG[importance];
 
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors rounded-md">
@@ -37,9 +40,19 @@ const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Elemen
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">{doc.name}</span>
-          <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${color}`}>
+          <span
+            className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${categoryColor}`}
+          >
             {doc.category}
           </span>
+          {importance !== 'suggestion' && (
+            <span
+              className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${imp.color}`}
+              title={`중요도: ${imp.label}`}
+            >
+              {imp.icon} {imp.label}
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted-foreground truncate">{doc.relativePath}</p>
       </div>

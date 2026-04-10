@@ -38,11 +38,12 @@
 - [x] 태스크 메타데이터 관리 (심각도/유형) — `task-metadata-service.ts` + TaskCard 드롭다운 (2026-04-10)
 - [ ] 사용자 정의 단계 UI — 후속
 
-## Milestone 5: 문서 중요도 분류 & 알림 (F15)
+## Milestone 5: 문서 중요도 분류 & 알림 (F15) — **부분 완료 (MVP)**
 
-- [ ] 경로 기반 중요도 규칙 정의
-- [ ] 문서 변경 감지 및 알림
-- [ ] 리뷰 상태 관리
+- [x] 경로 기반 중요도 규칙 정의 — `doc-importance.ts` (blocking/important/suggestion, PRD 경로 규칙 하드코딩)
+- [x] DocInventory 중요도 배지 표시 — DocRow에 경로 매칭 배지 인라인 (2026-04-10)
+- [ ] 문서 변경 감지 및 알림 — 후속
+- [ ] 리뷰 상태 관리 — 후속
 
 ## Milestone 6: 알림 시스템 (F16)
 
