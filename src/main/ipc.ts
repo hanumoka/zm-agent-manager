@@ -11,6 +11,7 @@ import { scanSessionSubagents } from './subagent-scanner';
 import { scanProjectDocs } from './doc-scanner';
 import { searchSessions } from './search-service';
 import { loadBudgetSettings, saveBudgetSettings, evaluateBudgetAlerts } from './budget-service';
+import { scanStatsSummary } from './stats-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -72,6 +73,10 @@ export function registerIpcHandlers(): void {
       return searchSessions(query, filters);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.GET_STATS_SUMMARY, async () => {
+    return scanStatsSummary();
+  });
 
   ipcMain.handle(IPC_CHANNELS.GET_BUDGET_SETTINGS, async () => {
     return loadBudgetSettings();
