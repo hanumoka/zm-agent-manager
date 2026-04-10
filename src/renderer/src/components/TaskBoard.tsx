@@ -9,7 +9,14 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
-import type { TaskInfo, TaskStatus, TaskSeverity, TaskType, TaskMetadata } from '@shared/types';
+import type {
+  TaskInfo,
+  TaskStatus,
+  TaskSeverity,
+  TaskType,
+  TaskMetadata,
+  WorkflowDefinition,
+} from '@shared/types';
 
 // ─── 상수 ───
 
@@ -68,12 +75,17 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
   const [expanded, setExpanded] = useState(false);
   const [meta, setMeta] = useState<TaskMetadata | null>(null);
 
-  // expanded 될 때 메타데이터 로드
+  const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
+
+  // expanded 될 때 메타데이터 + 워크플로우 목록 로드
   useEffect(() => {
     if (!expanded) return;
     let mounted = true;
     window.api?.getTaskMetadata?.(task.taskId)?.then((m) => {
       if (mounted) setMeta(m);
+    });
+    window.api?.getWorkflows?.()?.then((wfs) => {
+      if (mounted) setWorkflows(wfs);
     });
     return () => {
       mounted = false;
@@ -81,22 +93,29 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
   }, [expanded, task.taskId]);
 
   const handleMetaChange = useCallback(
-    async (field: 'severity' | 'type', value: string) => {
+    async (field: 'severity' | 'type' | 'workflowName' | 'workflowStage', value: string) => {
       const next: TaskMetadata = {
         taskId: task.taskId,
         ...meta,
         [field]: value || undefined,
         updatedAt: Date.now(),
       };
+      // 워크플로우 변경 시 단계 초기화
+      if (field === 'workflowName') {
+        next.workflowStage = undefined;
+      }
       try {
         const saved = await window.api?.setTaskMetadata?.(next);
         if (saved) setMeta(saved);
       } catch {
-        // 실패 시 무음 (UI에 영향 없음)
+        // 실패 시 무음
       }
     },
     [task.taskId, meta]
   );
+
+  // 선택된 워크플로우의 단계 목록
+  const selectedWorkflow = workflows.find((w) => w.name === meta?.workflowName);
 
   return (
     <div className="rounded-md border border-border bg-card p-3">
@@ -114,6 +133,11 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
             <p className="text-sm font-medium text-foreground leading-snug">{task.subject}</p>
             <SeverityBadge severity={meta?.severity} />
             <TypeBadge type={meta?.type} />
+            {meta?.workflowStage && (
+              <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium text-primary bg-primary/10">
+                {meta.workflowStage}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">{task.projectName}</span>
@@ -151,6 +175,35 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
               <option value="question">Question</option>
               <option value="approve">Approve</option>
             </select>
+          </div>
+          {/* 워크플로우/단계 */}
+          <div className="flex gap-2 text-xs">
+            <select
+              value={meta?.workflowName ?? ''}
+              onChange={(e) => handleMetaChange('workflowName', e.target.value)}
+              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
+            >
+              <option value="">워크플로우 —</option>
+              {workflows.map((w) => (
+                <option key={w.name} value={w.name}>
+                  {w.displayName}
+                </option>
+              ))}
+            </select>
+            {selectedWorkflow && (
+              <select
+                value={meta?.workflowStage ?? ''}
+                onChange={(e) => handleMetaChange('workflowStage', e.target.value)}
+                className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
+              >
+                <option value="">단계 —</option>
+                {selectedWorkflow.stages.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {stage}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           {/* 상태 변경 이력 */}
           <div className="space-y-1">

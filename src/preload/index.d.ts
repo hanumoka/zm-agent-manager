@@ -16,6 +16,7 @@ import type {
   AgentInfo,
   ConfigSummary,
   TaskMetadata,
+  WorkflowDefinition,
 } from '@shared/types';
 
 interface AppAPI {
@@ -35,6 +36,9 @@ interface AppAPI {
   getConfigSummary: () => Promise<ConfigSummary>;
   getTaskMetadata: (taskId: string) => Promise<TaskMetadata>;
   setTaskMetadata: (metadata: TaskMetadata) => Promise<TaskMetadata>;
+  getWorkflows: () => Promise<WorkflowDefinition[]>;
+  setWorkflow: (workflow: WorkflowDefinition) => Promise<WorkflowDefinition>;
+  deleteWorkflow: (name: string) => Promise<void>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

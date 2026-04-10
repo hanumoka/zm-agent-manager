@@ -34,6 +34,9 @@ export const IPC_CHANNELS = {
   GET_CONFIG_SUMMARY: 'config:get-summary',
   GET_TASK_METADATA: 'task-meta:get',
   SET_TASK_METADATA: 'task-meta:set',
+  GET_WORKFLOWS: 'workflows:get-all',
+  SET_WORKFLOW: 'workflows:set',
+  DELETE_WORKFLOW: 'workflows:delete',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -277,9 +280,22 @@ export interface TaskMetadata {
   taskId: string;
   severity?: TaskSeverity;
   type?: TaskType;
-  /** 향후 워크플로우 단계 확장용 */
+  /** 워크플로우 이름 (어떤 워크플로우를 사용하는지) */
+  workflowName?: string;
+  /** 현재 워크플로우 단계 */
   workflowStage?: string;
   updatedAt: number;
+}
+
+export interface WorkflowDefinition {
+  /** 워크플로우 고유 이름 (파일명으로도 사용) */
+  name: string;
+  /** 표시명 */
+  displayName: string;
+  /** 순서가 있는 단계 목록 */
+  stages: string[];
+  /** 생성 시각 */
+  createdAt: number;
 }
 
 // ─── Config 모니터 (F20) ───

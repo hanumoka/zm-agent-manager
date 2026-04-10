@@ -18,6 +18,7 @@ import type {
   AgentInfo,
   ConfigSummary,
   TaskMetadata,
+  WorkflowDefinition,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -48,6 +49,11 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_METADATA, taskId),
   setTaskMetadata: (metadata: TaskMetadata): Promise<TaskMetadata> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_TASK_METADATA, metadata),
+  getWorkflows: (): Promise<WorkflowDefinition[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_WORKFLOWS),
+  setWorkflow: (workflow: WorkflowDefinition): Promise<WorkflowDefinition> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_WORKFLOW, workflow),
+  deleteWorkflow: (name: string): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DELETE_WORKFLOW, name),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>

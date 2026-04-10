@@ -6,6 +6,7 @@ import {
   type SearchFilters,
   type BudgetSettings,
   type TaskMetadata,
+  type WorkflowDefinition,
 } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
@@ -22,6 +23,7 @@ import { readMemoryContent } from './memory-reader';
 import { scanAgents } from './agent-scanner';
 import { scanConfigSummary } from './config-scanner';
 import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
+import { listWorkflows, saveWorkflow, deleteWorkflow } from './workflow-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -119,5 +121,17 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SET_TASK_METADATA, async (_event, metadata: TaskMetadata) => {
     return setTaskMetadata(metadata);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_WORKFLOWS, async () => {
+    return listWorkflows();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SET_WORKFLOW, async (_event, workflow: WorkflowDefinition) => {
+    return saveWorkflow(workflow);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.DELETE_WORKFLOW, async (_event, name: string) => {
+    return deleteWorkflow(name);
   });
 }

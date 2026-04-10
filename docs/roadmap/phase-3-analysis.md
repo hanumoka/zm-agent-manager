@@ -32,11 +32,11 @@
 - [x] 세션 간 통계 비교 차트 — `ComparisonPanel` (메시지/도구/토큰/비용 + 차이값)
 - [x] 사이드바 "Compare" 메뉴 추가 (7 → 8), Playwright E2E 9개, 완료: 2026-04-10 (`16597d1` + `3035832` + `dfa2765`)
 
-## Milestone 4: 태스크 워크플로우 (F14) — **부분 완료 (MVP)**
+## Milestone 4: 태스크 워크플로우 (F14) — **완료**
 
-- [ ] 워크플로우 정의 스키마 구현 — 후속
-- [x] 태스크 메타데이터 관리 (심각도/유형) — `task-metadata-service.ts` + TaskCard 드롭다운 (2026-04-10)
-- [ ] 사용자 정의 단계 UI — 후속
+- [x] 워크플로우 정의 스키마 — `workflow-service.ts` (내장 2개 + 사용자 CRUD, `~/.zm-agent-manager/workflows/`)
+- [x] 태스크 메타데이터 관리 (심각도/유형) — `task-metadata-service.ts` + TaskCard 드롭다운
+- [x] 워크플로우 단계 선택 UI — TaskCard에 워크플로우/단계 드롭다운 + 카드 제목 옆 단계 배지 (2026-04-10)
 
 ## Milestone 5: 문서 중요도 분류 & 알림 (F15) — **부분 완료 (MVP)**
 
