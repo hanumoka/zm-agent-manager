@@ -4,6 +4,7 @@ import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
 import type { ParsedSession, SessionMeta, AssistantRecord } from '@shared/types';
+import { MessageTimeline } from '@/components/MessageTimeline';
 
 /**
  * 세션 비교 페이지 (F10)
@@ -259,6 +260,134 @@ function ComparisonPanel({
   );
 }
 
+// ─── ToolDistributionPanel ───
+
+interface ToolDistributionPanelProps {
+  distA: Map<string, number>;
+  distB: Map<string, number>;
+}
+
+function ToolDistributionPanel({ distA, distB }: ToolDistributionPanelProps): React.JSX.Element {
+  // 두 분포의 union 키 목록을 총 사용량 내림차순으로 정렬
+  const sortedTools = useMemo(() => {
+    const union = new Set<string>([...distA.keys(), ...distB.keys()]);
+    return [...union]
+      .map((name) => ({
+        name,
+        countA: distA.get(name) ?? 0,
+        countB: distB.get(name) ?? 0,
+        total: (distA.get(name) ?? 0) + (distB.get(name) ?? 0),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [distA, distB]);
+
+  const maxCount = useMemo(
+    () => sortedTools.reduce((acc, t) => Math.max(acc, t.countA, t.countB), 0),
+    [sortedTools]
+  );
+
+  if (sortedTools.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4 mb-4">
+        <h3 className="text-sm font-semibold text-foreground mb-2">도구 호출 분포</h3>
+        <p className="text-xs text-muted-foreground">도구 호출이 없습니다</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-border bg-card p-4 mb-4"
+      data-testid="compare-tool-distribution"
+    >
+      <h3 className="text-sm font-semibold text-foreground mb-3">도구 호출 분포</h3>
+      <div className="space-y-2">
+        {sortedTools.map(({ name, countA, countB }) => (
+          <div key={name} className="grid grid-cols-[120px_1fr_1fr] items-center gap-3">
+            <span className="text-xs font-mono text-muted-foreground truncate">{name}</span>
+            {/* 세션 A 바 */}
+            <div className="flex items-center gap-2">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-primary"
+                  style={{ width: `${maxCount > 0 ? (countA / maxCount) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-xs tabular-nums text-foreground w-10 text-right">{countA}</span>
+            </div>
+            {/* 세션 B 바 */}
+            <div className="flex items-center gap-2">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-accent-orange"
+                  style={{ width: `${maxCount > 0 ? (countB / maxCount) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-xs tabular-nums text-foreground w-10 text-right">{countB}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-4 mt-3 pt-2 border-t border-border text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-4 rounded bg-primary" />
+          세션 A
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-4 rounded bg-accent-orange" />
+          세션 B
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── SideBySideTimeline ───
+
+interface SideBySideTimelineProps {
+  sessionA: SessionMeta;
+  sessionB: SessionMeta;
+  parsedA: ParsedSession;
+  parsedB: ParsedSession;
+}
+
+function SideBySideTimeline({
+  sessionA,
+  sessionB,
+  parsedA,
+  parsedB,
+}: SideBySideTimelineProps): React.JSX.Element {
+  return (
+    <div
+      className="rounded-lg border border-border bg-card overflow-hidden"
+      data-testid="compare-timeline"
+    >
+      <div className="grid grid-cols-2 border-b border-border">
+        <div className="px-4 py-2 border-r border-border">
+          <p className="text-xs text-muted-foreground">세션 A · {sessionA.sessionId.slice(0, 8)}</p>
+          <p className="text-sm font-medium text-foreground truncate">
+            {sessionA.firstMessage || '(제목 없음)'}
+          </p>
+        </div>
+        <div className="px-4 py-2">
+          <p className="text-xs text-muted-foreground">세션 B · {sessionB.sessionId.slice(0, 8)}</p>
+          <p className="text-sm font-medium text-foreground truncate">
+            {sessionB.firstMessage || '(제목 없음)'}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2" style={{ height: '500px' }}>
+        <div className="border-r border-border overflow-hidden">
+          <MessageTimeline records={parsedA.records} />
+        </div>
+        <div className="overflow-hidden">
+          <MessageTimeline records={parsedB.records} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ComparePage ───
 
 export function ComparePage(): React.JSX.Element {
@@ -378,13 +507,25 @@ export function ComparePage(): React.JSX.Element {
           </div>
         ) : error ? (
           <p className="text-destructive text-sm">세션 로드 실패: {error}</p>
-        ) : metricsA && metricsB ? (
-          <ComparisonPanel
-            sessionA={sessionA}
-            sessionB={sessionB}
-            metricsA={metricsA}
-            metricsB={metricsB}
-          />
+        ) : metricsA && metricsB && parsedA && parsedB ? (
+          <>
+            <ComparisonPanel
+              sessionA={sessionA}
+              sessionB={sessionB}
+              metricsA={metricsA}
+              metricsB={metricsB}
+            />
+            <ToolDistributionPanel
+              distA={metricsA.toolDistribution}
+              distB={metricsB.toolDistribution}
+            />
+            <SideBySideTimeline
+              sessionA={sessionA}
+              sessionB={sessionB}
+              parsedA={parsedA}
+              parsedB={parsedB}
+            />
+          </>
         ) : null}
       </div>
     </div>
