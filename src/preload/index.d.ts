@@ -12,6 +12,7 @@ import type {
   BudgetSettings,
   StatsSummary,
   SkillInfo,
+  MemoryContent,
 } from '@shared/types';
 
 interface AppAPI {
@@ -26,6 +27,7 @@ interface AppAPI {
   searchSessions: (query: string, filters?: SearchFilters) => Promise<SearchResponse>;
   getStatsSummary: () => Promise<StatsSummary>;
   getSkills: () => Promise<SkillInfo[]>;
+  getMemoryContent: (projectEncoded: string) => Promise<MemoryContent>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

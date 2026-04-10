@@ -14,6 +14,7 @@ import type {
   BudgetSettings,
   StatsSummary,
   SkillInfo,
+  MemoryContent,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -35,6 +36,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SEARCH_SESSIONS, query, filters),
   getStatsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke(IPC_CHANNELS.GET_STATS_SUMMARY),
   getSkills: (): Promise<SkillInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_SKILLS),
+  getMemoryContent: (projectEncoded: string): Promise<MemoryContent> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_MEMORY_CONTENT, projectEncoded),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>

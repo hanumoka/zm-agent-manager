@@ -13,6 +13,7 @@ import { searchSessions } from './search-service';
 import { loadBudgetSettings, saveBudgetSettings, evaluateBudgetAlerts } from './budget-service';
 import { scanStatsSummary } from './stats-service';
 import { scanSkills } from './skill-scanner';
+import { readMemoryContent } from './memory-reader';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -81,6 +82,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_SKILLS, async () => {
     return scanSkills();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_MEMORY_CONTENT, async (_event, projectEncoded: string) => {
+    return readMemoryContent(projectEncoded);
   });
 
   ipcMain.handle(IPC_CHANNELS.GET_BUDGET_SETTINGS, async () => {

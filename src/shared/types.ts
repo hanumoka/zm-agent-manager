@@ -29,6 +29,7 @@ export const IPC_CHANNELS = {
   SET_BUDGET_SETTINGS: 'budget:set-settings',
   GET_STATS_SUMMARY: 'stats:get-summary',
   GET_SKILLS: 'skills:get-all',
+  GET_MEMORY_CONTENT: 'memory:get-content',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -261,6 +262,25 @@ export interface SkillInfo {
   model?: string;
   /** disable-model-invocation: true 일 때만 true */
   disableModelInvocation: boolean;
+}
+
+// ─── 메모리 뷰어 (F19) ───
+
+export interface MemoryContent {
+  /** 프로젝트 인코딩 경로 */
+  projectEncoded: string;
+  /** 프로젝트 이름 */
+  projectName: string;
+  /** MEMORY.md 파일 전체 텍스트. 파일이 없으면 null. */
+  content: string | null;
+  /** 라인 수 (0 if null) */
+  lineCount: number;
+  /** 파일 크기 (bytes, 0 if null) */
+  sizeBytes: number;
+  /** MEMORY.md 절대 경로 */
+  filePath: string;
+  /** 200줄 초과 시 true — Claude 시스템 프롬프트에서 잘림 경고 */
+  exceedsLimit: boolean;
 }
 
 // ─── 세션 통계 (F8) ───
