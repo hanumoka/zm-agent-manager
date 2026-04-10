@@ -45,13 +45,13 @@
 - [x] 리뷰 상태 관리 — `doc-review-service.ts` + DocRow 리뷰 토글
 - [x] 문서 변경 감지 및 알림 — `doc-watcher.ts` chokidar 감시 (docs/**/*.md + .claude/**/*.md + CLAUDE.md) + 중요도별 Notification + 30초 debounce (2026-04-10)
 
-## Milestone 6: 알림 시스템 (F16) — **거의 완료** (5/7)
+## Milestone 6: 알림 시스템 (F16) — **거의 완료** (6/7)
 
 - [x] Electron Notification API 연동 — Phase 2 M7 budget에서 도입 완료
 - [x] 비용 임계 트리거 — budget-service evaluateBudgetAlerts
 - [x] 문서 변경 트리거 — doc-watcher.ts chokidar 감시 + 중요도별 Notification
-- [x] 알림 설정 UI — Config 페이지 Notifications 탭 (4개 트리거 ON/OFF 토글) + `notification-settings-service.ts`
-- [ ] 세션 시작/종료 트리거 — session-watcher 확장 필요 (후속)
+- [x] 알림 설정 UI — Config 페이지 Notifications 탭 (4개 트리거 ON/OFF 토글)
+- [x] 세션 시작/종료 트리거 — `session-lifecycle-watcher.ts` chokidar sessions/*.json 감시 + notification-settings 연동 (2026-04-10)
 - [ ] 태스크 완료 트리거 — task-scanner + 실시간 감시 필요 (후속)
 - [ ] 알림 이력 저장 (~/.zm-agent-manager/notifications/) — 후속
 

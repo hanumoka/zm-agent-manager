@@ -4,6 +4,10 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { registerIpcHandlers } from './ipc';
 import { initWatcher, stopWatcher } from './session-watcher';
 import { initDocWatcher, stopDocWatcher } from './doc-watcher';
+import {
+  initSessionLifecycleWatcher,
+  stopSessionLifecycleWatcher,
+} from './session-lifecycle-watcher';
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -43,6 +47,7 @@ app.whenReady().then(() => {
   registerIpcHandlers();
   initWatcher();
   initDocWatcher();
+  initSessionLifecycleWatcher();
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -64,4 +69,5 @@ app.on('window-all-closed', () => {
 app.on('will-quit', async () => {
   await stopWatcher();
   await stopDocWatcher();
+  await stopSessionLifecycleWatcher();
 });
