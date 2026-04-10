@@ -11,6 +11,7 @@ import type {
   SearchFilters,
   BudgetSettings,
   StatsSummary,
+  SkillInfo,
 } from '@shared/types';
 
 interface AppAPI {
@@ -24,6 +25,7 @@ interface AppAPI {
   getProjectDocs: (projectPath: string) => Promise<DocInfo[]>;
   searchSessions: (query: string, filters?: SearchFilters) => Promise<SearchResponse>;
   getStatsSummary: () => Promise<StatsSummary>;
+  getSkills: () => Promise<SkillInfo[]>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

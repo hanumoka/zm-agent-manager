@@ -13,6 +13,7 @@ import type {
   SearchFilters,
   BudgetSettings,
   StatsSummary,
+  SkillInfo,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -33,6 +34,7 @@ const api = {
   searchSessions: (query: string, filters?: SearchFilters): Promise<SearchResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.SEARCH_SESSIONS, query, filters),
   getStatsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke(IPC_CHANNELS.GET_STATS_SUMMARY),
+  getSkills: (): Promise<SkillInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_SKILLS),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>
