@@ -10,6 +10,7 @@ import {
   GitCompare,
   Zap,
   Brain,
+  Users,
 } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
@@ -22,6 +23,7 @@ import { StatsPage } from '@/components/StatsPage';
 import { ComparePage } from '@/components/ComparePage';
 import { SkillsPage } from '@/components/SkillsPage';
 import { MemoryPage } from '@/components/MemoryPage';
+import { AgentsPage } from '@/components/AgentsPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -37,6 +39,7 @@ const NAV_ITEMS = [
   { path: '/costs', label: 'Costs', icon: DollarSign, matchPaths: ['/costs'] },
   { path: '/docs', label: 'Docs', icon: FileText, matchPaths: ['/docs'] },
   { path: '/skills', label: 'Skills', icon: Zap, matchPaths: ['/skills'] },
+  { path: '/agents', label: 'Agents', icon: Users, matchPaths: ['/agents'] },
   { path: '/memory', label: 'Memory', icon: Brain, matchPaths: ['/memory'] },
   { path: '/search', label: 'Search', icon: Search, matchPaths: ['/search'] },
 ] as const;
@@ -106,6 +109,7 @@ function App(): React.JSX.Element {
               <Route path="/costs" element={<CostTracker />} />
               <Route path="/docs" element={<DocInventory />} />
               <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/search" element={<SearchPage />} />
             </Routes>
