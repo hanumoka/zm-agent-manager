@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-04-10 | Phase 3 M7 F17 스킬 모니터 완료
+
+- **목표**: Phase 3 M7의 첫 번째 서브태스크(F17) — 커스텀 스킬 목록/상세 조회
+- **작업 내용** (조심스럽게, 4개 커밋 분할):
+  1. **feat(skills)** `81af032`: skill-scanner 백엔드 + 단위 테스트 13개
+     - `SkillScope` / `SkillInfo` 타입 신규
+     - `parseFrontmatter` 가벼운 YAML 파서 (key:value/하이픈 키/인용 제거)
+     - `scanSkills({ projectDir?, globalDir? })` — 프로젝트 + 글로벌 병렬 스캔
+     - 정렬: 프로젝트 우선, 스코프 내 알파벳순
+  2. **feat(skills)** `3cc2db6`: IPC `GET_SKILLS` + preload `getSkills()`
+  3. **feat(skills)** `c5447b3`: SkillsPage UI + 사이드바 Skills 메뉴
+     - ScopeSection × 3 (project/global/plugin)
+     - SkillCard memo + allowed-tools/model/disable-model-invocation 배지
+     - 사이드바 8 → 9, Docs와 Search 사이
+  4. **test(skills)** (이 커밋): Playwright 9 → 10 smoke + MCP 검증
+- **검증**:
+  - typecheck / lint / vitest **92**(79→92) / Playwright **10**(9→10) 모두 통과
+  - MCP 시각 검증: 6개 스킬(프로젝트 스코프) 2-column 그리드 정확 렌더
+  - "수동" 배지(zm-phase-status/session-end/session-start/validate-req) 표시 확인
+- **설계 선택**:
+  - 플러그인 스코프(F17 요구사항)는 구조 복잡도로 후속 사이클 연기
+  - 사이드바 "Config" 그룹 도입 대신 평면 메뉴 유지 (F18-F20 추가 시 재구성 고려)
+  - 기존 `doc-scanner` / `formatTimeAgo` 패턴 재사용
+- **문서 갱신**: phase-3-analysis.md M7 F17 [x] + ROADMAP Phase 3 상태
+- **다음 할 일**: M7 F18 에이전트 모니터 또는 Phase 2 M2/M6 file-history diff
+
+---
+
 ## 2026-04-10 | Phase 3 M3 세션 비교 완료 (F10)
 
 - **목표**: Phase 3 M3(F10) 신규 — 두 세션 side-by-side 비교
