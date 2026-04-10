@@ -28,6 +28,7 @@ export const IPC_CHANNELS = {
   GET_BUDGET_SETTINGS: 'budget:get-settings',
   SET_BUDGET_SETTINGS: 'budget:set-settings',
   GET_STATS_SUMMARY: 'stats:get-summary',
+  GET_SKILLS: 'skills:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -241,6 +242,25 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 스킬 모니터 (F17) ───
+
+export type SkillScope = 'project' | 'global' | 'plugin';
+
+export interface SkillInfo {
+  name: string;
+  description: string;
+  scope: SkillScope;
+  filePath: string;
+  sizeBytes: number;
+  lastModified: number;
+  /** allowed-tools 프론트매터를 공백 구분으로 파싱한 배열 */
+  allowedTools: string[];
+  /** model 프론트매터 (없을 수 있음) */
+  model?: string;
+  /** disable-model-invocation: true 일 때만 true */
+  disableModelInvocation: boolean;
 }
 
 // ─── 세션 통계 (F8) ───
