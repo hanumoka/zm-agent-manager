@@ -45,11 +45,14 @@
 - [ ] 문서 변경 감지 및 알림 — 후속
 - [ ] 리뷰 상태 관리 — 후속
 
-## Milestone 6: 알림 시스템 (F16)
+## Milestone 6: 알림 시스템 (F16) — **부분 완료**
 
-- [ ] Electron Notification API 연동
-- [ ] 알림 트리거 구현 (세션 시작/종료, 비용, 태스크)
-- [ ] 알림 설정 UI
+- [x] Electron Notification API 연동 — Phase 2 M7 budget에서 도입 완료
+- [x] 비용 임계 트리거 — budget-service evaluateBudgetAlerts
+- [ ] 세션 시작/종료 트리거 — session-watcher 확장 필요
+- [ ] 태스크 완료 트리거 — task-scanner + 실시간 감시 필요
+- [ ] 문서 변경 트리거 — chokidar 감시 대상 확장 필요
+- [ ] 알림 설정 UI — 트리거별 ON/OFF 토글
 - [ ] 알림 이력 저장 (~/.zm-agent-manager/notifications/)
 
 ## Milestone 7: 스킬/에이전트/메모리/MCP 모니터 (F17-F20)
