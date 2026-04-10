@@ -158,6 +158,8 @@ interface MetricRowProps {
   /** 원래 수치 (차이 계산용) */
   rawA: number;
   rawB: number;
+  /** 차이값 포맷터. 미지정 시 정수 카운트 가정 */
+  diffFormatter?: (diff: number) => string;
 }
 
 function MetricRow({
@@ -167,10 +169,11 @@ function MetricRow({
   valueB,
   rawA,
   rawB,
+  diffFormatter = formatDiffValue,
 }: MetricRowProps): React.JSX.Element {
   const diff = rawB - rawA;
-  const diffText =
-    diff === 0 ? '—' : diff > 0 ? `+${formatDiffValue(diff)}` : formatDiffValue(diff);
+  const formatted = diffFormatter(diff);
+  const diffText = diff === 0 ? '—' : diff > 0 ? `+${formatted}` : formatted;
   const diffColor =
     diff === 0 ? 'text-muted-foreground' : diff > 0 ? 'text-accent-orange' : 'text-accent-green';
 
@@ -193,12 +196,18 @@ function MetricRow({
   );
 }
 
+/** 정수 카운트용 기본 포맷터 (메시지/도구/토큰 등) */
 function formatDiffValue(diff: number): string {
   const abs = Math.abs(diff);
   if (abs >= 1_000_000) return `${(diff / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000) return `${(diff / 1_000).toFixed(1)}K`;
-  if (abs < 1 && abs > 0) return `$${diff.toFixed(2)}`;
-  return String(diff);
+  return String(Math.round(diff));
+}
+
+/** 비용 차이 포맷터 — 항상 $N.NN. MetricRow가 양수일 때 '+' prefix를 붙여줌. */
+function formatCostDiff(diff: number): string {
+  if (diff >= 0) return `$${diff.toFixed(2)}`;
+  return `-$${Math.abs(diff).toFixed(2)}`;
 }
 
 // ─── ComparisonPanel ───
@@ -255,6 +264,7 @@ function ComparisonPanel({
         valueB={formatCost(metricsB.cost)}
         rawA={metricsA.cost}
         rawB={metricsB.cost}
+        diffFormatter={formatCostDiff}
       />
     </div>
   );

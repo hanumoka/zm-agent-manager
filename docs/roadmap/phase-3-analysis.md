@@ -24,12 +24,13 @@
 - [x] 검색 결과 하이라이트 + 해당 위치 이동 (HighlightedText, 클릭 시 타임라인 이동)
 - [x] 프로젝트/기간 필터링 — `SearchFilters` 타입 + SearchPage 드롭다운/날짜 입력 (2026-04-09)
 
-## Milestone 3: 세션 비교 (F10)
+## Milestone 3: 세션 비교 (F10) — **완료**
 
-- [ ] 두 세션 선택 UI
-- [ ] Side-by-side 메시지 비교 뷰
-- [ ] 도구 호출 패턴 비교
-- [ ] 세션 간 통계 비교 차트
+- [x] 두 세션 선택 UI — 드롭다운 2개 (최근 활동순 전체 세션)
+- [x] Side-by-side 메시지 비교 뷰 — `SideBySideTimeline` (MessageTimeline 재사용, 500px 2-column)
+- [x] 도구 호출 패턴 비교 — `ToolDistributionPanel` (union 내림차순 바 차트)
+- [x] 세션 간 통계 비교 차트 — `ComparisonPanel` (메시지/도구/토큰/비용 + 차이값)
+- [x] 사이드바 "Compare" 메뉴 추가 (7 → 8), Playwright E2E 9개, 완료: 2026-04-10 (`16597d1` + `3035832` + `dfa2765`)
 
 ## Milestone 4: 태스크 워크플로우 (F14)
 

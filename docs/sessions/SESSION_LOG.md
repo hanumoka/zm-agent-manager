@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-04-10 | Phase 3 M3 세션 비교 완료 (F10)
+
+- **목표**: Phase 3 M3(F10) 신규 — 두 세션 side-by-side 비교
+- **작업 내용** (조심스럽게, 4개 커밋 분할):
+  1. **feat(compare)** `16597d1`: ComparePage 골격 + 세션 선택 드롭다운 2개 + 사이드바 "Compare" 메뉴 (8번째) + E2E smoke
+  2. **feat(compare)** `3035832`: 병렬 `parseSession` fetch (`Promise.all`) + `ComparisonPanel` (메시지/도구/토큰/비용 + 차이값 B−A)
+  3. **feat(compare)** `dfa2765`: `ToolDistributionPanel` (union 바 차트) + `SideBySideTimeline` (MessageTimeline 재사용, 2-column 500px)
+  4. **fix(compare)** (이 커밋): 비용 차이 포맷터 — `formatCostDiff`로 `+$198.19` 형식 정확 표시
+- **검증**:
+  - typecheck / lint / vitest 79 / Playwright **9**(8→9) 모두 통과
+  - MCP 시각 검증: 880c7f7f vs b4464add 비교 시 메시지 +759 / 도구 +284 / 토큰 +79.4M / 비용 +$198.19 정확 표시, 도구 분포 차트에 Bash/Read/Edit 등 9개 도구 side-by-side 바 렌더, 하단 MessageTimeline 2-column 정상
+- **설계 선택**:
+  - 기존 `MessageTimeline`(가상화) / 모델 가격 테이블 / `useSessionStore` 재사용
+  - `isMountedRef` 패턴 + `Promise.all` race 안전
+  - 가격 테이블은 cost-scanner/stats-service와 세 번째 중복(향후 `shared/pricing.ts`로 DRY 검토 가능)
+- **문서 갱신**: phase-3-analysis.md M3 4/4 완료 + ROADMAP Phase 3 상태
+- **다음 할 일**: Phase 3 M4 워크플로우 / M5 문서 중요도 / M6 알림 확장 / M7 모니터 뷰 또는 Phase 2 M2/M6 file-history diff
+
+---
+
 ## 2026-04-10 | Phase 3 M1 세션 통계 대시보드 완료 (F8)
 
 - **목표**: Phase 3 M1(F8) 신규 — 전체 세션 통계 대시보드
