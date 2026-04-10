@@ -307,6 +307,18 @@ _아직 등록된 이슈 없음_
 - **현상**: `window.api.getSessions()` 등 직접 호출 (다른 컴포넌트는 `?.xxx?.()` 패턴)
 - **수정 완료**: 4개 메서드 모두 `window.api?.xxx?.()` 통일. preload 미로드 시 명시적 에러 처리.
 
+### 미해결 — Low: 모델 가격 테이블 3곳 중복
+- **위치**:
+  - `src/main/cost-scanner.ts` — `MODEL_PRICING` + `DEFAULT_PRICING`
+  - `src/main/stats-service.ts` — 동일 테이블 (Phase 3 M1에서 복사)
+  - `src/renderer/src/components/ComparePage.tsx` — 동일 테이블 (Phase 3 M3에서 복사, 렌더러에서 직접 계산 목적)
+- **현상**: 동일 가격 데이터가 3 파일에 중복. 새 모델 추가 / 가격 조정 시 3곳 모두 수정 필요
+- **영향**: 낮음 — 모델 추가 빈도가 낮고, 렌더러는 메인 IPC 결과를 받을 수도 있음
+- **조치 후보**:
+  - A) `src/shared/pricing.ts`에 단일 테이블 + `calculateCost()` 헬퍼 export → 3곳에서 import
+  - B) 렌더러는 IPC로 cost 미리 계산된 값을 받도록 `parseSession` 응답에 cost/tokens 필드 추가 (ComparePage 계산 제거)
+- **트리거**: 다음 마일스톤에서 추가 중복이 발생하거나 모델 가격 변경이 필요한 시점
+
 ### False alarm (Agent가 제기했으나 실제 문제 없음)
 
 | 항목 | 검증 결과 |
