@@ -154,7 +154,8 @@ export function TaskBoard(): React.JSX.Element {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await window.api.getAllTasks();
+        const result = await window.api?.getAllTasks?.();
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
         if (isMounted) setTasks(result.tasks);
       } catch (err) {
         if (isMounted) setError(err instanceof Error ? err.message : '태스크 조회 실패');

@@ -86,7 +86,8 @@ export function DocInventory(): React.JSX.Element {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await window.api.getProjectDocs(selectedProject);
+        const result = await window.api?.getProjectDocs?.(selectedProject);
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
         if (isMounted) setDocs(result);
       } catch (err) {
         if (isMounted) setError(err instanceof Error ? err.message : '문서 스캔 실패');

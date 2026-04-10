@@ -441,24 +441,37 @@ export function ComparePage(): React.JSX.Element {
   );
 
   // 두 세션이 모두 선택되면 병렬로 parseSession 호출
+  // 요청 토큰을 사용하여 stale 응답을 무시 — 사용자가 로드 중 다른 세션을 선택하면
+  // 이전 Promise의 결과가 현재 상태를 덮어쓰지 않도록 한다.
+  const loadTokenRef = useRef(0);
+
   const loadBoth = useCallback(async () => {
     if (!sessionA || !sessionB) return;
+    const requestToken = ++loadTokenRef.current;
+    // 호출 시점의 선택값 스냅샷
+    const snapshotA = sessionA;
+    const snapshotB = sessionB;
+
     setIsLoading(true);
     setError(null);
     try {
       const [a, b] = await Promise.all([
-        window.api?.parseSession?.(encodeProjectPath(sessionA.projectPath), sessionA.sessionId),
-        window.api?.parseSession?.(encodeProjectPath(sessionB.projectPath), sessionB.sessionId),
+        window.api?.parseSession?.(encodeProjectPath(snapshotA.projectPath), snapshotA.sessionId),
+        window.api?.parseSession?.(encodeProjectPath(snapshotB.projectPath), snapshotB.sessionId),
       ]);
       if (!a || !b) throw new Error('preload API를 사용할 수 없습니다');
-      if (isMountedRef.current) {
-        setParsedA(a);
-        setParsedB(b);
-      }
+      // stale 체크: 이후 새 loadBoth가 시작되었으면 이 결과는 버린다
+      if (!isMountedRef.current || requestToken !== loadTokenRef.current) return;
+      setParsedA(a);
+      setParsedB(b);
     } catch (err) {
-      if (isMountedRef.current) setError(err instanceof Error ? err.message : '세션 로드 실패');
+      if (isMountedRef.current && requestToken === loadTokenRef.current) {
+        setError(err instanceof Error ? err.message : '세션 로드 실패');
+      }
     } finally {
-      if (isMountedRef.current) setIsLoading(false);
+      if (isMountedRef.current && requestToken === loadTokenRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [sessionA, sessionB]);
 

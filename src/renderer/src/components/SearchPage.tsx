@@ -143,7 +143,8 @@ export function SearchPage(): React.JSX.Element {
       setIsSearching(true);
       setError(null);
       try {
-        const result = await window.api.searchSessions(trimmed, filters);
+        const result = await window.api?.searchSessions?.(trimmed, filters);
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
         if (isMountedRef.current) setResponse(result);
       } catch (err) {
         if (isMountedRef.current) setError(err instanceof Error ? err.message : '검색 실패');

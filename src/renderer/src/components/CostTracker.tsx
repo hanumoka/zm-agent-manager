@@ -132,7 +132,8 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
       lastNotifiedKeys: changed ? [] : settings.lastNotifiedKeys,
     };
     try {
-      const saved = await window.api.setBudgetSettings(next);
+      const saved = await window.api?.setBudgetSettings?.(next);
+      if (!saved) throw new Error('preload API를 사용할 수 없습니다');
       setSettings(saved);
       setSavedAt(Date.now());
       setError(null);
@@ -295,7 +296,8 @@ export function CostTracker(): React.JSX.Element {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await window.api.getCostSummary();
+        const result = await window.api?.getCostSummary?.();
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
         if (isMounted) setSummary(result);
       } catch (err) {
         if (isMounted) setError(err instanceof Error ? err.message : '비용 조회 실패');

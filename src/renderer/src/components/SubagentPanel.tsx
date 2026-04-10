@@ -103,7 +103,8 @@ export function SubagentPanel({
       setIsLoading(true);
       setError(null);
       try {
-        const result = await window.api.getSessionSubagents(projectEncoded, sessionId);
+        const result = await window.api?.getSessionSubagents?.(projectEncoded, sessionId);
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
         if (isMounted) setSubagents(result);
       } catch (err) {
         if (isMounted) setError(err instanceof Error ? err.message : '서브에이전트 조회 실패');
