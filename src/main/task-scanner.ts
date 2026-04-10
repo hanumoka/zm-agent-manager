@@ -6,7 +6,15 @@ import { createInterface } from 'readline';
 import type { TaskInfo, TaskStatus, TaskEvent } from '@shared/types';
 import { parseHistoryFile } from './history-parser';
 
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+/** 테스트에서 fixture 디렉토리 주입. */
+export interface TaskScannerOptions {
+  /** JSONL이 들어있는 루트 디렉토리. 기본값: `~/.claude/projects` */
+  projectsDir?: string;
+  /** history.jsonl 경로. 기본값: `~/.claude/history.jsonl` */
+  historyFile?: string;
+}
 
 interface RawTaskCreate {
   subject: string;
@@ -118,19 +126,20 @@ async function extractTasksFromJsonl(
 /**
  * 모든 세션에서 태스크를 스캔하여 반환
  */
-export async function scanAllTasks(): Promise<TaskInfo[]> {
-  const { projectPathMap } = await parseHistoryFile();
+export async function scanAllTasks(options: TaskScannerOptions = {}): Promise<TaskInfo[]> {
+  const projectsDir = options.projectsDir ?? DEFAULT_PROJECTS_DIR;
+  const { projectPathMap } = await parseHistoryFile(options.historyFile);
   const allTasks: TaskInfo[] = [];
 
   let projectDirs: string[];
   try {
-    projectDirs = await readdir(PROJECTS_DIR);
+    projectDirs = await readdir(projectsDir);
   } catch {
     return [];
   }
 
   for (const encodedDir of projectDirs) {
-    const projectDir = join(PROJECTS_DIR, encodedDir);
+    const projectDir = join(projectsDir, encodedDir);
 
     try {
       const s = await stat(projectDir);

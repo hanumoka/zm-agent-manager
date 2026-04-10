@@ -6,7 +6,13 @@ import { createInterface } from 'readline';
 import type { CostSummary, ModelCost, DailyCost } from '@shared/types';
 import { timestampToLocalDate } from './budget-service';
 
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+/** 테스트에서 fixture 디렉토리 주입. */
+export interface CostScannerOptions {
+  /** JSONL이 들어있는 루트 디렉토리. 기본값: `~/.claude/projects` */
+  projectsDir?: string;
+}
 
 // ─── 모델별 가격 (USD per 1M tokens) ───
 
@@ -117,10 +123,11 @@ async function extractUsageFromJsonl(filePath: string): Promise<UsageRecord[]> {
 /**
  * 모든 세션에서 비용 요약 생성
  */
-export async function scanCostSummary(): Promise<CostSummary> {
+export async function scanCostSummary(options: CostScannerOptions = {}): Promise<CostSummary> {
+  const projectsDir = options.projectsDir ?? DEFAULT_PROJECTS_DIR;
   let projectDirs: string[];
   try {
-    projectDirs = await readdir(PROJECTS_DIR);
+    projectDirs = await readdir(projectsDir);
   } catch {
     return {
       totalCost: 0,
@@ -135,7 +142,7 @@ export async function scanCostSummary(): Promise<CostSummary> {
   const allUsage: UsageRecord[] = [];
 
   for (const encodedDir of projectDirs) {
-    const projectDir = join(PROJECTS_DIR, encodedDir);
+    const projectDir = join(projectsDir, encodedDir);
 
     try {
       const s = await stat(projectDir);
