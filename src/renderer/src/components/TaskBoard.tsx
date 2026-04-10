@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   ClipboardList,
   Loader2,
@@ -26,7 +26,11 @@ interface TaskCardProps {
   task: TaskInfo;
 }
 
-function TaskCard({ task }: TaskCardProps): React.JSX.Element {
+/**
+ * 칸반 카드. 부모 리렌더 시 task가 동일하면 다시 렌더하지 않는다.
+ * 태스크 22개 → 100+로 늘어나도 변경 없는 카드는 skip.
+ */
+const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -75,7 +79,7 @@ function TaskCard({ task }: TaskCardProps): React.JSX.Element {
       )}
     </div>
   );
-}
+});
 
 // ─── StatusBadge ───
 
@@ -107,7 +111,7 @@ interface KanbanLaneProps {
   count: number;
 }
 
-function KanbanLane({
+const KanbanLane = memo(function KanbanLane({
   label,
   color,
   icon: Icon,
@@ -133,7 +137,7 @@ function KanbanLane({
       </div>
     </div>
   );
-}
+});
 
 // ─── TaskBoard ───
 

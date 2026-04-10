@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { FileText, FolderOpen } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
@@ -25,7 +25,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ─── DocRow ───
 
-function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
+/**
+ * 단일 문서 행. 부모(DocInventory) 리렌더 시 doc이 동일하면 다시 렌더하지 않는다.
+ */
+const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
   const color = CATEGORY_COLORS[doc.category] ?? 'bg-muted text-muted-foreground';
 
   return (
@@ -47,7 +50,7 @@ function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
       </div>
     </div>
   );
-}
+});
 
 // ─── DocInventory ───
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import {
   Bot,
   Search,
@@ -30,7 +30,11 @@ interface SubagentCardProps {
   agent: SubagentInfo;
 }
 
-function SubagentCard({ agent }: SubagentCardProps): React.JSX.Element {
+/**
+ * 단일 서브에이전트 카드. props가 동일하면 리렌더하지 않도록 memo로 감싼다.
+ * 부모(SubagentPanel)가 빈번히 리렌더될 때 카드 단위 리렌더 폭증 방지.
+ */
+const SubagentCard = memo(function SubagentCard({ agent }: SubagentCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -76,7 +80,7 @@ function SubagentCard({ agent }: SubagentCardProps): React.JSX.Element {
       )}
     </div>
   );
-}
+});
 
 // ─── SubagentPanel ───
 
