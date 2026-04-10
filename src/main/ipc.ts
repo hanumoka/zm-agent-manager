@@ -14,6 +14,7 @@ import { loadBudgetSettings, saveBudgetSettings, evaluateBudgetAlerts } from './
 import { scanStatsSummary } from './stats-service';
 import { scanSkills } from './skill-scanner';
 import { readMemoryContent } from './memory-reader';
+import { scanAgents } from './agent-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -86,6 +87,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_MEMORY_CONTENT, async (_event, projectEncoded: string) => {
     return readMemoryContent(projectEncoded);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_AGENTS, async () => {
+    return scanAgents();
   });
 
   ipcMain.handle(IPC_CHANNELS.GET_BUDGET_SETTINGS, async () => {

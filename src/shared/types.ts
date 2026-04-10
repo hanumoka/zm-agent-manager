@@ -30,6 +30,7 @@ export const IPC_CHANNELS = {
   GET_STATS_SUMMARY: 'stats:get-summary',
   GET_SKILLS: 'skills:get-all',
   GET_MEMORY_CONTENT: 'memory:get-content',
+  GET_AGENTS: 'agents:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -262,6 +263,21 @@ export interface SkillInfo {
   model?: string;
   /** disable-model-invocation: true 일 때만 true */
   disableModelInvocation: boolean;
+}
+
+// ─── 에이전트 모니터 (F18) ───
+
+export interface AgentInfo {
+  name: string;
+  description: string;
+  scope: SkillScope;
+  filePath: string;
+  sizeBytes: number;
+  lastModified: number;
+  /** tools 프론트매터 (쉼표/공백 구분 배열) */
+  tools: string[];
+  /** model 프론트매터 (없을 수 있음) */
+  model?: string;
 }
 
 // ─── 메모리 뷰어 (F19) ───

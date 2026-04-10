@@ -13,6 +13,7 @@ import type {
   StatsSummary,
   SkillInfo,
   MemoryContent,
+  AgentInfo,
 } from '@shared/types';
 
 interface AppAPI {
@@ -28,6 +29,7 @@ interface AppAPI {
   getStatsSummary: () => Promise<StatsSummary>;
   getSkills: () => Promise<SkillInfo[]>;
   getMemoryContent: (projectEncoded: string) => Promise<MemoryContent>;
+  getAgents: () => Promise<AgentInfo[]>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (
