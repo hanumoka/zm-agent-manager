@@ -344,24 +344,21 @@ _아직 등록된 이슈 없음_
 - **현상**: `allowed-tools: Read, Grep` (쉼표 구분) 사용 시 `["Read,", "Grep"]`로 잘못 파싱. 현재 모든 SKILL.md는 공백 구분이라 실해 없음.
 - **수정 완료**: `src/main/skill-scanner.ts` JSDoc에 지원/미지원 범위 명시 추가.
 
-### 미해결 — Low: Scanner options 패턴 부재 (subagent / doc / history-parser / session-watcher)
-- **현상**: 네 스캐너는 `PROJECTS_DIR` 등을 하드코딩 → 단위 테스트에서 fixture 주입 불가
-- **영향**: 테스트 커버리지 갭 지속. cost-scanner/task-scanner/stats-service/skill-scanner는 이미 options 도입 완료.
-- **조치 후보**: 각 스캐너에 `{ projectsDir?, historyFile? }` 옵션 추가 + 단위 테스트 작성 (별도 사이클)
+### 부분 해결 — Low: Scanner options 패턴 부재
+- **현상**: 일부 스캐너가 `PROJECTS_DIR` 등을 하드코딩 → 단위 테스트에서 fixture 주입 불가
+- **해결 완료 (8개)**: cost-scanner / task-scanner / stats-service / skill-scanner / search-service / budget-service / agent-scanner / memory-reader / config-scanner — 모두 options 도입 + 단위 테스트 추가
+- **미해결 (3개)**: subagent-scanner / doc-scanner / session-watcher — options 미지원, 하드코딩 유지. 별도 사이클로 진행.
 
 ---
 
-### 미해결 — Low: 모델 가격 테이블 3곳 중복
+### [해결됨] Low: 모델 가격 테이블 3곳 중복
 - **위치**:
   - `src/main/cost-scanner.ts` — `MODEL_PRICING` + `DEFAULT_PRICING`
   - `src/main/stats-service.ts` — 동일 테이블 (Phase 3 M1에서 복사)
   - `src/renderer/src/components/ComparePage.tsx` — 동일 테이블 (Phase 3 M3에서 복사, 렌더러에서 직접 계산 목적)
 - **현상**: 동일 가격 데이터가 3 파일에 중복. 새 모델 추가 / 가격 조정 시 3곳 모두 수정 필요
 - **영향**: 낮음 — 모델 추가 빈도가 낮고, 렌더러는 메인 IPC 결과를 받을 수도 있음
-- **조치 후보**:
-  - A) `src/shared/pricing.ts`에 단일 테이블 + `calculateCost()` 헬퍼 export → 3곳에서 import
-  - B) 렌더러는 IPC로 cost 미리 계산된 값을 받도록 `parseSession` 응답에 cost/tokens 필드 추가 (ComparePage 계산 제거)
-- **트리거**: 다음 마일스톤에서 추가 중복이 발생하거나 모델 가격 변경이 필요한 시점
+- **수정 완료**: Option A 채택 — `src/shared/pricing.ts` 신규. `MODEL_PRICING` + `calculateCost()` 단일 정의. cost-scanner/stats-service/compute-metrics가 import. 커밋 `296e663` (2026-04-10)
 
 ### False alarm (Agent가 제기했으나 실제 문제 없음)
 
