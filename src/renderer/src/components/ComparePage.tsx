@@ -3,8 +3,14 @@ import { GitCompare, MessageSquare, Wrench, Cpu, DollarSign } from 'lucide-react
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
-import type { ParsedSession, SessionMeta, AssistantRecord } from '@shared/types';
+import type { ParsedSession, SessionMeta } from '@shared/types';
 import { MessageTimeline } from '@/components/MessageTimeline';
+import {
+  computeSessionMetrics,
+  formatDiffValue,
+  formatCostDiff,
+  type SessionMetrics,
+} from '@/lib/compute-metrics';
 
 /**
  * 세션 비교 페이지 (F10)
@@ -53,85 +59,6 @@ function SessionSelector({
       </select>
     </label>
   );
-}
-
-// ─── 집계 헬퍼 ───
-
-/** 모델별 가격 테이블 (cost-scanner와 동일) */
-const MODEL_PRICING: Record<
-  string,
-  { input: number; output: number; cacheRead: number; cacheWrite: number }
-> = {
-  'claude-opus-4-6': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-opus-4-20250514': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1 },
-};
-const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 };
-
-interface SessionMetrics {
-  messageCount: number;
-  toolCallCount: number;
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
-  totalTokens: number;
-  cost: number;
-  /** 도구 이름별 사용 횟수 */
-  toolDistribution: Map<string, number>;
-}
-
-function computeMetrics(session: ParsedSession): SessionMetrics {
-  const metrics: SessionMetrics = {
-    messageCount: session.messageCount,
-    toolCallCount: session.toolCallCount,
-    inputTokens: 0,
-    outputTokens: 0,
-    cacheReadTokens: 0,
-    cacheWriteTokens: 0,
-    totalTokens: 0,
-    cost: 0,
-    toolDistribution: new Map(),
-  };
-
-  for (const record of session.records) {
-    if (record.type !== 'assistant') continue;
-    const assistant = record as AssistantRecord;
-    const message = assistant.message;
-
-    if (Array.isArray(message.content)) {
-      for (const block of message.content) {
-        if (block.type === 'tool_use') {
-          const name = block.name;
-          metrics.toolDistribution.set(name, (metrics.toolDistribution.get(name) ?? 0) + 1);
-        }
-      }
-    }
-
-    if (message.usage && message.model) {
-      const u = message.usage;
-      const input = u.input_tokens ?? 0;
-      const output = u.output_tokens ?? 0;
-      const cacheRead = u.cache_read_input_tokens ?? 0;
-      const cacheWrite = u.cache_creation_input_tokens ?? 0;
-      metrics.inputTokens += input;
-      metrics.outputTokens += output;
-      metrics.cacheReadTokens += cacheRead;
-      metrics.cacheWriteTokens += cacheWrite;
-      const pricing = MODEL_PRICING[message.model] ?? DEFAULT_PRICING;
-      metrics.cost +=
-        (input / 1_000_000) * pricing.input +
-        (output / 1_000_000) * pricing.output +
-        (cacheRead / 1_000_000) * pricing.cacheRead +
-        (cacheWrite / 1_000_000) * pricing.cacheWrite;
-    }
-  }
-
-  metrics.totalTokens =
-    metrics.inputTokens + metrics.outputTokens + metrics.cacheReadTokens + metrics.cacheWriteTokens;
-  return metrics;
 }
 
 // ─── 포맷 ───
@@ -194,20 +121,6 @@ function MetricRow({
       </span>
     </div>
   );
-}
-
-/** 정수 카운트용 기본 포맷터 (메시지/도구/토큰 등) */
-function formatDiffValue(diff: number): string {
-  const abs = Math.abs(diff);
-  if (abs >= 1_000_000) return `${(diff / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(diff / 1_000).toFixed(1)}K`;
-  return String(Math.round(diff));
-}
-
-/** 비용 차이 포맷터 — 항상 $N.NN. MetricRow가 양수일 때 '+' prefix를 붙여줌. */
-function formatCostDiff(diff: number): string {
-  if (diff >= 0) return `$${diff.toFixed(2)}`;
-  return `-$${Math.abs(diff).toFixed(2)}`;
 }
 
 // ─── ComparisonPanel ───
@@ -484,8 +397,8 @@ export function ComparePage(): React.JSX.Element {
     }
   }, [sessionA, sessionB, loadBoth]);
 
-  const metricsA = useMemo(() => (parsedA ? computeMetrics(parsedA) : null), [parsedA]);
-  const metricsB = useMemo(() => (parsedB ? computeMetrics(parsedB) : null), [parsedB]);
+  const metricsA = useMemo(() => (parsedA ? computeSessionMetrics(parsedA) : null), [parsedA]);
+  const metricsB = useMemo(() => (parsedB ? computeSessionMetrics(parsedB) : null), [parsedB]);
 
   return (
     <div className="flex h-full flex-col" data-testid="page-compare">
