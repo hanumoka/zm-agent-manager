@@ -304,7 +304,13 @@ export async function scanStatsSummary(options: StatsOptions = {}): Promise<Stat
   }
   const dailyActivity = [...dailyActivityMap.values()];
 
-  // ─── heatmap (7×24) ─── history.jsonl의 사용자 프롬프트 timestamp 기반
+  // ─── heatmap (7×24) ───
+  // 주의: heatmap과 dailyActivity는 데이터 소스가 다르다.
+  //   - heatmap: history.jsonl 엔트리(사용자 프롬프트 입력 시점)만 기반
+  //   - dailyActivity: JSONL 세션 파일의 모든 user/assistant 레코드 기반
+  // 따라서 같은 날짜의 "총 활동"과 히트맵 셀 합계는 일치하지 않을 수 있다.
+  // 이는 의도된 설계 — heatmap은 "언제 사용자가 프롬프트를 입력했나"를,
+  // dailyActivity는 "전체 대화 볼륨"을 보여준다.
   const heatmap: HeatmapCell[] = [];
   const heatmapMap = new Map<string, number>();
   for (let d = 0; d < 7; d++) {

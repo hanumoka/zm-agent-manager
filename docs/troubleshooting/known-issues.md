@@ -307,6 +307,50 @@ _아직 등록된 이슈 없음_
 - **현상**: `window.api.getSessions()` 등 직접 호출 (다른 컴포넌트는 `?.xxx?.()` 패턴)
 - **수정 완료**: 4개 메서드 모두 `window.api?.xxx?.()` 통일. preload 미로드 시 명시적 에러 처리.
 
+---
+
+## 네 번째 재검토 (2026-04-10 audit-4)
+
+> 병렬 Explore agent 3개 + 통합 테스트(typecheck/lint/vitest 92/Playwright 10) 실행으로
+> Phase 3 M1/M3/M7 F17 최근 구현 감사. **Critical 0건**. 2개 High + 3개 Medium 발견/수정.
+
+### [해결됨] High: ComparePage race condition
+- **현상**: `loadBoth()`가 `Promise.all`로 두 세션 병렬 로드 중, 사용자가 드롭다운에서 다른 세션을 선택하면 이전 Promise의 결과가 현재 상태를 덮어쓸 가능성. `isMountedRef`는 언마운트만 감지.
+- **위치**: `src/renderer/src/components/ComparePage.tsx` `loadBoth` 내부
+- **수정 완료**: 모듈 레벨 `loadTokenRef` 도입 — 호출마다 증가. Promise 완료 후 `requestToken !== loadTokenRef.current`면 결과 폐기. setIsLoading/setError도 같은 가드로 stale 방지.
+
+### [해결됨] High: `window.api` optional chaining 불일관
+- **현상**: 6개 컴포넌트가 `window.api.xxx()` 직접 호출 → preload 미로드 시 런타임 에러. 다른 컴포넌트는 `?.xxx?.()` 패턴 사용.
+- **위치**: `CostTracker.tsx` / `DocInventory.tsx` / `SearchPage.tsx` / `SubagentPanel.tsx` / `TaskBoard.tsx`
+- **수정 완료**: 전부 `window.api?.xxx?.()` + 결과 null 체크 → "preload API를 사용할 수 없습니다" throw. 기존 에러 분기에서 사용자에게 표시.
+- **TimelinePage `onNewRecords`는 이벤트 리스너(구독 패턴)라 기존 가드 유지**
+
+### [해결됨] Medium: `ComparePage.computeMetrics` 테스트 부재
+- **현상**: 비용 계산 로직이 cost-scanner/stats-service와 동일하지만 테스트가 없어 회귀 발생 시 감지 불가. 실제로 이전 감사에서 `formatCostDiff` 버그가 MCP 시각 검증에서 발견됨.
+- **수정 완료**:
+  - `src/renderer/src/lib/compute-metrics.ts` 신규 — `computeSessionMetrics` / `formatDiffValue` / `formatCostDiff` 추출
+  - NaN / Infinity 가드 추가 (formatDiffValue / formatCostDiff)
+  - `compute-metrics.test.ts` 14개 케이스 — computeSessionMetrics 6 + formatDiffValue 4 + formatCostDiff 4
+
+### [해결됨] Medium: App.test.tsx React `act()` 경고
+- **현상**: App 렌더 시 DashboardPage가 `fetchSessions` / `getCostSummary` 비동기 호출 → 테스트 종료 후 상태 업데이트로 act() 경고.
+- **수정 완료**: `window.api` stub (vi.fn) + `waitFor(() => getSessions 호출됨)`로 후속 상태 업데이트까지 대기.
+
+### [해결됨] Medium: Stats heatmap vs dailyActivity 데이터 소스 불일치 — 문서화
+- **현상**: heatmap은 history.jsonl 엔트리(사용자 프롬프트 입력만) 기반, dailyActivity는 JSONL 세션 파일의 모든 user/assistant 레코드 기반. 같은 날짜의 수치가 일치하지 않을 수 있음.
+- **수정 완료**: `src/main/stats-service.ts`의 heatmap 섹션에 상세 주석 추가. 이는 의도된 설계 — heatmap = "언제 사용자가 프롬프트를 입력했나", dailyActivity = "전체 대화 볼륨".
+
+### [해결됨] Low: `parseFrontmatter` 쉼표 구분 리스트 미지원 — 문서화
+- **현상**: `allowed-tools: Read, Grep` (쉼표 구분) 사용 시 `["Read,", "Grep"]`로 잘못 파싱. 현재 모든 SKILL.md는 공백 구분이라 실해 없음.
+- **수정 완료**: `src/main/skill-scanner.ts` JSDoc에 지원/미지원 범위 명시 추가.
+
+### 미해결 — Low: Scanner options 패턴 부재 (subagent / doc / history-parser / session-watcher)
+- **현상**: 네 스캐너는 `PROJECTS_DIR` 등을 하드코딩 → 단위 테스트에서 fixture 주입 불가
+- **영향**: 테스트 커버리지 갭 지속. cost-scanner/task-scanner/stats-service/skill-scanner는 이미 options 도입 완료.
+- **조치 후보**: 각 스캐너에 `{ projectsDir?, historyFile? }` 옵션 추가 + 단위 테스트 작성 (별도 사이클)
+
+---
+
 ### 미해결 — Low: 모델 가격 테이블 3곳 중복
 - **위치**:
   - `src/main/cost-scanner.ts` — `MODEL_PRICING` + `DEFAULT_PRICING`

@@ -16,11 +16,16 @@ export interface SkillScannerOptions {
 /**
  * 아주 가벼운 YAML frontmatter 파서.
  * 완전한 YAML 파서 대신 "key: value" 한 줄 단위만 지원.
- * - 리스트: `allowed-tools: Read Grep` (공백 구분)
- * - 불리언: `disable-model-invocation: true`
- * - 문자열: `name: my-skill`
  *
- * 복잡한 YAML(중첩/블록 스칼라/인용)은 PRD 범위 밖이므로 미지원.
+ * **지원**:
+ * - 리스트: `allowed-tools: Read Grep` (공백 구분만)
+ * - 불리언: `disable-model-invocation: true` (문자열 "true"로 저장)
+ * - 문자열: `name: my-skill` (양끝 인용 제거)
+ *
+ * **미지원** (PRD 범위 밖):
+ * - 쉼표 구분 리스트: `allowed-tools: Read, Grep` → `["Read,", "Grep"]`로 잘못 파싱됨
+ * - 중첩 매핑 / 블록 스칼라(`|`, `>`) / 다중 줄 값
+ * - 실제 SKILL.md는 모두 공백 구분 사용하므로 현재 범위에서 안전
  */
 export function parseFrontmatter(content: string): Record<string, string> | null {
   const trimmed = content.replace(/^\uFEFF/, '');
