@@ -16,6 +16,7 @@ import type {
   SkillInfo,
   MemoryContent,
   AgentInfo,
+  ConfigSummary,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -40,6 +41,8 @@ const api = {
   getMemoryContent: (projectEncoded: string): Promise<MemoryContent> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_MEMORY_CONTENT, projectEncoded),
   getAgents: (): Promise<AgentInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_AGENTS),
+  getConfigSummary: (): Promise<ConfigSummary> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_CONFIG_SUMMARY),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>

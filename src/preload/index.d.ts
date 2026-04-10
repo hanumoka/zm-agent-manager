@@ -14,6 +14,7 @@ import type {
   SkillInfo,
   MemoryContent,
   AgentInfo,
+  ConfigSummary,
 } from '@shared/types';
 
 interface AppAPI {
@@ -30,6 +31,7 @@ interface AppAPI {
   getSkills: () => Promise<SkillInfo[]>;
   getMemoryContent: (projectEncoded: string) => Promise<MemoryContent>;
   getAgents: () => Promise<AgentInfo[]>;
+  getConfigSummary: () => Promise<ConfigSummary>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

@@ -15,6 +15,7 @@ import { scanStatsSummary } from './stats-service';
 import { scanSkills } from './skill-scanner';
 import { readMemoryContent } from './memory-reader';
 import { scanAgents } from './agent-scanner';
+import { scanConfigSummary } from './config-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -91,6 +92,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_AGENTS, async () => {
     return scanAgents();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_CONFIG_SUMMARY, async () => {
+    return scanConfigSummary();
   });
 
   ipcMain.handle(IPC_CHANNELS.GET_BUDGET_SETTINGS, async () => {

@@ -31,6 +31,7 @@ export const IPC_CHANNELS = {
   GET_SKILLS: 'skills:get-all',
   GET_MEMORY_CONTENT: 'memory:get-content',
   GET_AGENTS: 'agents:get-all',
+  GET_CONFIG_SUMMARY: 'config:get-summary',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -263,6 +264,42 @@ export interface SkillInfo {
   model?: string;
   /** disable-model-invocation: true 일 때만 true */
   disableModelInvocation: boolean;
+}
+
+// ─── Config 모니터 (F20) ───
+
+export interface HookEntry {
+  /** 이벤트 타입 (PreToolUse, PostToolUse, Stop, Notification 등) */
+  event: string;
+  /** matcher 패턴 (예: "Edit|Write") */
+  matcher: string;
+  /** 훅 타입 (command, prompt, agent, http) */
+  type: string;
+  /** command/prompt/agent 내용 */
+  command: string;
+}
+
+export interface RuleFile {
+  name: string;
+  filePath: string;
+  sizeBytes: number;
+  lastModified: number;
+}
+
+export interface McpServer {
+  name: string;
+  command: string;
+  args: string[];
+}
+
+export interface ConfigSummary {
+  hooks: HookEntry[];
+  rules: RuleFile[];
+  mcpServers: McpServer[];
+  /** permissions.allow 목록 */
+  permissionsAllow: string[];
+  /** permissions.deny 목록 */
+  permissionsDeny: string[];
 }
 
 // ─── 에이전트 모니터 (F18) ───
