@@ -1,22 +1,5 @@
 import type { ParsedSession, AssistantRecord } from '@shared/types';
-
-/**
- * 모델별 가격 테이블 (cost-scanner.ts / stats-service.ts와 동일).
- *
- * @note 현재 3곳에 중복 정의되어 있음 (known-issues.md 등록).
- *       향후 `src/shared/pricing.ts`로 추출 예정.
- */
-const MODEL_PRICING: Record<
-  string,
-  { input: number; output: number; cacheRead: number; cacheWrite: number }
-> = {
-  'claude-opus-4-6': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-opus-4-20250514': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1 },
-};
-const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 };
+import { MODEL_PRICING, DEFAULT_PRICING } from '@shared/pricing';
 
 /**
  * 단일 ParsedSession의 메시지/도구/토큰/비용을 집계한다.

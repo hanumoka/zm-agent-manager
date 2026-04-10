@@ -11,42 +11,10 @@ import type {
   ModelTokenUsage,
 } from '@shared/types';
 import { parseHistoryFile } from './history-parser';
+import { calculateCost } from '@shared/pricing';
 import { timestampToLocalDate } from './budget-service';
 
 const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
-
-/** 모델별 가격 (USD per 1M tokens) — cost-scanner.ts와 동일 테이블 */
-const MODEL_PRICING: Record<
-  string,
-  { input: number; output: number; cacheRead: number; cacheWrite: number }
-> = {
-  'claude-opus-4-6': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-opus-4-20250514': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1 },
-};
-const DEFAULT_PRICING = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 };
-
-function getPricing(model: string): (typeof MODEL_PRICING)[string] {
-  return MODEL_PRICING[model] ?? DEFAULT_PRICING;
-}
-
-function calculateCost(
-  model: string,
-  input: number,
-  output: number,
-  cacheRead: number,
-  cacheWrite: number
-): number {
-  const p = getPricing(model);
-  return (
-    (input / 1_000_000) * p.input +
-    (output / 1_000_000) * p.output +
-    (cacheRead / 1_000_000) * p.cacheRead +
-    (cacheWrite / 1_000_000) * p.cacheWrite
-  );
-}
 
 /** 테스트에서 fixture 디렉토리 주입. */
 export interface StatsOptions {

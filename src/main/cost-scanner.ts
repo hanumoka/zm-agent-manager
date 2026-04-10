@@ -4,6 +4,7 @@ import { homedir } from 'os';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import type { CostSummary, ModelCost, DailyCost } from '@shared/types';
+import { calculateCost } from '@shared/pricing';
 import { timestampToLocalDate } from './budget-service';
 
 const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
@@ -14,45 +15,7 @@ export interface CostScannerOptions {
   projectsDir?: string;
 }
 
-// ─── 모델별 가격 (USD per 1M tokens) ───
-
-interface ModelPricing {
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-}
-
-const MODEL_PRICING: Record<string, ModelPricing> = {
-  'claude-opus-4-6': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-opus-4-20250514': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
-  'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-sonnet-4-20250514': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1 },
-};
-
-// 알 수 없는 모델의 기본 가격 (sonnet 수준)
-const DEFAULT_PRICING: ModelPricing = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 };
-
-function getPricing(model: string): ModelPricing {
-  return MODEL_PRICING[model] ?? DEFAULT_PRICING;
-}
-
-function calculateCost(
-  model: string,
-  inputTokens: number,
-  outputTokens: number,
-  cacheReadTokens: number,
-  cacheWriteTokens: number
-): number {
-  const p = getPricing(model);
-  return (
-    (inputTokens / 1_000_000) * p.input +
-    (outputTokens / 1_000_000) * p.output +
-    (cacheReadTokens / 1_000_000) * p.cacheRead +
-    (cacheWriteTokens / 1_000_000) * p.cacheWrite
-  );
-}
+// 모델별 가격은 @shared/pricing.ts에서 import (DRY)
 
 interface UsageRecord {
   model: string;
