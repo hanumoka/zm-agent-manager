@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Users, FolderOpen, Globe, Wrench, Cpu } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
 import type { AgentInfo, SkillScope } from '@shared/types';
@@ -119,11 +119,11 @@ export function AgentsPage(): React.JSX.Element {
     load();
   }, []);
 
-  const grouped = (() => {
+  const grouped = useMemo(() => {
     const acc: Record<SkillScope, AgentInfo[]> = { project: [], global: [], plugin: [] };
     for (const a of agents ?? []) acc[a.scope].push(a);
     return acc;
-  })();
+  }, [agents]);
 
   if (isLoading) {
     return (
