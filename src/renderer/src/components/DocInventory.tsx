@@ -1,9 +1,9 @@
-import { memo, useEffect, useMemo, useState } from 'react';
-import { FileText, FolderOpen } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { FileText, FolderOpen, Check, X, MessageCircle } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { classifyDocImportance, IMPORTANCE_CONFIG } from '@/lib/doc-importance';
-import type { DocInfo } from '@shared/types';
+import type { DocInfo, DocReviewStatus } from '@shared/types';
 
 // ─── 포맷 ───
 
@@ -26,13 +26,67 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ─── DocRow ───
 
+// ─── 리뷰 상태 배지 + 토글 ───
+
+const REVIEW_CONFIG: Record<
+  DocReviewStatus,
+  { label: string; color: string; icon: React.ElementType }
+> = {
+  pending: {
+    label: 'Pending',
+    color: 'text-accent-yellow bg-accent-yellow/10',
+    icon: MessageCircle,
+  },
+  approved: { label: 'Approved', color: 'text-accent-green bg-accent-green/10', icon: Check },
+  rejected: { label: 'Rejected', color: 'text-destructive bg-destructive/10', icon: X },
+  commented: { label: 'Commented', color: 'text-primary bg-primary/10', icon: MessageCircle },
+};
+
 /**
- * 단일 문서 행. 부모(DocInventory) 리렌더 시 doc이 동일하면 다시 렌더하지 않는다.
+ * 단일 문서 행 — 중요도 배지 + 리뷰 상태 토글.
  */
 const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
   const categoryColor = CATEGORY_COLORS[doc.category] ?? 'bg-muted text-muted-foreground';
   const importance = classifyDocImportance(doc.relativePath || doc.path);
   const imp = IMPORTANCE_CONFIG[importance];
+  const [reviewStatus, setReviewStatus] = useState<DocReviewStatus>('pending');
+
+  // 리뷰 상태 로드 (마운트 시 1회)
+  useEffect(() => {
+    let mounted = true;
+    const docPath = doc.relativePath || doc.path;
+    window.api?.getDocReview?.(docPath)?.then((r) => {
+      if (mounted) setReviewStatus(r.status);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [doc.relativePath, doc.path]);
+
+  const handleReviewToggle = useCallback(async () => {
+    const docPath = doc.relativePath || doc.path;
+    // 순환: pending → approved → rejected → pending
+    const nextMap: Record<DocReviewStatus, DocReviewStatus> = {
+      pending: 'approved',
+      approved: 'rejected',
+      rejected: 'pending',
+      commented: 'pending',
+    };
+    const next = nextMap[reviewStatus];
+    try {
+      const saved = await window.api?.setDocReview?.({
+        docPath,
+        status: next,
+        updatedAt: Date.now(),
+      });
+      if (saved) setReviewStatus(saved.status);
+    } catch {
+      // 무음
+    }
+  }, [doc.relativePath, doc.path, reviewStatus]);
+
+  const review = REVIEW_CONFIG[reviewStatus];
+  const ReviewIcon = review.icon;
 
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors rounded-md">
@@ -56,7 +110,15 @@ const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Elemen
         </div>
         <p className="text-xs text-muted-foreground truncate">{doc.relativePath}</p>
       </div>
-      <div className="flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+        <button
+          onClick={handleReviewToggle}
+          title={`리뷰: ${review.label} (클릭하여 변경)`}
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:opacity-80 ${review.color}`}
+        >
+          <ReviewIcon className="h-3 w-3" />
+          {review.label}
+        </button>
         <span>{doc.lineCount}줄</span>
         <span>{formatBytes(doc.sizeBytes)}</span>
         <span className="w-20 text-right">{formatTimeAgo(doc.lastModified)}</span>

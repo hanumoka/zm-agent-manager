@@ -37,6 +37,8 @@ export const IPC_CHANNELS = {
   GET_WORKFLOWS: 'workflows:get-all',
   SET_WORKFLOW: 'workflows:set',
   DELETE_WORKFLOW: 'workflows:delete',
+  GET_DOC_REVIEW: 'doc-review:get',
+  SET_DOC_REVIEW: 'doc-review:set',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -296,6 +298,19 @@ export interface WorkflowDefinition {
   stages: string[];
   /** 생성 시각 */
   createdAt: number;
+}
+
+// ─── 문서 리뷰 상태 (F15) ───
+
+export type DocReviewStatus = 'pending' | 'approved' | 'rejected' | 'commented';
+
+export interface DocReview {
+  /** 문서 상대 경로 (식별자) */
+  docPath: string;
+  status: DocReviewStatus;
+  /** 코멘트 (rejected/commented 시) */
+  comment?: string;
+  updatedAt: number;
 }
 
 // ─── Config 모니터 (F20) ───

@@ -7,6 +7,7 @@ import {
   type BudgetSettings,
   type TaskMetadata,
   type WorkflowDefinition,
+  type DocReview,
 } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
@@ -24,6 +25,7 @@ import { scanAgents } from './agent-scanner';
 import { scanConfigSummary } from './config-scanner';
 import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
 import { listWorkflows, saveWorkflow, deleteWorkflow } from './workflow-service';
+import { getDocReview, setDocReview } from './doc-review-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -133,5 +135,13 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.DELETE_WORKFLOW, async (_event, name: string) => {
     return deleteWorkflow(name);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_DOC_REVIEW, async (_event, docPath: string) => {
+    return getDocReview(docPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SET_DOC_REVIEW, async (_event, review: DocReview) => {
+    return setDocReview(review);
   });
 }

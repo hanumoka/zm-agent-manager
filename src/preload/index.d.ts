@@ -17,6 +17,7 @@ import type {
   ConfigSummary,
   TaskMetadata,
   WorkflowDefinition,
+  DocReview,
 } from '@shared/types';
 
 interface AppAPI {
@@ -39,6 +40,8 @@ interface AppAPI {
   getWorkflows: () => Promise<WorkflowDefinition[]>;
   setWorkflow: (workflow: WorkflowDefinition) => Promise<WorkflowDefinition>;
   deleteWorkflow: (name: string) => Promise<void>;
+  getDocReview: (docPath: string) => Promise<DocReview>;
+  setDocReview: (review: DocReview) => Promise<DocReview>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

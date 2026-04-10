@@ -19,6 +19,7 @@ import type {
   ConfigSummary,
   TaskMetadata,
   WorkflowDefinition,
+  DocReview,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -54,6 +55,10 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SET_WORKFLOW, workflow),
   deleteWorkflow: (name: string): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.DELETE_WORKFLOW, name),
+  getDocReview: (docPath: string): Promise<DocReview> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_DOC_REVIEW, docPath),
+  setDocReview: (review: DocReview): Promise<DocReview> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_DOC_REVIEW, review),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>
