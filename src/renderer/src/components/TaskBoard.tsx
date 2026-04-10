@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ClipboardList,
   Loader2,
@@ -9,7 +9,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
-import type { TaskInfo, TaskStatus } from '@shared/types';
+import type { TaskInfo, TaskStatus, TaskSeverity, TaskType, TaskMetadata } from '@shared/types';
 
 // ─── 상수 ───
 
@@ -26,12 +26,77 @@ interface TaskCardProps {
   task: TaskInfo;
 }
 
+// ─── 심각도/유형 배지 + 셀렉트 ───
+
+const SEVERITY_CONFIG: Record<TaskSeverity, { label: string; color: string }> = {
+  blocking: { label: 'Blocking', color: 'text-destructive bg-destructive/10' },
+  important: { label: 'Important', color: 'text-accent-orange bg-accent-orange/10' },
+  suggestion: { label: 'Suggestion', color: 'text-muted-foreground bg-muted' },
+};
+
+const TYPE_CONFIG: Record<TaskType, { label: string; color: string }> = {
+  fix: { label: 'Fix', color: 'text-destructive bg-destructive/10' },
+  change: { label: 'Change', color: 'text-primary bg-primary/10' },
+  question: { label: 'Question', color: 'text-accent-yellow bg-accent-yellow/10' },
+  approve: { label: 'Approve', color: 'text-accent-green bg-accent-green/10' },
+};
+
+function SeverityBadge({ severity }: { severity?: TaskSeverity }): React.JSX.Element | null {
+  if (!severity) return null;
+  const { label, color } = SEVERITY_CONFIG[severity];
+  return (
+    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
+function TypeBadge({ type }: { type?: TaskType }): React.JSX.Element | null {
+  if (!type) return null;
+  const { label, color } = TYPE_CONFIG[type];
+  return (
+    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 /**
- * 칸반 카드. 부모 리렌더 시 task가 동일하면 다시 렌더하지 않는다.
- * 태스크 22개 → 100+로 늘어나도 변경 없는 카드는 skip.
+ * 칸반 카드 — 심각도/유형 메타데이터 지원.
  */
 const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
+  const [meta, setMeta] = useState<TaskMetadata | null>(null);
+
+  // expanded 될 때 메타데이터 로드
+  useEffect(() => {
+    if (!expanded) return;
+    let mounted = true;
+    window.api?.getTaskMetadata?.(task.taskId)?.then((m) => {
+      if (mounted) setMeta(m);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [expanded, task.taskId]);
+
+  const handleMetaChange = useCallback(
+    async (field: 'severity' | 'type', value: string) => {
+      const next: TaskMetadata = {
+        taskId: task.taskId,
+        ...meta,
+        [field]: value || undefined,
+        updatedAt: Date.now(),
+      };
+      try {
+        const saved = await window.api?.setTaskMetadata?.(next);
+        if (saved) setMeta(saved);
+      } catch {
+        // 실패 시 무음 (UI에 영향 없음)
+      }
+    },
+    [task.taskId, meta]
+  );
 
   return (
     <div className="rounded-md border border-border bg-card p-3">
@@ -45,7 +110,11 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
           <ChevronRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground leading-snug">{task.subject}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm font-medium text-foreground leading-snug">{task.subject}</p>
+            <SeverityBadge severity={meta?.severity} />
+            <TypeBadge type={meta?.type} />
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">{task.projectName}</span>
             <span className="text-xs text-muted-foreground">·</span>
@@ -59,6 +128,30 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
           {task.description && (
             <p className="text-xs text-muted-foreground whitespace-pre-wrap">{task.description}</p>
           )}
+          {/* 심각도/유형 셀렉트 */}
+          <div className="flex gap-2 text-xs">
+            <select
+              value={meta?.severity ?? ''}
+              onChange={(e) => handleMetaChange('severity', e.target.value)}
+              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
+            >
+              <option value="">심각도 —</option>
+              <option value="blocking">Blocking</option>
+              <option value="important">Important</option>
+              <option value="suggestion">Suggestion</option>
+            </select>
+            <select
+              value={meta?.type ?? ''}
+              onChange={(e) => handleMetaChange('type', e.target.value)}
+              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
+            >
+              <option value="">유형 —</option>
+              <option value="fix">Fix</option>
+              <option value="change">Change</option>
+              <option value="question">Question</option>
+              <option value="approve">Approve</option>
+            </select>
+          </div>
           {/* 상태 변경 이력 */}
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">상태 이력</p>
