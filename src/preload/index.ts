@@ -20,6 +20,7 @@ import type {
   TaskMetadata,
   WorkflowDefinition,
   DocReview,
+  NotificationSettings,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -59,6 +60,10 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_DOC_REVIEW, docPath),
   setDocReview: (review: DocReview): Promise<DocReview> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_DOC_REVIEW, review),
+  getNotificationSettings: (): Promise<NotificationSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_NOTIFICATION_SETTINGS),
+  setNotificationSettings: (settings: NotificationSettings): Promise<NotificationSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_NOTIFICATION_SETTINGS, settings),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>

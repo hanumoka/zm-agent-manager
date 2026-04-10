@@ -39,6 +39,8 @@ export const IPC_CHANNELS = {
   DELETE_WORKFLOW: 'workflows:delete',
   GET_DOC_REVIEW: 'doc-review:get',
   SET_DOC_REVIEW: 'doc-review:set',
+  GET_NOTIFICATION_SETTINGS: 'notifications:get-settings',
+  SET_NOTIFICATION_SETTINGS: 'notifications:set-settings',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -311,6 +313,19 @@ export interface DocReview {
   /** 코멘트 (rejected/commented 시) */
   comment?: string;
   updatedAt: number;
+}
+
+// ─── 알림 설정 (F16) ───
+
+export interface NotificationSettings {
+  /** 비용 임계 알림 ON/OFF */
+  budgetAlert: boolean;
+  /** 문서 변경 알림 ON/OFF */
+  docChange: boolean;
+  /** 세션 시작/종료 알림 ON/OFF */
+  sessionLifecycle: boolean;
+  /** 태스크 완료 알림 ON/OFF */
+  taskComplete: boolean;
 }
 
 // ─── Config 모니터 (F20) ───

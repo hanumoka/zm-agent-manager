@@ -18,6 +18,7 @@ import type {
   TaskMetadata,
   WorkflowDefinition,
   DocReview,
+  NotificationSettings,
 } from '@shared/types';
 
 interface AppAPI {
@@ -42,6 +43,8 @@ interface AppAPI {
   deleteWorkflow: (name: string) => Promise<void>;
   getDocReview: (docPath: string) => Promise<DocReview>;
   setDocReview: (review: DocReview) => Promise<DocReview>;
+  getNotificationSettings: () => Promise<NotificationSettings>;
+  setNotificationSettings: (settings: NotificationSettings) => Promise<NotificationSettings>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

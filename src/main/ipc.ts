@@ -8,6 +8,7 @@ import {
   type TaskMetadata,
   type WorkflowDefinition,
   type DocReview,
+  type NotificationSettings,
 } from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
@@ -26,6 +27,7 @@ import { scanConfigSummary } from './config-scanner';
 import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
 import { listWorkflows, saveWorkflow, deleteWorkflow } from './workflow-service';
 import { getDocReview, setDocReview } from './doc-review-service';
+import { getNotificationSettings, setNotificationSettings } from './notification-settings-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -144,4 +146,15 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.SET_DOC_REVIEW, async (_event, review: DocReview) => {
     return setDocReview(review);
   });
+
+  ipcMain.handle(IPC_CHANNELS.GET_NOTIFICATION_SETTINGS, async () => {
+    return getNotificationSettings();
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.SET_NOTIFICATION_SETTINGS,
+    async (_event, settings: NotificationSettings) => {
+      return setNotificationSettings(settings);
+    }
+  );
 }

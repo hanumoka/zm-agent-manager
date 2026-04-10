@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { Settings, Shield, FileCode, Plug, Lock } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Settings, Shield, FileCode, Plug, Lock, Bell } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
-import type { ConfigSummary, HookEntry, RuleFile, McpServer } from '@shared/types';
+import type {
+  ConfigSummary,
+  HookEntry,
+  RuleFile,
+  McpServer,
+  NotificationSettings,
+} from '@shared/types';
 
 // ─── 포맷 ───
 
@@ -12,13 +18,14 @@ function formatBytes(bytes: number): string {
 
 // ─── Tabs ───
 
-type TabId = 'hooks' | 'rules' | 'mcp' | 'permissions';
+type TabId = 'hooks' | 'rules' | 'mcp' | 'permissions' | 'notifications';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'hooks', label: 'Hooks', icon: Shield },
   { id: 'rules', label: 'Rules', icon: FileCode },
   { id: 'mcp', label: 'MCP', icon: Plug },
   { id: 'permissions', label: 'Permissions', icon: Lock },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
 // ─── HooksTab ───
@@ -155,6 +162,104 @@ function PermissionsTab({ allow, deny }: { allow: string[]; deny: string[] }): R
   );
 }
 
+// ─── NotificationsTab ───
+
+const NOTIFICATION_TRIGGERS: {
+  key: keyof NotificationSettings;
+  label: string;
+  description: string;
+}[] = [
+  { key: 'budgetAlert', label: '비용 임계', description: '일/월 예산의 설정 비율 도달 시 알림' },
+  {
+    key: 'docChange',
+    label: '문서 변경',
+    description: 'blocking/important 중요도 문서 변경 시 알림',
+  },
+  {
+    key: 'sessionLifecycle',
+    label: '세션 시작/종료',
+    description: 'Claude Code 세션 시작/종료 감지 시 알림 (향후)',
+  },
+  {
+    key: 'taskComplete',
+    label: '태스크 완료',
+    description: '태스크 상태가 completed로 변경 시 알림 (향후)',
+  },
+];
+
+function NotificationsTab(): React.JSX.Element {
+  const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.api?.getNotificationSettings?.()?.then((s) => {
+      if (isMountedRef.current) setSettings(s);
+    });
+  }, []);
+
+  const handleToggle = useCallback(
+    async (key: keyof NotificationSettings) => {
+      if (!settings) return;
+      const next = { ...settings, [key]: !settings[key] };
+      try {
+        const saved = await window.api?.setNotificationSettings?.(next);
+        if (saved && isMountedRef.current) {
+          setSettings(saved);
+          setSavedAt(Date.now());
+        }
+      } catch {
+        // 무음
+      }
+    },
+    [settings]
+  );
+
+  if (!settings) {
+    return <p className="text-xs text-muted-foreground">알림 설정을 불러오는 중...</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {NOTIFICATION_TRIGGERS.map(({ key, label, description }) => (
+        <div
+          key={key}
+          className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2.5"
+        >
+          <div>
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </div>
+          <button
+            onClick={() => handleToggle(key)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              settings[key] ? 'bg-accent-green' : 'bg-muted'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                settings[key] ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+      ))}
+      {savedAt && (
+        <p className="text-xs text-accent-green">
+          저장됨 ({new Date(savedAt).toLocaleTimeString()})
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── ConfigPage ───
 
 export function ConfigPage(): React.JSX.Element {
@@ -213,6 +318,7 @@ export function ConfigPage(): React.JSX.Element {
     rules: config.rules.length,
     mcp: config.mcpServers.length,
     permissions: config.permissionsAllow.length + config.permissionsDeny.length,
+    notifications: 4,
   };
 
   return (
@@ -251,6 +357,7 @@ export function ConfigPage(): React.JSX.Element {
         {activeTab === 'permissions' && (
           <PermissionsTab allow={config.permissionsAllow} deny={config.permissionsDeny} />
         )}
+        {activeTab === 'notifications' && <NotificationsTab />}
       </div>
     </div>
   );
