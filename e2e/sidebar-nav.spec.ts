@@ -10,7 +10,7 @@ import { join } from 'path';
 /**
  * 사이드바 네비게이션 smoke test
  * - 앱이 정상 부팅되는지
- * - 11개 사이드바 항목 클릭으로 모든 페이지 로드되는지
+ * - 12개 사이드바 항목 클릭으로 모든 페이지 로드되는지
  */
 
 let app: ElectronApplication;
@@ -84,6 +84,11 @@ test('Agents 페이지로 이동한다', async () => {
 test('Memory 페이지로 이동한다', async () => {
   await window.getByTestId('nav-memory').click();
   await expect(window.getByTestId('page-memory')).toBeVisible({ timeout: 10_000 });
+});
+
+test('Config 페이지로 이동한다', async () => {
+  await window.getByTestId('nav-config').click();
+  await expect(window.getByTestId('page-config')).toBeVisible({ timeout: 10_000 });
 });
 
 test('Search 페이지로 이동한다', async () => {

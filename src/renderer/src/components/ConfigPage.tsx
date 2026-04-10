@@ -1,0 +1,257 @@
+import { useEffect, useRef, useState } from 'react';
+import { Settings, Shield, FileCode, Plug, Lock } from 'lucide-react';
+import { formatTimeAgo } from '@/lib/utils';
+import type { ConfigSummary, HookEntry, RuleFile, McpServer } from '@shared/types';
+
+// ─── 포맷 ───
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+// ─── Tabs ───
+
+type TabId = 'hooks' | 'rules' | 'mcp' | 'permissions';
+
+const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: 'hooks', label: 'Hooks', icon: Shield },
+  { id: 'rules', label: 'Rules', icon: FileCode },
+  { id: 'mcp', label: 'MCP', icon: Plug },
+  { id: 'permissions', label: 'Permissions', icon: Lock },
+];
+
+// ─── HooksTab ───
+
+function HooksTab({ hooks }: { hooks: HookEntry[] }): React.JSX.Element {
+  if (hooks.length === 0) {
+    return <p className="text-xs text-muted-foreground">등록된 훅이 없습니다</p>;
+  }
+
+  // 이벤트별 그룹핑
+  const groups = new Map<string, HookEntry[]>();
+  for (const h of hooks) {
+    const list = groups.get(h.event) ?? [];
+    list.push(h);
+    groups.set(h.event, list);
+  }
+
+  return (
+    <div className="space-y-4">
+      {[...groups.entries()].map(([event, entries]) => (
+        <div key={event}>
+          <h3 className="text-sm font-semibold text-foreground mb-2">{event}</h3>
+          <div className="space-y-1">
+            {entries.map((h, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 rounded-md border border-border/50 px-3 py-2 text-xs"
+              >
+                <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-muted-foreground font-mono shrink-0">
+                  {h.matcher}
+                </span>
+                <span className="inline-flex rounded bg-primary/10 text-primary px-1.5 py-0.5 shrink-0">
+                  {h.type}
+                </span>
+                <span className="text-muted-foreground font-mono truncate flex-1">{h.command}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── RulesTab ───
+
+function RulesTab({ rules }: { rules: RuleFile[] }): React.JSX.Element {
+  if (rules.length === 0) {
+    return <p className="text-xs text-muted-foreground">등록된 규칙이 없습니다</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {rules.map((r) => (
+        <div
+          key={r.name}
+          className="flex items-center gap-3 rounded-md border border-border/50 px-3 py-2"
+        >
+          <FileCode className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <span className="text-sm font-medium text-foreground">{r.name}</span>
+            <p className="text-xs text-muted-foreground font-mono truncate">{r.filePath}</p>
+          </div>
+          <span className="text-xs text-muted-foreground">{formatBytes(r.sizeBytes)}</span>
+          <span className="text-xs text-muted-foreground">{formatTimeAgo(r.lastModified)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── McpTab ───
+
+function McpTab({ servers }: { servers: McpServer[] }): React.JSX.Element {
+  if (servers.length === 0) {
+    return <p className="text-xs text-muted-foreground">등록된 MCP 서버가 없습니다</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {servers.map((s) => (
+        <div key={s.name} className="rounded-md border border-border/50 px-3 py-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Plug className="h-4 w-4 text-accent-green" />
+            <span className="text-sm font-semibold text-foreground">{s.name}</span>
+          </div>
+          <div className="text-xs text-muted-foreground font-mono">
+            <span>{s.command}</span>
+            {s.args.length > 0 && <span className="ml-1">{s.args.join(' ')}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── PermissionsTab ───
+
+function PermissionsTab({ allow, deny }: { allow: string[]; deny: string[] }): React.JSX.Element {
+  if (allow.length === 0 && deny.length === 0) {
+    return <p className="text-xs text-muted-foreground">퍼미션 설정이 없습니다</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {allow.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-accent-green mb-2">Allow ({allow.length})</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {allow.map((p, i) => (
+              <span
+                key={i}
+                className="inline-flex rounded bg-accent-green/10 text-accent-green px-2 py-0.5 text-xs font-mono"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {deny.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-destructive mb-2">Deny ({deny.length})</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {deny.map((p, i) => (
+              <span
+                key={i}
+                className="inline-flex rounded bg-destructive/10 text-destructive px-2 py-0.5 text-xs font-mono"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ConfigPage ───
+
+export function ConfigPage(): React.JSX.Element {
+  const [config, setConfig] = useState<ConfigSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('hooks');
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    async function load(): Promise<void> {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await window.api?.getConfigSummary?.();
+        if (!result) throw new Error('preload API를 사용할 수 없습니다');
+        if (isMountedRef.current) setConfig(result);
+      } catch (err) {
+        if (isMountedRef.current) setError(err instanceof Error ? err.message : '설정 조회 실패');
+      } finally {
+        if (isMountedRef.current) setIsLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 p-6" data-testid="page-config">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-destructive" data-testid="page-config">
+        <p>설정을 불러올 수 없습니다: {error}</p>
+      </div>
+    );
+  }
+
+  if (!config) return <div data-testid="page-config" />;
+
+  const tabCounts: Record<TabId, number> = {
+    hooks: config.hooks.length,
+    rules: config.rules.length,
+    mcp: config.mcpServers.length,
+    permissions: config.permissionsAllow.length + config.permissionsDeny.length,
+  };
+
+  return (
+    <div className="flex h-full flex-col" data-testid="page-config">
+      {/* 헤더 + 탭 */}
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2 mb-3">
+          <Settings className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-lg font-semibold text-foreground">Config 모니터</h1>
+        </div>
+        <div className="flex gap-1">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              data-testid={`config-tab-${id}`}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors ${
+                activeTab === id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent/30'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+              <span className="ml-0.5 opacity-70">({tabCounts[id]})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 탭 본문 */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {activeTab === 'hooks' && <HooksTab hooks={config.hooks} />}
+        {activeTab === 'rules' && <RulesTab rules={config.rules} />}
+        {activeTab === 'mcp' && <McpTab servers={config.mcpServers} />}
+        {activeTab === 'permissions' && (
+          <PermissionsTab allow={config.permissionsAllow} deny={config.permissionsDeny} />
+        )}
+      </div>
+    </div>
+  );
+}

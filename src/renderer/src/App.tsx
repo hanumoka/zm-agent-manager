@@ -11,6 +11,7 @@ import {
   Zap,
   Brain,
   Users,
+  Settings,
 } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
@@ -24,6 +25,7 @@ import { ComparePage } from '@/components/ComparePage';
 import { SkillsPage } from '@/components/SkillsPage';
 import { MemoryPage } from '@/components/MemoryPage';
 import { AgentsPage } from '@/components/AgentsPage';
+import { ConfigPage } from '@/components/ConfigPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -41,6 +43,7 @@ const NAV_ITEMS = [
   { path: '/skills', label: 'Skills', icon: Zap, matchPaths: ['/skills'] },
   { path: '/agents', label: 'Agents', icon: Users, matchPaths: ['/agents'] },
   { path: '/memory', label: 'Memory', icon: Brain, matchPaths: ['/memory'] },
+  { path: '/config', label: 'Config', icon: Settings, matchPaths: ['/config'] },
   { path: '/search', label: 'Search', icon: Search, matchPaths: ['/search'] },
 ] as const;
 
@@ -111,6 +114,7 @@ function App(): React.JSX.Element {
               <Route path="/skills" element={<SkillsPage />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/memory" element={<MemoryPage />} />
+              <Route path="/config" element={<ConfigPage />} />
               <Route path="/search" element={<SearchPage />} />
             </Routes>
           </main>
