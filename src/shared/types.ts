@@ -27,6 +27,7 @@ export const IPC_CHANNELS = {
   SEARCH_SESSIONS: 'search:sessions',
   GET_BUDGET_SETTINGS: 'budget:get-settings',
   SET_BUDGET_SETTINGS: 'budget:set-settings',
+  GET_STATS_SUMMARY: 'stats:get-summary',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -240,6 +241,68 @@ export interface CostSummary {
   totalOutputTokens: number;
   byModel: ModelCost[];
   byDay: DailyCost[];
+}
+
+// ─── 세션 통계 (F8) ───
+
+export interface DailyActivity {
+  /** 로컬 시각 기준 "YYYY-MM-DD" */
+  date: string;
+  /** 해당 일자의 user+assistant 레코드 수 */
+  messageCount: number;
+  /** 해당 일자에 활성이었던 고유 세션 수 */
+  sessionCount: number;
+  /** 해당 일자의 도구 호출 수 (assistant tool_use 블록) */
+  toolCallCount: number;
+}
+
+export interface HeatmapCell {
+  /** 0=Sun, 1=Mon, ..., 6=Sat (로컬 시각 기준) */
+  dayOfWeek: number;
+  /** 0..23 (로컬 시각 기준) */
+  hour: number;
+  /** 해당 슬롯의 사용자 프롬프트(history 엔트리) 수 */
+  count: number;
+}
+
+export interface ProjectStats {
+  projectName: string;
+  projectPath: string;
+  sessionCount: number;
+  /** 해당 프로젝트 전체 세션의 user+assistant 레코드 합계 */
+  messageCount: number;
+  /** 해당 프로젝트 전체 세션의 도구 호출 합계 */
+  toolCallCount: number;
+  /** 해당 프로젝트 비용 (USD, 모델 가격 테이블 기반) */
+  cost: number;
+}
+
+export interface ModelTokenUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+}
+
+export interface StatsSummary {
+  /** 고유 세션 수 */
+  totalSessions: number;
+  /** 전체 user+assistant 레코드 수 */
+  totalMessages: number;
+  /** 전체 토큰 (input+output+cacheRead+cacheWrite) */
+  totalTokens: number;
+  /** 전체 도구 호출 수 */
+  totalToolCalls: number;
+  /** 최근 30일 일별 활동 (정렬 오름차순) */
+  dailyActivity: DailyActivity[];
+  /** 7×24 히트맵 */
+  heatmap: HeatmapCell[];
+  /** 프로젝트별 집계 (cost 내림차순) */
+  byProject: ProjectStats[];
+  /** 모델별 토큰 합계 (total 내림차순) */
+  byModel: ModelTokenUsage[];
 }
 
 // ─── 예산 설정 (F13) ───
