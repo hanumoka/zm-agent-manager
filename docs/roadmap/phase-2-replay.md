@@ -1,6 +1,11 @@
 # Phase 2 — 세션 리플레이
 
 **상태**: 진행중 (5/7 완료 — M1/M3/M4/M5/M7 ✓, M2/M6 부분완료: file-history diff 미구현)
+
+**품질 강화** (2026-04-10 audit-3-followup):
+- ✅ 회귀 테스트 26건 추가 (vitest 45 → 71): cost-scanner / task-scanner / session-store
+- ✅ Phase 2 컴포넌트 성능 최적화: SubagentCard / TaskCard / KanbanLane / DocRow에 `React.memo`
+- ⏳ 리스트 가상화는 데이터 100+ 시 조건부 트리거 (현재 데이터 규모에서 ROI 마이너스, known-issues 등록)
 **선행 조건**: Phase 1 완료
 **목표**: 과거 세션을 시간순으로 재생하고, 파일 변경 및 서브에이전트 활동을 시각화
 
