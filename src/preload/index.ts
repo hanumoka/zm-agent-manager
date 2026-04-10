@@ -17,6 +17,7 @@ import type {
   MemoryContent,
   AgentInfo,
   ConfigSummary,
+  TaskMetadata,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -43,6 +44,10 @@ const api = {
   getAgents: (): Promise<AgentInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_AGENTS),
   getConfigSummary: (): Promise<ConfigSummary> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_CONFIG_SUMMARY),
+  getTaskMetadata: (taskId: string): Promise<TaskMetadata> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_METADATA, taskId),
+  setTaskMetadata: (metadata: TaskMetadata): Promise<TaskMetadata> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_TASK_METADATA, metadata),
   getBudgetSettings: (): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>

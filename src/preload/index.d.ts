@@ -15,6 +15,7 @@ import type {
   MemoryContent,
   AgentInfo,
   ConfigSummary,
+  TaskMetadata,
 } from '@shared/types';
 
 interface AppAPI {
@@ -32,6 +33,8 @@ interface AppAPI {
   getMemoryContent: (projectEncoded: string) => Promise<MemoryContent>;
   getAgents: () => Promise<AgentInfo[]>;
   getConfigSummary: () => Promise<ConfigSummary>;
+  getTaskMetadata: (taskId: string) => Promise<TaskMetadata>;
+  setTaskMetadata: (metadata: TaskMetadata) => Promise<TaskMetadata>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
   onNewRecords: (

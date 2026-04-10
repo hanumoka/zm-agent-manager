@@ -1,7 +1,12 @@
 import { join } from 'path';
 import { homedir } from 'os';
 import { ipcMain } from 'electron';
-import { IPC_CHANNELS, type SearchFilters, type BudgetSettings } from '@shared/types';
+import {
+  IPC_CHANNELS,
+  type SearchFilters,
+  type BudgetSettings,
+  type TaskMetadata,
+} from '@shared/types';
 import { scanAllSessions } from './session-scanner';
 import { parseJsonlFile } from './jsonl-parser';
 import { watchSession, unwatchSession } from './session-watcher';
@@ -16,6 +21,7 @@ import { scanSkills } from './skill-scanner';
 import { readMemoryContent } from './memory-reader';
 import { scanAgents } from './agent-scanner';
 import { scanConfigSummary } from './config-scanner';
+import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -103,9 +109,15 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.SET_BUDGET_SETTINGS, async (_event, settings: BudgetSettings) => {
-    // saveBudgetSettings는 normalizeBudgetSettings로 정규화된 값을 반환한다.
-    // 렌더러는 보정된 값을 받아야 하므로 원본 인자가 아닌 반환값을 전달한다.
     const saved = await saveBudgetSettings(settings);
     return saved;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_TASK_METADATA, async (_event, taskId: string) => {
+    return getTaskMetadata(taskId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SET_TASK_METADATA, async (_event, metadata: TaskMetadata) => {
+    return setTaskMetadata(metadata);
   });
 }

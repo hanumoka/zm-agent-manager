@@ -32,6 +32,8 @@ export const IPC_CHANNELS = {
   GET_MEMORY_CONTENT: 'memory:get-content',
   GET_AGENTS: 'agents:get-all',
   GET_CONFIG_SUMMARY: 'config:get-summary',
+  GET_TASK_METADATA: 'task-meta:get',
+  SET_TASK_METADATA: 'task-meta:set',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -264,6 +266,20 @@ export interface SkillInfo {
   model?: string;
   /** disable-model-invocation: true 일 때만 true */
   disableModelInvocation: boolean;
+}
+
+// ─── 태스크 워크플로우 (F14) ───
+
+export type TaskSeverity = 'blocking' | 'important' | 'suggestion';
+export type TaskType = 'fix' | 'change' | 'question' | 'approve';
+
+export interface TaskMetadata {
+  taskId: string;
+  severity?: TaskSeverity;
+  type?: TaskType;
+  /** 향후 워크플로우 단계 확장용 */
+  workflowStage?: string;
+  updatedAt: number;
 }
 
 // ─── Config 모니터 (F20) ───
