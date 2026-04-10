@@ -7,6 +7,12 @@ import type { SearchResult, SearchResponse, SearchFilters } from '@shared/types'
 import { parseHistoryFile } from './history-parser';
 
 const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+/**
+ * 한 번의 검색 요청당 반환 가능한 최대 결과 수.
+ * 이를 초과하는 매치는 수집되지 않으므로 `SearchResponse.totalMatches <= MAX_RESULTS` 항상 성립.
+ * 향후 페이지네이션 도입 시 이 값을 페이지 크기로 분리할 수 있다.
+ */
 const MAX_RESULTS = 100;
 
 /** 검색 서비스 옵션 (테스트에서 fixture 디렉토리 주입). */
@@ -63,6 +69,8 @@ async function searchInJsonl(
         const timestamp = (raw.timestamp as string | number) ?? '';
 
         // 기간 필터: 범위 밖이면 스킵
+        // 빈 timestamp는 toEpochMs('') = 0 → 0 < dateFromMs 이므로 자동 제외된다.
+        // 시간 정보가 없는 레코드를 기간 필터에서 빼는 것은 의도된 동작.
         if (filters.dateFromMs !== undefined || filters.dateToMs !== undefined) {
           const tsMs = toEpochMs(timestamp);
           if (filters.dateFromMs !== undefined && tsMs < filters.dateFromMs) continue;

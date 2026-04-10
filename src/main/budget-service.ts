@@ -110,6 +110,10 @@ export function monthLocal(now: Date = new Date()): string {
 /**
  * ISO 문자열 또는 epoch ms → 로컬 시각 기준 "YYYY-MM-DD".
  * 값이 유효하지 않으면 'unknown' 반환.
+ *
+ * @note `cost-scanner.ts`가 이 헬퍼를 사용하여 `CostSummary.byDay[i].date`를 생성한다.
+ *       시그니처/반환 포맷 변경 시 cost-scanner의 byDay 키 체계와 budget-service의
+ *       `todayLocal()/monthLocal()` 비교가 깨지지 않는지 반드시 확인할 것.
  */
 export function timestampToLocalDate(ts: string | number | undefined | null): string {
   if (ts === undefined || ts === null || ts === '') return 'unknown';

@@ -268,4 +268,51 @@ _아직 등록된 이슈 없음_
 ### 미해결 — Low: `todayLocal`/`monthLocal` 헬퍼 main/renderer 양쪽 중복
 - **위치**: `src/main/budget-service.ts` vs `src/renderer/src/components/CostTracker.tsx`
 - **현상**: 동일 로직이 양쪽 존재. 메인/렌더러 분리 때문에 의도적이지만 `CostSummary.byDay` 포맷 규약 문서화는 필요.
-- **조치**: 추후 `shared/time-utils.ts` 또는 JSDoc으로 계약 명시 검토.
+- **조치**: `budget-service.ts:timestampToLocalDate`에 cross-reference JSDoc 추가 완료 (2026-04-10).
+
+---
+
+## 세 번째 종합 재검토 (2026-04-10 audit-3-followup)
+
+> 병렬 Explore 3개 + 통합 테스트(typecheck/lint/vitest 71/Playwright 7) 실행으로 전체 구조 감사.
+> **Critical 0건**. 다음 항목들을 후속 조치로 처리.
+
+### [해결됨] Medium: 핵심 비즈니스 로직 단위 테스트 갭 (P0 3건)
+- **현상**: cost-scanner / task-scanner / session-store 가 완전 미테스트. 회귀 검증 부재로 최근 cost-scanner 타임존 수정도 회귀 테스트 없이 머지됨.
+- **수정 완료**: 26개 단위 테스트 추가 (vitest 45 → 71)
+  - `cost-scanner.test.ts` (8): 단일/다중 모델 / 일별 / 빈 timestamp / unknown model / 캐시 / 다중 프로젝트
+  - `task-scanner.test.ts` (7): TaskCreate/Update / 상태 이력 / 다중 ID / 다중 세션 / 정렬 / 무관 도구 무시
+  - `session-store.test.ts` (11): fetch/load/clear/addNewRecords 전체 + race condition 시연
+- **사전 리팩토링**: cost-scanner / task-scanner에 `options.projectsDir` 옵션 추가 (테스트 가능성 확보)
+
+### [해결됨] Low: 항목 컴포넌트 렌더링 최적화
+- **현상**: SubagentPanel / TaskBoard / DocInventory가 부모 리렌더 시 모든 항목 재렌더링.
+- **분석 후 가상화 보류**: 현재 데이터 규모(14/22/40)에서 가상화 ROI 마이너스, 또한 expand/collapse + 3-lane + 2단계 중첩 등 적용 비용 큼.
+- **수정 완료**: SubagentCard / TaskCard / KanbanLane / DocRow에 `React.memo` 적용 → props 변경 없으면 카드 단위 리렌더 skip.
+
+### 미해결 — Low: 리스트 가상화 (100+ 데이터 시 적용 권장)
+- **현상**: 위 3개 컴포넌트는 항목 수가 100을 초과하면 프레임율 저하 가능.
+- **현재 상태**: React.memo로 부분 완화. 가상화는 미적용.
+- **조치 후보**:
+  - SubagentPanel: 단일 리스트 → `useVirtualizer` 적용 가능 (단, expand 시 measureElement 필수)
+  - TaskBoard: 3-lane을 평탄화 또는 lane별 가상화
+  - DocInventory: 카테고리 평탄화 후 가상화
+- **트리거**: 사용자 데이터가 임계 100을 초과하면 별도 quality 사이클 진행
+
+### [해결됨] Low: search-service / budget-service 명시성 부족
+- **현상**: `MAX_RESULTS = 100` 의미와 `searchInJsonl` 빈 timestamp 처리 의도가 주석 없이는 불명확
+- **수정 완료**: 양쪽 모두 JSDoc 보강. `timestampToLocalDate`에는 cost-scanner cross-reference 추가.
+
+### [해결됨] Low: session-store optional chaining 일관성
+- **현상**: `window.api.getSessions()` 등 직접 호출 (다른 컴포넌트는 `?.xxx?.()` 패턴)
+- **수정 완료**: 4개 메서드 모두 `window.api?.xxx?.()` 통일. preload 미로드 시 명시적 에러 처리.
+
+### False alarm (Agent가 제기했으나 실제 문제 없음)
+
+| 항목 | 검증 결과 |
+|---|---|
+| FileChangePanel silent fail | IPC 호출 없는 순수 props 기반 → 에러 발생 가능성 자체 없음 |
+| SubagentPanel silent fail | 이미 error state + UI 분기 존재 (`SubagentPanel.tsx:126-132`) |
+| DashboardPage `fetchSessions` deps 누락 | `[fetchSessions]` 정상 포함 (DashboardPage.tsx:109) |
+| CostTracker 차트 슬라이스 | 이미 `split('-')` 안전 파싱 적용됨 |
+| session-watcher 감시 해제 불완전 | `stopWatcher()`가 `await close() + clear()` 완전 (session-watcher.ts:151-159) |
