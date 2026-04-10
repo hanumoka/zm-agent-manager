@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-04-10 | Phase 3 M1 세션 통계 대시보드 완료 (F8)
+
+- **목표**: Phase 3 M1(F8) 신규 — 전체 세션 통계 대시보드
+- **작업 내용** (조심스럽게, 4개 커밋 분할):
+  1. **feat(stats)** `9f79913`: stats-service 백엔드 + 단위 테스트 8개
+     - `StatsSummary` / `DailyActivity` / `HeatmapCell` / `ProjectStats` / `ModelTokenUsage` 타입 신규
+     - `scanStatsSummary(options)` — JSONL 직접 재집계 (cost-scanner 일관)
+     - 단일 스트리밍 순회로 SessionLevelStats → 전역 집계 (total/daily/heatmap/byProject/byModel)
+     - `timestampToLocalDate` 재사용 (타임존 일관성)
+  2. **feat(stats)** `7c03d0c`: IPC `GET_STATS_SUMMARY` 채널 + preload `getStatsSummary()`
+  3. **feat(stats)** `66922e3`: StatsPage UI + 사이드바 "Stats" 메뉴
+     - StatCard×4 / DailyActivityChart / WhenYouWork 히트맵 / ModelUsageBars / ProjectTable
+     - 모든 하위 컴포넌트 `React.memo` + `isMountedRef` 패턴
+     - 사이드바 6 → 7 (Stats 메뉴 Tasks/Costs 사이)
+  4. **test(stats)** (이 커밋): Playwright E2E 7 → 8 smoke
+- **검증**:
+  - typecheck / lint / vitest **87**(79→87) / Playwright **8**(7→8) 모두 통과
+  - MCP 시각 검증: 총 세션 10 / 메시지 5,475 / 토큰 843.2M / 도구 호출 2,050 정확 표시
+  - 히트맵에 실제 Wed/Thu 10-18시 작업 패턴 가시화
+- **문서 갱신**: phase-3-analysis.md M1 5/5 완료 + ROADMAP Phase 3 상태
+- **다음 할 일**: Phase 3 M3 세션 비교 (F10) 또는 Phase 2 M2/M6 file-history diff
+
+---
+
 ## 2026-04-09 | M7 예산 알림 재검토 + 수정 (타임존/검증/race)
 
 - **목표**: M7 커밋 `129f1c6` 후 병렬 Explore 감사로 발견된 4건 이슈 수정

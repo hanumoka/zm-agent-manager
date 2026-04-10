@@ -10,7 +10,7 @@ import { join } from 'path';
 /**
  * 사이드바 네비게이션 smoke test
  * - 앱이 정상 부팅되는지
- * - 6개 사이드바 항목 클릭으로 모든 페이지 로드되는지
+ * - 7개 사이드바 항목 클릭으로 모든 페이지 로드되는지
  */
 
 let app: ElectronApplication;
@@ -49,6 +49,11 @@ test('Sessions 페이지로 이동한다', async () => {
 test('Tasks 페이지로 이동한다', async () => {
   await window.getByTestId('nav-tasks').click();
   await expect(window.getByTestId('page-tasks')).toBeVisible({ timeout: 15_000 });
+});
+
+test('Stats 페이지로 이동한다', async () => {
+  await window.getByTestId('nav-stats').click();
+  await expect(window.getByTestId('page-stats')).toBeVisible({ timeout: 15_000 });
 });
 
 test('Costs 페이지로 이동한다', async () => {

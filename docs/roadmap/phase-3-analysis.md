@@ -6,13 +6,16 @@
 
 ---
 
-## Milestone 1: 세션 통계 대시보드 (F8)
+## Milestone 1: 세션 통계 대시보드 (F8) — **완료**
 
-- [ ] `stats-cache.json` 파싱 서비스
-- [ ] JSONL 기반 세션별 통계 계산 (토큰, 도구 호출 수, 소요 시간)
-- [ ] 일별/주별 활동 차트
-- [ ] 모델별 토큰 사용량 시각화
-- [ ] 비용 추정 표시
+- [x] `stats-cache.json` 의존 없이 JSONL 직접 재집계 (cost-scanner와 일관)
+- [x] JSONL 기반 세션별 통계 계산 (메시지/도구/토큰/비용) — `stats-service.ts`
+- [x] 일별/주별 활동 차트 — `DailyActivityChart` (최근 30일, Recharts)
+- [x] 모델별 토큰 사용량 시각화 — `ModelUsageBars`
+- [x] 비용 추정 표시 — `ProjectTable` (프로젝트별 cost) + StatCard
+- [x] **보너스**: When You Work 7×24 히트맵 + By Project 테이블 (F8 세부 요구)
+- [x] 사이드바 "Stats" 메뉴 추가 (6 → 7), Playwright E2E 7 → 8, 단위 테스트 8개 신규
+- [x] 완료: 2026-04-10 (커밋 9f79913 + 7c03d0c + 66922e3)
 
 ## Milestone 2: 검색 기능 (F9) — **완료**
 
