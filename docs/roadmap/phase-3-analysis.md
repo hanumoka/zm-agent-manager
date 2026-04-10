@@ -38,12 +38,12 @@
 - [x] 태스크 메타데이터 관리 (심각도/유형) — `task-metadata-service.ts` + TaskCard 드롭다운
 - [x] 워크플로우 단계 선택 UI — TaskCard에 워크플로우/단계 드롭다운 + 카드 제목 옆 단계 배지 (2026-04-10)
 
-## Milestone 5: 문서 중요도 분류 & 알림 (F15) — **거의 완료** (3/4)
+## Milestone 5: 문서 중요도 분류 & 알림 (F15) — **완료**
 
-- [x] 경로 기반 중요도 규칙 정의 — `doc-importance.ts` (blocking/important/suggestion)
+- [x] 경로 기반 중요도 규칙 정의 — `shared/doc-importance.ts` (blocking/important/suggestion)
 - [x] DocInventory 중요도 배지 표시 — DocRow에 경로 매칭 배지 인라인
-- [x] 리뷰 상태 관리 — `doc-review-service.ts` + DocRow 리뷰 토글 (pending→approved→rejected 순환, `~/.zm-agent-manager/doc-reviews/` 저장)
-- [ ] **문서 변경 감지 및 알림** — chokidar로 docs/ + .claude/ 감시 → 중요도별 Notification 발송 (M6 알림 인프라와 연동)
+- [x] 리뷰 상태 관리 — `doc-review-service.ts` + DocRow 리뷰 토글
+- [x] 문서 변경 감지 및 알림 — `doc-watcher.ts` chokidar 감시 (docs/**/*.md + .claude/**/*.md + CLAUDE.md) + 중요도별 Notification + 30초 debounce (2026-04-10)
 
 ## Milestone 6: 알림 시스템 (F16) — **부분 완료**
 

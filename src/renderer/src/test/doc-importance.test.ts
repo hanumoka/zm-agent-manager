@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyDocImportance } from '@/lib/doc-importance';
+import { classifyDocImportance } from '@shared/doc-importance';
 
 describe('classifyDocImportance', () => {
   it('docs/requirements/ → blocking', () => {

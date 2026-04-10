@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { FileText, FolderOpen, Check, X, MessageCircle } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
-import { classifyDocImportance, IMPORTANCE_CONFIG } from '@/lib/doc-importance';
+import { classifyDocImportance, IMPORTANCE_CONFIG } from '@shared/doc-importance';
 import type { DocInfo, DocReviewStatus } from '@shared/types';
 
 // ─── 포맷 ───
