@@ -9,6 +9,7 @@ import {
   BarChart3,
   GitCompare,
   Zap,
+  Brain,
 } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
@@ -20,6 +21,7 @@ import { SearchPage } from '@/components/SearchPage';
 import { StatsPage } from '@/components/StatsPage';
 import { ComparePage } from '@/components/ComparePage';
 import { SkillsPage } from '@/components/SkillsPage';
+import { MemoryPage } from '@/components/MemoryPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -35,6 +37,7 @@ const NAV_ITEMS = [
   { path: '/costs', label: 'Costs', icon: DollarSign, matchPaths: ['/costs'] },
   { path: '/docs', label: 'Docs', icon: FileText, matchPaths: ['/docs'] },
   { path: '/skills', label: 'Skills', icon: Zap, matchPaths: ['/skills'] },
+  { path: '/memory', label: 'Memory', icon: Brain, matchPaths: ['/memory'] },
   { path: '/search', label: 'Search', icon: Search, matchPaths: ['/search'] },
 ] as const;
 
@@ -103,6 +106,7 @@ function App(): React.JSX.Element {
               <Route path="/costs" element={<CostTracker />} />
               <Route path="/docs" element={<DocInventory />} />
               <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/memory" element={<MemoryPage />} />
               <Route path="/search" element={<SearchPage />} />
             </Routes>
           </main>

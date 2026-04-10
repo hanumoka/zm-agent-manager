@@ -55,5 +55,5 @@
 
 - [x] 스킬 목록 스캔 및 YAML frontmatter 파싱 (F17) — `skill-scanner.ts` + `SkillsPage.tsx` + 사이드바 Skills 메뉴, 단위 테스트 13개 (2026-04-10)
 - [ ] 에이전트 목록 및 사용 이력 표시 (F18) — 후속
-- [ ] 메모리 뷰어 — MEMORY.md 내용 표시 + 검색 (F19) — 후속
+- [x] 메모리 뷰어 — MEMORY.md 내용 표시 + 검색 + 200줄 경고 (F19) — `memory-reader.ts` + `MemoryPage.tsx` + 사이드바 Memory 메뉴 (2026-04-10)
 - [ ] 훅/규칙/MCP 모니터 — 설정 현황 표시 (F20) — 후속
