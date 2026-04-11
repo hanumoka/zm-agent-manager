@@ -6,16 +6,22 @@ import { parseLine } from './jsonl-parser';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+export interface SubagentScannerOptions {
+  projectsDir?: string;
+}
 
 /**
  * 특정 세션의 서브에이전트 목록을 스캔하여 반환
  */
 export async function scanSessionSubagents(
   projectEncoded: string,
-  sessionId: string
+  sessionId: string,
+  options: SubagentScannerOptions = {}
 ): Promise<SubagentInfo[]> {
-  const subagentsDir = join(PROJECTS_DIR, projectEncoded, sessionId, 'subagents');
+  const projectsDir = options.projectsDir ?? DEFAULT_PROJECTS_DIR;
+  const subagentsDir = join(projectsDir, projectEncoded, sessionId, 'subagents');
 
   let files: string[];
   try {

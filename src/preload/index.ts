@@ -21,6 +21,10 @@ import type {
   WorkflowDefinition,
   DocReview,
   NotificationSettings,
+  NotificationHistory,
+  NotificationHistoryEntry,
+  FileVersionInfo,
+  PlanInfo,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -68,6 +72,17 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_BUDGET_SETTINGS),
   setBudgetSettings: (settings: BudgetSettings): Promise<BudgetSettings> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_BUDGET_SETTINGS, settings),
+  getNotificationHistory: (): Promise<NotificationHistory> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_NOTIFICATION_HISTORY),
+  markNotificationRead: (id: string): Promise<NotificationHistoryEntry | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.MARK_NOTIFICATION_READ, id),
+  clearNotificationHistory: (): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.CLEAR_NOTIFICATION_HISTORY),
+  getFileVersions: (sessionId: string, projectEncoded: string): Promise<FileVersionInfo[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_FILE_VERSIONS, sessionId, projectEncoded),
+  getFileContent: (sessionId: string, backupFileName: string): Promise<string | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_FILE_CONTENT, sessionId, backupFileName),
+  getAllPlans: (): Promise<PlanInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_PLANS),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

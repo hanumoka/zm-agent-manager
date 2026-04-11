@@ -1,9 +1,11 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { FileText, FolderOpen, Check, X, MessageCircle } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, FolderOpen, Check, X, MessageCircle, History } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { classifyDocImportance, IMPORTANCE_CONFIG } from '@shared/doc-importance';
-import type { DocInfo, DocReviewStatus } from '@shared/types';
+import { encodeProjectPath } from '@shared/types';
+import type { DocInfo, DocReviewStatus, FileVersionInfo } from '@shared/types';
+import { FileDiffView } from './FileDiffView';
 
 // ─── 포맷 ───
 
@@ -45,11 +47,26 @@ const REVIEW_CONFIG: Record<
 /**
  * 단일 문서 행 — 중요도 배지 + 리뷰 상태 토글.
  */
-const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Element {
+const DocRow = memo(function DocRow({
+  doc,
+  sessionId,
+  projectEncoded,
+}: {
+  doc: DocInfo;
+  sessionId: string;
+  projectEncoded: string;
+}): React.JSX.Element {
   const categoryColor = CATEGORY_COLORS[doc.category] ?? 'bg-muted text-muted-foreground';
   const importance = classifyDocImportance(doc.relativePath || doc.path);
   const imp = IMPORTANCE_CONFIG[importance];
   const [reviewStatus, setReviewStatus] = useState<DocReviewStatus>('pending');
+  const [showHistory, setShowHistory] = useState(false);
+  const [versions, setVersions] = useState<FileVersionInfo | null>(null);
+  const [fromVersion, setFromVersion] = useState<number | null>(null);
+  const [toVersion, setToVersion] = useState<number | null>(null);
+  const [fromContent, setFromContent] = useState<string | null>(null);
+  const [toContent, setToContent] = useState<string | null>(null);
+  const historyLoadedRef = useRef(false);
 
   // 리뷰 상태 로드 (마운트 시 1회)
   useEffect(() => {
@@ -85,10 +102,59 @@ const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Elemen
     }
   }, [doc.relativePath, doc.path, reviewStatus]);
 
+  // History 버전 로드
+  useEffect(() => {
+    if (!showHistory || historyLoadedRef.current || !sessionId) return;
+    historyLoadedRef.current = true;
+    window.api?.getFileVersions?.(sessionId, projectEncoded)?.then((allVersions) => {
+      const normalizedDocPath = doc.path.replace(/\\/g, '/');
+      const match = allVersions.find(
+        (v) => v.filePath.replace(/\\/g, '/') === normalizedDocPath
+      );
+      if (match && match.versions.length > 0) {
+        setVersions(match);
+        if (match.versions.length === 1) {
+          setFromVersion(null);
+          setToVersion(match.versions[0].version);
+        } else {
+          setFromVersion(match.versions[0].version);
+          setToVersion(match.versions[match.versions.length - 1].version);
+        }
+      }
+    });
+  }, [showHistory, sessionId, projectEncoded, doc.path]);
+
+  // 버전 콘텐츠 로드
+  useEffect(() => {
+    if (!versions || toVersion === null || !sessionId) return;
+    const load = async (): Promise<void> => {
+      if (fromVersion === null) {
+        setFromContent(null);
+      } else {
+        const fromInfo = versions.versions.find((v) => v.version === fromVersion);
+        if (fromInfo?.backupFileName) {
+          const c = await window.api?.getFileContent?.(sessionId, fromInfo.backupFileName);
+          setFromContent(c ?? null);
+        } else {
+          setFromContent(null);
+        }
+      }
+      const toInfo = versions.versions.find((v) => v.version === toVersion);
+      if (toInfo?.backupFileName) {
+        const c = await window.api?.getFileContent?.(sessionId, toInfo.backupFileName);
+        setToContent(c ?? '');
+      } else {
+        setToContent('');
+      }
+    };
+    load();
+  }, [versions, fromVersion, toVersion, sessionId]);
+
   const review = REVIEW_CONFIG[reviewStatus];
   const ReviewIcon = review.icon;
 
   return (
+    <>
     <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors rounded-md">
       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
@@ -108,9 +174,22 @@ const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Elemen
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground truncate">{doc.relativePath}</p>
+        <p className="text-xs text-muted-foreground truncate" title={doc.relativePath}>
+          {doc.relativePath?.replace(/^(\.\.[\\/])+/, '~/')}
+        </p>
       </div>
       <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+        {sessionId && (
+          <button
+            onClick={() => setShowHistory((p) => !p)}
+            title="파일 히스토리"
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:opacity-80 ${
+              showHistory ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            <History className="h-3 w-3" />
+          </button>
+        )}
         <button
           onClick={handleReviewToggle}
           title={`리뷰: ${review.label} (클릭하여 변경)`}
@@ -124,6 +203,53 @@ const DocRow = memo(function DocRow({ doc }: { doc: DocInfo }): React.JSX.Elemen
         <span className="w-20 text-right">{formatTimeAgo(doc.lastModified)}</span>
       </div>
     </div>
+    {showHistory && (
+      <div className="ml-7 mr-3 mb-2">
+        {!versions || versions.versions.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-1">파일 히스토리가 없습니다</p>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">비교:</span>
+              <select
+                value={fromVersion ?? 'new'}
+                onChange={(e) =>
+                  setFromVersion(e.target.value === 'new' ? null : Number(e.target.value))
+                }
+                className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
+              >
+                <option value="new">(생성 전)</option>
+                {versions.versions.map((v) => (
+                  <option key={v.version} value={v.version}>
+                    v{v.version}
+                  </option>
+                ))}
+              </select>
+              <span className="text-muted-foreground">→</span>
+              <select
+                value={toVersion ?? ''}
+                onChange={(e) => setToVersion(Number(e.target.value))}
+                className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
+              >
+                {versions.versions.map((v) => (
+                  <option key={v.version} value={v.version}>
+                    v{v.version}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {toContent !== null && (
+              <FileDiffView
+                fromContent={fromContent}
+                toContent={toContent}
+                filePath={doc.path}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    )}
+    </>
   );
 });
 
@@ -186,6 +312,17 @@ export function DocInventory(): React.JSX.Element {
     }
     return [...map.entries()];
   }, [docs]);
+
+  // 선택된 프로젝트의 최근 세션 ID + 인코딩 경로 (file-history 조회용)
+  const { latestSessionId, selectedProjectEncoded } = useMemo(() => {
+    const group = groups.find((g) => g.projectPath === selectedProject);
+    if (!group || group.sessions.length === 0) return { latestSessionId: '', selectedProjectEncoded: '' };
+    // sessions는 이미 최근 활동순 정렬
+    return {
+      latestSessionId: group.sessions[0].sessionId,
+      selectedProjectEncoded: encodeProjectPath(group.projectPath),
+    };
+  }, [groups, selectedProject]);
 
   const stats = useMemo(() => {
     const totalLines = docs.reduce((acc, d) => acc + d.lineCount, 0);
@@ -278,7 +415,12 @@ export function DocInventory(): React.JSX.Element {
                 </h3>
                 <div className="divide-y divide-border/50">
                   {categoryDocs.map((doc) => (
-                    <DocRow key={doc.path} doc={doc} />
+                    <DocRow
+                      key={doc.path}
+                      doc={doc}
+                      sessionId={latestSessionId}
+                      projectEncoded={selectedProjectEncoded}
+                    />
                   ))}
                 </div>
               </div>

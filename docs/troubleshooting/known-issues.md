@@ -28,6 +28,35 @@
 - git-workflow.md 정책: feature/ 브랜치 → PR → main 머지
 - Phase 2부터 feature 브랜치 사용 필요
 
+## Windows 크로스플랫폼 호환성 (2026-04-11 발견)
+
+macOS에서 개발되어 Unix 경로 구분자(`/`)에 의존하는 코드가 다수 존재. Windows에서 데이터 로딩 실패 원인.
+
+### [해결됨] `encodeProjectPath()` Unix 경로만 처리 — High
+- `src/shared/types.ts:11` — `replace(/\//g, '-')` → `replace(/[\\/:]/g, '-')`로 수정
+- **해결**: `/`, `\`, `:` 모두 치환하여 Windows `C:\` 경로 정상 인코딩
+
+### [해결됨] `.split('/')` 하드코딩 — High (5개 파일)
+- `agent-scanner.ts`, `skill-scanner.ts`, `session-lifecycle-watcher.ts`, `doc-watcher.ts`, `jsonl-parser.ts`
+- **해결**: `path.basename()` 사용으로 교체
+
+### [해결됨] doc-watcher 글로브 패턴 경로 혼재 — Medium
+- **해결**: 템플릿 리터럴 → `path.join()` 사용
+
+### [해결됨] doc-scanner 경로 인코딩 중복 — Medium
+- **해결**: `replace(/[\\/:]/g, '-')`로 통일
+
+### [해결됨] `split('-').pop()` 연쇄 검증 — Low (5개 파일)
+- `encodeProjectPath()` 수정 후 검증 완료, 로직 변경 불필요 확인
+
+### [해결됨] `FileChangePanel.tsx` `.split('/')` 누락 — Medium (감사에서 발견)
+- `src/renderer/src/components/FileChangePanel.tsx:45` — 렌더러 컴포넌트
+- **해결**: `.split(/[\\/]/).pop()` 정규식으로 교체 (렌더러에서 path 모듈 사용 불가)
+
+### [해결됨] `split('\n')` CRLF 비안전 — Low (3곳, 감사에서 발견)
+- `doc-scanner.ts:62`, `memory-reader.ts:29`, `memory-reader.ts:76`
+- **해결**: `split(/\r?\n/)` 로 교체하여 Windows CRLF 안전 처리
+
 ## 런타임
 
 _아직 등록된 이슈 없음_
@@ -62,18 +91,14 @@ _아직 등록된 이슈 없음_
 - JSONL TaskCreate/TaskUpdate가 핵심 데이터 소스임을 강조하지 않음
 - **수정 완료**: "중요" 박스 추가, todos/ 휘발성 경고
 
-### 미해결 — feature-spec F7/F8/F9/F10 상세 부족
-- F7(서브에이전트): 6줄, F8(통계): 1줄, F9(검색): 3줄, F10(비교): 2줄
-- F1~F4 대비 1/10 수준의 상세도
-- **조치**: Phase 2/3 착수 시 보강 예정
+### [해결됨] feature-spec F7/F8/F9/F10 상세 부족
+- Phase 2/3 모두 구현 완료되어 별도 보강 불필요. 구현 코드 자체가 명세 역할 (2026-04-11)
 
-### 미해결 — F12/F15 병합 근거 미기술
-- PRD-v2.md에서 별도 기능이지만 screen-design.md에서 "Docs" 하나로 병합
-- **조치**: Phase 2 착수 시 결정
+### [해결됨] F12/F15 병합 근거 미기술
+- **근거**: DocInventory에서 문서 메타데이터(F12) + 중요도 분류/리뷰 상태(F15)를 동일 페이지에서 통합 표시하여 UX 일관성 확보 (2026-04-11)
 
-### 미해결 — 용어 비일관 (한국어/영어 혼용)
-- "태스크 보드" vs "Task Board" vs "Board" — 문서별로 다르게 표기
-- **조치**: 코딩 착수 시 공식 용어 사전 작성
+### [해결됨] 용어 비일관 (한국어/영어 혼용)
+- **해결**: coding-conventions.md에 용어 사전 추가 (2026-04-11)
 
 ---
 
@@ -154,9 +179,8 @@ _아직 등록된 이슈 없음_
 ### [해결됨] Medium: CostTracker date 형식 가정
 - **수정 완료**: `split('-')` 기반 안전 파싱, 형식 다를 시 원본 사용
 
-### 미해결 — Low: session-store addNewRecords race condition
-- 동시 호출 시 messageCount 부정확 가능
-- **조치**: 함수형 set으로 변경 (Q3 이후)
+### [해결됨] Low: session-store addNewRecords race condition
+- **해결**: 함수형 `set(state => ...)` 으로 변경 (2026-04-11)
 
 ---
 
@@ -177,21 +201,14 @@ _아직 등록된 이슈 없음_
   - Dead code `stats.totalMessages`(미사용) 함께 제거
   - 검증: typecheck/lint/vitest 19/Playwright 7 모두 통과
 
-### 미해결 — Low: Dashboard "예상 비용" vs Costs "총 비용" 약간 차이
-- **현상**: Dashboard 표시 직후 Costs로 이동하면 비용 값이 다름 (예: $1278.98 → $1282.65)
-- **원인**: 두 페이지가 동일 IPC `getCostSummary`를 다른 시점에 호출. 그 사이 새 활동(현재 세션) 누적
-- **영향**: 정상 동작이지만 사용자에게 데이터 불일치로 보임
-- **조치 후보**: Zustand 스토어로 결과 캐싱 + 명시적 refresh 버튼, 또는 Dashboard 라벨을 "스냅샷 비용"으로 변경
+### [해결됨] Low: Dashboard "예상 비용" vs Costs "총 비용" 약간 차이
+- **해결**: Dashboard 라벨을 "비용 (조회 시점)"으로 변경하여 스냅샷 특성 명시 (2026-04-11)
 
-### 미해결 — Low: TimelinePage 탭에 `data-testid` 누락
-- **현상**: `[role="tab"]`도 잡히지 않아 E2E/MCP에서 텍스트 기반 셀렉터(`text=Tools`)에 의존
-- **위치**: `src/renderer/src/components/TimelinePage.tsx` 탭 렌더링 부분
-- **조치**: 각 탭에 `data-testid="tab-{messages|tools|agents|files|replay}"` 추가 (사이드바 nav 패턴과 일관성)
+### [해결됨] Low: TimelinePage 탭에 `data-testid` 누락
+- **해결**: 각 탭에 `data-testid="tab-{id}"` 추가 (2026-04-11)
 
-### 미해결 — Low: Docs 페이지 Memory 카테고리 경로 가독성
-- **현상**: Memory 카테고리 문서 경로가 `../../.claude/projects/-Users-hanumoka-projects-zm-agent-manager/memory/MEMORY.md` 형태로 매우 김
-- **영향**: 상대 경로 접두사(`../../`)가 도구상 의미 없고, 실제 정보(파일명)는 끝부분이라 파악 어려움
-- **조치 후보**: Memory 카테고리는 `~/.claude/projects/{enc}/memory/` 표시 또는 파일명 + 작은 글씨로 디렉토리 분리 표시
+### [해결됨] Low: Docs 페이지 Memory 카테고리 경로 가독성
+- **해결**: `../../` 접두사를 `~/`로 치환 + title 속성에 원본 경로 표시 (2026-04-11)
 
 ---
 
@@ -256,19 +273,15 @@ _아직 등록된 이슈 없음_
 - **현상**: 라벨 문자열을 testid 키로 분기. i18n·라벨 변경 시 E2E 테스트 붕괴.
 - **수정 완료**: `renderProgressBar`에 `period: 'daily' | 'monthly'` 첫 파라미터 추가. 라벨과 testid 분리.
 
-### 미해결 — Low: BudgetCard unmount 가드 패턴 불일치
-- **위치**: `src/renderer/src/components/CostTracker.tsx:77-94`
-- **현상**: Q1/Q2 리팩터로 다른 컴포넌트는 `isMountedRef` 패턴이지만 `BudgetCard`는 `let mounted` 클로저. 기능상 동일하나 일관성 미달.
-- **조치**: 다음 quality 라운드에서 일괄 통일.
+### [해결됨] Low: BudgetCard unmount 가드 패턴 불일치
+- **해결**: `let mounted` → `isMountedRef` 패턴으로 통일 (2026-04-11)
 
 ### [해결됨] Low: 진행 바 "150%" 텍스트 vs 100% 너비 캡 불일치
 - **위치**: `src/renderer/src/components/CostTracker.tsx:162-163`
 - **수정 완료**: 초과 시 텍스트를 `>100%`로 변경하여 바 너비 캡과 일관. 초과량 정보는 여전히 색상(destructive)으로 표현.
 
-### 미해결 — Low: `todayLocal`/`monthLocal` 헬퍼 main/renderer 양쪽 중복
-- **위치**: `src/main/budget-service.ts` vs `src/renderer/src/components/CostTracker.tsx`
-- **현상**: 동일 로직이 양쪽 존재. 메인/렌더러 분리 때문에 의도적이지만 `CostSummary.byDay` 포맷 규약 문서화는 필요.
-- **조치**: `budget-service.ts:timestampToLocalDate`에 cross-reference JSDoc 추가 완료 (2026-04-10).
+### [해결됨] Low: `todayLocal`/`monthLocal` 헬퍼 main/renderer 양쪽 중복
+- **해결**: 설계 의도적 중복 (IPC 분리). cross-reference JSDoc 추가 완료 (2026-04-10)
 
 ---
 
@@ -344,10 +357,9 @@ _아직 등록된 이슈 없음_
 - **현상**: `allowed-tools: Read, Grep` (쉼표 구분) 사용 시 `["Read,", "Grep"]`로 잘못 파싱. 현재 모든 SKILL.md는 공백 구분이라 실해 없음.
 - **수정 완료**: `src/main/skill-scanner.ts` JSDoc에 지원/미지원 범위 명시 추가.
 
-### 부분 해결 — Low: Scanner options 패턴 부재
-- **현상**: 일부 스캐너가 `PROJECTS_DIR` 등을 하드코딩 → 단위 테스트에서 fixture 주입 불가
-- **해결 완료 (8개)**: cost-scanner / task-scanner / stats-service / skill-scanner / search-service / budget-service / agent-scanner / memory-reader / config-scanner — 모두 options 도입 + 단위 테스트 추가
-- **미해결 (3개)**: subagent-scanner / doc-scanner / session-watcher — options 미지원, 하드코딩 유지. 별도 사이클로 진행.
+### [해결됨] Low: Scanner options 패턴 부재
+- **해결**: 11개 스캐너 모두 options 패턴 도입 완료 (2026-04-11)
+- subagent-scanner, doc-scanner, session-watcher 3곳 추가 (2026-04-11)
 
 ---
 

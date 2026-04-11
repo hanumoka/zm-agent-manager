@@ -3,7 +3,11 @@ import { join, relative, basename } from 'path';
 import { homedir } from 'os';
 import type { DocInfo } from '@shared/types';
 
-const CLAUDE_MEMORY_BASE = join(homedir(), '.claude', 'projects');
+const DEFAULT_CLAUDE_MEMORY_BASE = join(homedir(), '.claude', 'projects');
+
+export interface DocScannerOptions {
+  claudeMemoryBase?: string;
+}
 
 interface ScanTarget {
   /** 스캔할 경로 (프로젝트 루트 기준 상대 또는 절대) */
@@ -59,7 +63,7 @@ async function collectFiles(
 async function countLines(filePath: string): Promise<number> {
   try {
     const content = await readFile(filePath, 'utf-8');
-    return content.split('\n').length;
+    return content.split(/\r?\n/).length;
   } catch {
     return 0;
   }
@@ -68,7 +72,10 @@ async function countLines(filePath: string): Promise<number> {
 /**
  * 프로젝트의 관리 문서를 스캔하여 반환
  */
-export async function scanProjectDocs(projectPath: string): Promise<DocInfo[]> {
+export async function scanProjectDocs(
+  projectPath: string,
+  options: DocScannerOptions = {}
+): Promise<DocInfo[]> {
   const docs: DocInfo[] = [];
 
   // 스캔 대상 정의
@@ -101,8 +108,9 @@ export async function scanProjectDocs(projectPath: string): Promise<DocInfo[]> {
   ];
 
   // MEMORY.md (claude data dir)
-  const encodedPath = projectPath.replace(/\//g, '-');
-  const memoryDir = join(CLAUDE_MEMORY_BASE, encodedPath, 'memory');
+  const encodedPath = projectPath.replace(/[\\/:]/g, '-');
+  const claudeMemoryBase = options.claudeMemoryBase ?? DEFAULT_CLAUDE_MEMORY_BASE;
+  const memoryDir = join(claudeMemoryBase, encodedPath, 'memory');
   targets.push({
     path: memoryDir,
     category: 'Memory',

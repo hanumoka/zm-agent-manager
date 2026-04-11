@@ -1,5 +1,5 @@
 import { readdir, stat, readFile } from 'fs/promises';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { homedir } from 'os';
 import type { AgentInfo, SkillScope } from '@shared/types';
 import { parseFrontmatter } from './skill-scanner';
@@ -24,7 +24,7 @@ async function parseAgentFile(filePath: string, scope: SkillScope): Promise<Agen
     const frontmatter = parseFrontmatter(content);
     if (!frontmatter) return null;
 
-    const name = frontmatter.name ?? filePath.split('/').pop()?.replace('.md', '') ?? 'unknown';
+    const name = frontmatter.name ?? basename(filePath, '.md');
     const description = frontmatter.description ?? '';
     const model = frontmatter.model;
 

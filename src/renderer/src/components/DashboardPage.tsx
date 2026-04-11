@@ -174,7 +174,7 @@ export function DashboardPage(): React.JSX.Element {
           color="bg-accent-yellow/20 text-accent-yellow"
         />
         <StatCard
-          label="예상 비용"
+          label="비용 (조회 시점)"
           value={totalCost !== null ? `$${totalCost.toFixed(2)}` : '...'}
           icon={DollarSign}
           color="bg-accent-orange/20 text-accent-orange"

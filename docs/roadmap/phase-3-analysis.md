@@ -1,6 +1,6 @@
 # Phase 3 — 분석 및 확장
 
-**상태**: 진행중 (M2 검색 일부 완료)
+**상태**: **완료** (M1-M7 전체 완료)
 **선행 조건**: Phase 2 완료
 **목표**: 세션 데이터를 기반으로 통계, 검색, 비교 기능 제공
 
@@ -45,15 +45,15 @@
 - [x] 리뷰 상태 관리 — `doc-review-service.ts` + DocRow 리뷰 토글
 - [x] 문서 변경 감지 및 알림 — `doc-watcher.ts` chokidar 감시 (docs/**/*.md + .claude/**/*.md + CLAUDE.md) + 중요도별 Notification + 30초 debounce (2026-04-10)
 
-## Milestone 6: 알림 시스템 (F16) — **거의 완료** (6/7)
+## Milestone 6: 알림 시스템 (F16) — **완료** (7/7)
 
 - [x] Electron Notification API 연동 — Phase 2 M7 budget에서 도입 완료
 - [x] 비용 임계 트리거 — budget-service evaluateBudgetAlerts
 - [x] 문서 변경 트리거 — doc-watcher.ts chokidar 감시 + 중요도별 Notification
 - [x] 알림 설정 UI — Config 페이지 Notifications 탭 (4개 트리거 ON/OFF 토글)
 - [x] 세션 시작/종료 트리거 — `session-lifecycle-watcher.ts` chokidar sessions/*.json 감시 + notification-settings 연동 (2026-04-10)
-- [ ] 태스크 완료 트리거 — task-scanner + 실시간 감시 필요 (후속)
-- [ ] 알림 이력 저장 (~/.zm-agent-manager/notifications/) — 후속
+- [x] 태스크 완료 트리거 — `task-complete-watcher.ts` session-watcher 내부 이벤트 수신 + TaskUpdate(completed) 감지 (2026-04-11)
+- [x] 알림 이력 저장 — `notification-history-service.ts` + `~/.zm-agent-manager/notification-history.json` + Config Notifications 탭 이력 UI (2026-04-11)
 
 ## Milestone 7: 스킬/에이전트/메모리/MCP 모니터 (F17-F20)
 

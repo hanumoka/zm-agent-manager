@@ -40,7 +40,10 @@
 - macOS Notification Center 또는 Electron Notification API 활용
 - **적합 Phase**: Phase 1 이후 (공통 인프라)
 
-### 6. 커스터마이즈 가능한 사이드바
+### ~~6. 플래닝 모니터링 — ExitPlanMode 기반 플랜 추적 (2026-04-11)~~ → **구현 완료**
+- `plan-scanner.ts` + Tasks 페이지 Plans 탭 + 마크다운 렌더링 (2026-04-11 구현)
+
+### 7. 커스터마이즈 가능한 사이드바
 - 사용자가 사이드바 섹션 순서/표시 여부를 설정
 - 기능 확장 시 UI 과부하 방지
 - Readout 컴포넌트: SidebarCustomizeSheet, SidebarSectionWithDot (활성 표시)

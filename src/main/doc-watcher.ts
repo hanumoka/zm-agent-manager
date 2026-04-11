@@ -1,6 +1,8 @@
 import { watch, type FSWatcher } from 'chokidar';
+import { basename, join } from 'path';
 import { Notification } from 'electron';
 import { classifyDocImportance, type DocImportance } from '@shared/doc-importance';
+import { addNotificationEntry } from './notification-history-service';
 
 /**
  * 문서 변경 감시 (F15).
@@ -36,18 +38,17 @@ function shouldNotify(filePath: string): boolean {
 function sendDocNotification(filePath: string, eventType: string): void {
   const importance = classifyDocImportance(filePath);
   const label = IMPORTANCE_LABELS[importance];
-  const fileName = filePath.split('/').pop() ?? filePath;
+  const fileName = basename(filePath);
+  const title = `${label} 문서 ${eventType === 'change' ? '변경' : '추가'}`;
 
   try {
     if (Notification.isSupported()) {
-      new Notification({
-        title: `${label} 문서 ${eventType === 'change' ? '변경' : '추가'}`,
-        body: fileName,
-      }).show();
+      new Notification({ title, body: fileName }).show();
     }
   } catch {
     // Notification 사용 불가 — 무시
   }
+  void addNotificationEntry({ category: 'doc-change', title, body: fileName }).catch(() => {});
 }
 
 /**
@@ -56,7 +57,11 @@ function sendDocNotification(filePath: string, eventType: string): void {
  */
 export function initDocWatcher(): void {
   const cwd = process.cwd();
-  const watchPaths = [`${cwd}/docs/**/*.md`, `${cwd}/.claude/**/*.md`, `${cwd}/CLAUDE.md`];
+  const watchPaths = [
+    join(cwd, 'docs', '**', '*.md'),
+    join(cwd, '.claude', '**', '*.md'),
+    join(cwd, 'CLAUDE.md'),
+  ];
 
   watcher = watch(watchPaths, {
     ignoreInitial: true,

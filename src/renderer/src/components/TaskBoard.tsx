@@ -9,6 +9,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
+import { useSessionStore } from '@/stores/session-store';
+import type { PlanInfo } from '@shared/types';
+import ReactMarkdown from 'react-markdown';
 import type {
   TaskInfo,
   TaskStatus,
@@ -285,14 +288,110 @@ const KanbanLane = memo(function KanbanLane({
   );
 });
 
+// ─── PlansPanel ───
+
+const PlanCard = memo(function PlanCard({ plan }: { plan: PlanInfo }): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div
+        className="flex items-start gap-2 cursor-pointer"
+        onClick={() => setExpanded((p) => !p)}
+      >
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{plan.title}</p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+            <span>{plan.projectName}</span>
+            <span>·</span>
+            <span>{plan.sessionId.slice(0, 8)}</span>
+            <span>·</span>
+            <span>{formatTimeAgo(plan.timestamp)}</span>
+            {plan.allowedPrompts.length > 0 && (
+              <>
+                <span>·</span>
+                <span className="text-primary">{plan.allowedPrompts.length}개 허용 프롬프트</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      {expanded && (
+        <div className="mt-3 ml-6 space-y-3">
+          <div className="prose prose-invert prose-sm max-w-none text-xs">
+            <ReactMarkdown>{plan.content}</ReactMarkdown>
+          </div>
+          {plan.allowedPrompts.length > 0 && (
+            <div className="border-t border-border/50 pt-2">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">허용된 프롬프트</p>
+              <div className="flex flex-wrap gap-1">
+                {plan.allowedPrompts.map((ap, i) => (
+                  <span
+                    key={i}
+                    className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                  >
+                    {ap.tool}: {ap.prompt}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+import { FileText as PlanIcon } from 'lucide-react';
+
+function PlansLane({
+  plans,
+}: {
+  plans: PlanInfo[];
+}): React.JSX.Element {
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 mb-3">
+        <PlanIcon className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">Plan</h3>
+        {plans.length > 0 && (
+          <span className="text-xs text-primary">(현재)</span>
+        )}
+      </div>
+      <div className="space-y-2">
+        {plans.map((plan, i) => (
+          <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} />
+        ))}
+        {plans.length === 0 && (
+          <div className="rounded-md border border-dashed border-border p-4 text-center">
+            <p className="text-xs text-muted-foreground">없음</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── TaskBoard ───
 
 export function TaskBoard(): React.JSX.Element {
+  const { groups, fetchSessions } = useSessionStore();
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [plans, setPlans] = useState<PlanInfo[]>([]);
+  const [activeView, setActiveView] = useState<'tasks' | 'plans'>('tasks');
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   useEffect(() => {
     let isMounted = true;
@@ -315,8 +414,22 @@ export function TaskBoard(): React.JSX.Element {
     };
   }, []);
 
-  // 프로젝트 목록 추출
-  const projects = useMemo(() => [...new Set(tasks.map((t) => t.projectName))].sort(), [tasks]);
+  useEffect(() => {
+    let isMounted = true;
+    window.api?.getAllPlans?.()?.then((result) => {
+      if (result && isMounted) setPlans(result);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 프로젝트 목록: tasks + sessions 전체 프로젝트 합집합
+  const projects = useMemo(() => {
+    const fromTasks = tasks.map((t) => t.projectName);
+    const fromGroups = groups.map((g) => g.projectName);
+    return [...new Set([...fromTasks, ...fromGroups])].sort();
+  }, [tasks, groups]);
 
   // 필터링
   const filteredTasks = useMemo(() => {
@@ -339,6 +452,17 @@ export function TaskBoard(): React.JSX.Element {
       })),
     [filteredTasks]
   );
+
+  const filteredPlans = useMemo(
+    () =>
+      selectedProject === 'all'
+        ? plans
+        : plans.filter((p) => p.projectName === selectedProject),
+    [plans, selectedProject]
+  );
+
+  // 칸반 보드용: 프로젝트별 최신 플랜 1개만
+  const activePlan = useMemo(() => (filteredPlans.length > 0 ? [filteredPlans[0]] : []), [filteredPlans]);
 
   const deletedCount = useMemo(() => tasks.filter((t) => t.status === 'deleted').length, [tasks]);
 
@@ -375,10 +499,41 @@ export function TaskBoard(): React.JSX.Element {
       {/* 헤더 */}
       <div className="flex items-center gap-4 border-b border-border px-4 py-3">
         <ClipboardList className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold text-foreground">태스크 보드</h2>
-        <span className="text-xs text-muted-foreground">
-          {stats.total}개 · 완료율 {stats.rate}%
-        </span>
+
+        {/* Tasks / Plans 탭 */}
+        <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+          <button
+            onClick={() => setActiveView('tasks')}
+            className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+              activeView === 'tasks'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Tasks
+          </button>
+          <button
+            onClick={() => setActiveView('plans')}
+            className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+              activeView === 'plans'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Plans
+          </button>
+        </div>
+
+        {activeView === 'tasks' && (
+          <span className="text-xs text-muted-foreground">
+            {stats.total}개 · 완료율 {stats.rate}%
+          </span>
+        )}
+        {activeView === 'plans' && (
+          <span className="text-xs text-muted-foreground">
+            {filteredPlans.length}개 플랜
+          </span>
+        )}
         <div className="flex-1" />
 
         {/* 프로젝트 필터 */}
@@ -395,8 +550,8 @@ export function TaskBoard(): React.JSX.Element {
           ))}
         </select>
 
-        {/* deleted 토글 */}
-        {deletedCount > 0 && (
+        {/* deleted 토글 (tasks 뷰에서만) */}
+        {activeView === 'tasks' && deletedCount > 0 && (
           <button
             onClick={() => setShowDeleted(!showDeleted)}
             className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
@@ -411,14 +566,11 @@ export function TaskBoard(): React.JSX.Element {
         )}
       </div>
 
-      {/* 칸반 보드 */}
+      {/* 콘텐츠 */}
       <div className="flex-1 overflow-y-auto p-4">
-        {tasks.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <p>태스크가 없습니다. Claude Code에서 태스크를 생성하면 여기에 표시됩니다.</p>
-          </div>
-        ) : (
+        {activeView === 'tasks' ? (
           <div className="flex gap-4">
+            <PlansLane plans={activePlan} />
             {lanes.map((lane) => (
               <KanbanLane
                 key={lane.status}
@@ -430,6 +582,18 @@ export function TaskBoard(): React.JSX.Element {
               />
             ))}
           </div>
+        ) : (
+          filteredPlans.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p>플랜 히스토리가 없습니다</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredPlans.map((plan, i) => (
+                <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} />
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>

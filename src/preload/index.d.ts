@@ -19,6 +19,10 @@ import type {
   WorkflowDefinition,
   DocReview,
   NotificationSettings,
+  NotificationHistory,
+  NotificationHistoryEntry,
+  FileVersionInfo,
+  PlanInfo,
 } from '@shared/types';
 
 interface AppAPI {
@@ -47,6 +51,12 @@ interface AppAPI {
   setNotificationSettings: (settings: NotificationSettings) => Promise<NotificationSettings>;
   getBudgetSettings: () => Promise<BudgetSettings>;
   setBudgetSettings: (settings: BudgetSettings) => Promise<BudgetSettings>;
+  getNotificationHistory: () => Promise<NotificationHistory>;
+  markNotificationRead: (id: string) => Promise<NotificationHistoryEntry | null>;
+  clearNotificationHistory: () => Promise<void>;
+  getFileVersions: (sessionId: string, projectEncoded: string) => Promise<FileVersionInfo[]>;
+  getFileContent: (sessionId: string, backupFileName: string) => Promise<string | null>;
+  getAllPlans: () => Promise<PlanInfo[]>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

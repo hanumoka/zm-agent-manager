@@ -3,6 +3,7 @@ import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { Notification } from 'electron';
 import type { BudgetSettings, CostSummary } from '@shared/types';
+import { addNotificationEntry } from './notification-history-service';
 
 const DEFAULT_SETTINGS_FILE = join(homedir(), '.zm-agent-manager', 'budget-settings.json');
 
@@ -245,6 +246,7 @@ export function trimLastNotifiedKeys(keys: string[]): string[] {
 
 function sendNotification(options: BudgetOptions, title: string, body: string): void {
   if (options.notify) {
+    // 테스트용 주입: Electron Notification 대신 콜백 사용, 이력 저장 생략
     options.notify(title, body);
     return;
   }
@@ -255,4 +257,5 @@ function sendNotification(options: BudgetOptions, title: string, body: string): 
   } catch {
     // 메인 프로세스가 아니거나 Notification 사용 불가 — 무시
   }
+  void addNotificationEntry({ category: 'budget', title, body }).catch(() => {});
 }

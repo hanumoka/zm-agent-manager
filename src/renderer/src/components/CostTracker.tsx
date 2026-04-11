@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign, Cpu, ArrowUpDown, Hash, Wallet } from 'lucide-react';
 import type { CostSummary, ModelCost, BudgetSettings } from '@shared/types';
@@ -72,25 +72,29 @@ function BudgetCard({ summary }: BudgetCardProps): React.JSX.Element {
   const [alertPercentInput, setAlertPercentInput] = useState(80);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // 초기 로드
   useEffect(() => {
-    let mounted = true;
     window.api
       ?.getBudgetSettings?.()
       ?.then((s) => {
-        if (!mounted) return;
+        if (!isMountedRef.current) return;
         setSettings(s);
         setDailyInput(s.dailyUsd != null ? String(s.dailyUsd) : '');
         setMonthlyInput(s.monthlyUsd != null ? String(s.monthlyUsd) : '');
         setAlertPercentInput(s.alertPercent);
       })
       ?.catch((e) => {
-        if (mounted) setError(e instanceof Error ? e.message : '예산 설정 로드 실패');
+        if (isMountedRef.current) setError(e instanceof Error ? e.message : '예산 설정 로드 실패');
       });
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   // 오늘/이번 달 비용

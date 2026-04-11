@@ -8,6 +8,7 @@ import {
   initSessionLifecycleWatcher,
   stopSessionLifecycleWatcher,
 } from './session-lifecycle-watcher';
+import { initTaskCompleteWatcher, stopTaskCompleteWatcher } from './task-complete-watcher';
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -48,6 +49,7 @@ app.whenReady().then(() => {
   initWatcher();
   initDocWatcher();
   initSessionLifecycleWatcher();
+  initTaskCompleteWatcher();
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -70,4 +72,5 @@ app.on('will-quit', async () => {
   await stopWatcher();
   await stopDocWatcher();
   await stopSessionLifecycleWatcher();
+  stopTaskCompleteWatcher();
 });

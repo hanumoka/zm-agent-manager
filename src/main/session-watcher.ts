@@ -9,7 +9,25 @@ import { IPC_CHANNELS } from '@shared/types';
 import type { JsonlRecord } from '@shared/types';
 import { parseLine } from './jsonl-parser';
 
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+const DEFAULT_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+export interface SessionWatcherOptions {
+  projectsDir?: string;
+}
+
+// ─── 내부 이벤트 리스너 ───
+
+type NewRecordsListener = (sessionId: string, records: JsonlRecord[]) => void;
+const internalListeners: NewRecordsListener[] = [];
+
+/** 메인 프로세스 내부에서 새 레코드 이벤트를 수신. 해제 함수 반환. */
+export function onNewRecordsInternal(listener: NewRecordsListener): () => void {
+  internalListeners.push(listener);
+  return () => {
+    const idx = internalListeners.indexOf(listener);
+    if (idx >= 0) internalListeners.splice(idx, 1);
+  };
+}
 
 // 감시 중인 파일별 읽은 바이트 위치 추적
 const fileOffsets = new Map<string, number>();
@@ -75,8 +93,13 @@ function sendToRenderer(channel: string, data: unknown): void {
 /**
  * 특정 세션 감시 등록
  */
-export async function watchSession(sessionId: string, projectEncoded: string): Promise<void> {
-  const filePath = join(PROJECTS_DIR, projectEncoded, `${sessionId}.jsonl`);
+export async function watchSession(
+  sessionId: string,
+  projectEncoded: string,
+  options: SessionWatcherOptions = {}
+): Promise<void> {
+  const projectsDir = options.projectsDir ?? DEFAULT_PROJECTS_DIR;
+  const filePath = join(projectsDir, projectEncoded, `${sessionId}.jsonl`);
 
   if (watchedSessions.has(sessionId)) return;
 
@@ -140,6 +163,13 @@ export function initWatcher(): void {
           sessionId,
           records: newRecords,
         });
+        for (const listener of internalListeners) {
+          try {
+            listener(sessionId, newRecords);
+          } catch {
+            // 리스너 에러가 다른 리스너에 영향 주지 않음
+          }
+        }
       }
     }
   });

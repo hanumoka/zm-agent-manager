@@ -7,10 +7,12 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { scanAllSessions } from '../session-scanner';
 import { parseJsonlFile } from '../jsonl-parser';
+import { encodeProjectPath } from '@shared/types';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
-const ZM_PROJECT_DIR = join(PROJECTS_DIR, '-Users-hanumoka-projects-zm-agent-manager');
+const ZM_PROJECT_PATH = process.cwd();
+const ZM_PROJECT_DIR = join(PROJECTS_DIR, encodeProjectPath(ZM_PROJECT_PATH));
 
 // ~/.claude/ 디렉토리가 없으면 테스트 스킵
 const hasClaudeDir = existsSync(CLAUDE_DIR);
@@ -183,11 +185,9 @@ describeIfClaude('E2E: encodeProjectPath 일관성', () => {
     const groups = await scanAllSessions();
 
     for (const group of groups) {
-      if (group.projectPath.startsWith('/')) {
-        const encoded = encodeProjectPath(group.projectPath);
-        // 실제 디렉토리가 존재하는지 확인
-        expect(existsSync(join(PROJECTS_DIR, encoded))).toBe(true);
-      }
+      const encoded = encodeProjectPath(group.projectPath);
+      // 실제 디렉토리가 존재하는지 확인
+      expect(existsSync(join(PROJECTS_DIR, encoded))).toBe(true);
     }
   });
 });

@@ -51,3 +51,20 @@ CLAUDE.md의 코딩 컨벤션 요약을 보완하는 상세 규칙이다.
 - 외부 입력/API 경계에서만 try-catch
 - 내부 로직은 타입 시스템으로 안전성 보장
 - 에러 로깅은 구조화된 객체로 (`console.error({ context, error })`)
+
+## 용어 사전
+
+UI 라벨과 코드 내부에서 사용하는 용어를 통일한다.
+
+| 한국어 (UI 라벨) | 영어 (코드/변수명) | 비고 |
+|-----------------|-------------------|------|
+| 태스크 보드 | TaskBoard | 칸반 형태의 태스크 관리 뷰 |
+| 세션 | Session | Claude Code 대화 세션 |
+| 프로젝트 | Project | ~/.claude/projects/ 하위 디렉토리 단위 |
+| 프롬프트 | Prompt | 사용자 입력 (history.jsonl 기준) |
+| 플랜 | Plan | ExitPlanMode로 생성된 계획 문서 |
+| 비용 | Cost | 토큰 사용량 기반 비용 추정 |
+| 알림 | Notification | Electron Notification API 발송 |
+| 문서 인벤토리 | DocInventory | 프로젝트 관리 문서 목록 뷰 |
+| 스킬 | Skill | ~/.claude/skills/ 커스텀 스킬 |
+| 에이전트 | Agent | ~/.claude/agents/ 커스텀 에이전트 |

@@ -1,6 +1,6 @@
 # Phase 2 — 세션 리플레이
 
-**상태**: 진행중 (5/7 완료 — M1/M3/M4/M5/M7 ✓, M2/M6 부분완료: file-history diff 미구현)
+**상태**: **완료** (7/7 — M1-M7 전체 완료)
 
 **품질 강화** (2026-04-10 audit-3-followup):
 - ✅ 회귀 테스트 26건 추가 (vitest 45 → 71): cost-scanner / task-scanner / session-store
@@ -23,8 +23,8 @@
 
 - [x] Write/Edit/Read tool_use에서 파일 변경 추출 — FileChangePanel.tsx
 - [x] 수정된 파일 목록 시각화 (파일별 Write/Edit/Read 횟수)
-- [ ] 파일별 변경 전/후 diff 표시 (file-history 연동 필요)
-- [ ] 리플레이 시점에 맞춘 파일 상태 표시
+- [x] 파일별 변경 전/후 diff 표시 — `file-history-service.ts` + `FileDiffView.tsx` + FileChangePanel 확장 (2026-04-11)
+- [x] 리플레이 시점에 맞춘 파일 상태 표시 — ReplayPlayer에 file-history-snapshot 추적 + 파일 내용 뷰 (2026-04-11)
 
 ## Milestone 3: 서브에이전트 추적 (F7)
 
@@ -51,7 +51,7 @@
 
 - [x] 관리 문서 목록 스캔 (CLAUDE.md, MEMORY.md, .claude/rules/, skills/, agents/, docs/)
 - [x] 문서별 메타데이터 (크기, 라인 수, 최종 수정일) + 카테고리별 그룹핑
-- [ ] file-history 기반 diff 뷰
+- [x] file-history 기반 diff 뷰 — DocRow History 버튼 + 버전 선택 + FileDiffView 인라인 표시 (2026-04-11)
 
 ## Milestone 7: 비용 실시간 추적 (F13) — **완료**
 

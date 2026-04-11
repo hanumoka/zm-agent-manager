@@ -28,6 +28,13 @@ import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
 import { listWorkflows, saveWorkflow, deleteWorkflow } from './workflow-service';
 import { getDocReview, setDocReview } from './doc-review-service';
 import { getNotificationSettings, setNotificationSettings } from './notification-settings-service';
+import {
+  getNotificationHistory,
+  markNotificationRead,
+  clearNotificationHistory,
+} from './notification-history-service';
+import { getFileVersions, getFileBackupContent } from './file-history-service';
+import { scanAllPlans } from './plan-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -157,4 +164,34 @@ export function registerIpcHandlers(): void {
       return setNotificationSettings(settings);
     }
   );
+
+  ipcMain.handle(IPC_CHANNELS.GET_NOTIFICATION_HISTORY, async () => {
+    return getNotificationHistory();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MARK_NOTIFICATION_READ, async (_event, id: string) => {
+    return markNotificationRead(id);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CLEAR_NOTIFICATION_HISTORY, async () => {
+    return clearNotificationHistory();
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.GET_FILE_VERSIONS,
+    async (_event, sessionId: string, projectEncoded: string) => {
+      return getFileVersions(sessionId, projectEncoded);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.GET_FILE_CONTENT,
+    async (_event, sessionId: string, backupFileName: string) => {
+      return getFileBackupContent(sessionId, backupFileName);
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.GET_ALL_PLANS, async () => {
+    return scanAllPlans();
+  });
 }

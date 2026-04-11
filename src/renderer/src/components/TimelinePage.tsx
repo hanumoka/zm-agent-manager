@@ -148,6 +148,7 @@ export function TimelinePage(): React.JSX.Element {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              data-testid={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors ${
                 activeTab === tab.id
@@ -170,8 +171,16 @@ export function TimelinePage(): React.JSX.Element {
         {activeTab === 'subagents' && projectEncoded && sessionId && (
           <SubagentPanel projectEncoded={projectEncoded} sessionId={sessionId} />
         )}
-        {activeTab === 'files' && <FileChangePanel records={currentSession.records} />}
-        {activeTab === 'replay' && <ReplayPlayer records={currentSession.records} />}
+        {activeTab === 'files' && (
+          <FileChangePanel
+            records={currentSession.records}
+            sessionId={sessionId}
+            projectEncoded={projectEncoded}
+          />
+        )}
+        {activeTab === 'replay' && (
+          <ReplayPlayer records={currentSession.records} sessionId={sessionId} />
+        )}
       </div>
     </div>
   );

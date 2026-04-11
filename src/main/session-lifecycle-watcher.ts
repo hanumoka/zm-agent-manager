@@ -4,6 +4,7 @@ import { join, basename } from 'path';
 import { homedir } from 'os';
 import { Notification } from 'electron';
 import { getNotificationSettings } from './notification-settings-service';
+import { addNotificationEntry } from './notification-history-service';
 
 /**
  * 세션 시작/종료 감시 (F16).
@@ -31,6 +32,7 @@ function sendNotification(title: string, body: string): void {
   } catch {
     // 무시
   }
+  void addNotificationEntry({ category: 'session-lifecycle', title, body }).catch(() => {});
 }
 
 export function initSessionLifecycleWatcher(): void {
@@ -46,7 +48,7 @@ export function initSessionLifecycleWatcher(): void {
     try {
       const raw = await readFile(path, 'utf-8');
       const info = JSON.parse(raw) as { sessionId?: string; cwd?: string; name?: string };
-      const project = info.cwd?.split('/').pop() ?? '';
+      const project = info.cwd ? basename(info.cwd) : '';
       const name = info.name ?? info.sessionId?.slice(0, 8) ?? basename(path);
       sendNotification('🟢 세션 시작', `${project} — ${name}`);
     } catch {

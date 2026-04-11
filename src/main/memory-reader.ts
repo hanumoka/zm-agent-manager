@@ -26,7 +26,7 @@ export async function readMemoryContent(
 
   try {
     const [content, fileStat] = await Promise.all([readFile(filePath, 'utf-8'), stat(filePath)]);
-    const lineCount = content.split('\n').length;
+    const lineCount = content.split(/\r?\n/).length;
     return {
       projectEncoded,
       projectName,
@@ -73,7 +73,7 @@ export async function listProjectMemories(
       try {
         const fileStat = await stat(filePath);
         const content = await readFile(filePath, 'utf-8');
-        const lineCount = content.split('\n').length;
+        const lineCount = content.split(/\r?\n/).length;
         return {
           projectEncoded: encodedDir,
           projectName,

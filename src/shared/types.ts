@@ -9,7 +9,7 @@
  * /Users/hanumoka/projects/zm-agent-manager → -Users-hanumoka-projects-zm-agent-manager
  */
 export function encodeProjectPath(projectPath: string): string {
-  return projectPath.replace(/\//g, '-');
+  return projectPath.replace(/[\\/:]/g, '-');
 }
 
 // ─── IPC 채널 ───
@@ -41,6 +41,12 @@ export const IPC_CHANNELS = {
   SET_DOC_REVIEW: 'doc-review:set',
   GET_NOTIFICATION_SETTINGS: 'notifications:get-settings',
   SET_NOTIFICATION_SETTINGS: 'notifications:set-settings',
+  GET_NOTIFICATION_HISTORY: 'notifications:get-history',
+  MARK_NOTIFICATION_READ: 'notifications:mark-read',
+  CLEAR_NOTIFICATION_HISTORY: 'notifications:clear-history',
+  GET_FILE_VERSIONS: 'file-history:get-versions',
+  GET_FILE_CONTENT: 'file-history:get-content',
+  GET_ALL_PLANS: 'plans:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -182,11 +188,35 @@ export interface SystemRecord extends BaseRecord {
   level?: string;
 }
 
+/** file-history-snapshot의 trackedFileBackups 엔트리 */
+export interface TrackedFileBackup {
+  backupFileName: string | null;
+  version: number;
+  backupTime: string;
+}
+
+/** file-history-snapshot의 snapshot 내부 구조 */
+export interface FileHistorySnapshot {
+  messageId: string;
+  trackedFileBackups: Record<string, TrackedFileBackup>;
+  timestamp: string;
+}
+
 export interface FileHistorySnapshotRecord {
   type: 'file-history-snapshot';
   messageId?: string;
   isSnapshotUpdate?: boolean;
-  snapshot?: Record<string, unknown>;
+  snapshot?: FileHistorySnapshot;
+}
+
+/** 파일별 버전 정보 */
+export interface FileVersionInfo {
+  filePath: string;
+  versions: {
+    version: number;
+    backupFileName: string | null;
+    backupTime: string;
+  }[];
 }
 
 export interface PermissionModeRecord {
@@ -326,6 +356,42 @@ export interface NotificationSettings {
   sessionLifecycle: boolean;
   /** 태스크 완료 알림 ON/OFF */
   taskComplete: boolean;
+}
+
+// ─── 알림 이력 (F16) ───
+
+export type NotificationCategory = 'budget' | 'doc-change' | 'session-lifecycle' | 'task-complete';
+
+export interface NotificationHistoryEntry {
+  id: string;
+  category: NotificationCategory;
+  title: string;
+  body: string;
+  timestamp: number;
+  read: boolean;
+}
+
+export interface NotificationHistory {
+  entries: NotificationHistoryEntry[];
+}
+
+// ─── 플래닝 모니터 ───
+
+export interface PlanInfo {
+  /** 플랜 제목 (마크다운 첫 줄 # 제거) */
+  title: string;
+  /** 플랜 전체 마크다운 내용 */
+  content: string;
+  /** 플랜 파일 경로 */
+  filePath: string;
+  /** 허용된 프롬프트 목록 */
+  allowedPrompts: { tool: string; prompt: string }[];
+  /** 타임스탬프 */
+  timestamp: string | number;
+  /** 세션 ID */
+  sessionId: string;
+  /** 프로젝트명 */
+  projectName: string;
 }
 
 // ─── Config 모니터 (F20) ───

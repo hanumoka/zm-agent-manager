@@ -7,6 +7,7 @@ import type {
   RuleFile,
   McpServer,
   NotificationSettings,
+  NotificationHistoryEntry,
 } from '@shared/types';
 
 // ─── 포맷 ───
@@ -178,14 +179,126 @@ const NOTIFICATION_TRIGGERS: {
   {
     key: 'sessionLifecycle',
     label: '세션 시작/종료',
-    description: 'Claude Code 세션 시작/종료 감지 시 알림 (향후)',
+    description: 'Claude Code 세션 시작/종료 감지 시 알림',
   },
   {
     key: 'taskComplete',
     label: '태스크 완료',
-    description: '태스크 상태가 completed로 변경 시 알림 (향후)',
+    description: '태스크 상태가 completed로 변경 시 알림',
   },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  budget: '비용',
+  'doc-change': '문서',
+  'session-lifecycle': '세션',
+  'task-complete': '태스크',
+};
+
+function NotificationHistoryPanel(): React.JSX.Element {
+  const [entries, setEntries] = useState<NotificationHistoryEntry[]>([]);
+  const [filter, setFilter] = useState<string>('all');
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const h = await window.api?.getNotificationHistory?.();
+      if (h && isMountedRef.current) setEntries(h.entries);
+    } catch {
+      // 무음
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  const handleMarkRead = useCallback(
+    async (id: string) => {
+      await window.api?.markNotificationRead?.(id);
+      loadHistory();
+    },
+    [loadHistory]
+  );
+
+  const handleClear = useCallback(async () => {
+    await window.api?.clearNotificationHistory?.();
+    if (isMountedRef.current) setEntries([]);
+  }, []);
+
+  const filtered = filter === 'all' ? entries : entries.filter((e) => e.category === filter);
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">알림 이력</h3>
+        <div className="flex items-center gap-2">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground"
+          >
+            <option value="all">전체</option>
+            <option value="budget">비용</option>
+            <option value="doc-change">문서</option>
+            <option value="session-lifecycle">세션</option>
+            <option value="task-complete">태스크</option>
+          </select>
+          {entries.length > 0 && (
+            <button
+              onClick={handleClear}
+              className="text-xs text-muted-foreground hover:text-destructive"
+            >
+              이력 지우기
+            </button>
+          )}
+        </div>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground">알림 이력이 없습니다</p>
+      ) : (
+        <div className="max-h-64 space-y-1 overflow-y-auto">
+          {filtered.slice(0, 50).map((entry) => (
+            <div
+              key={entry.id}
+              className={`flex items-start justify-between rounded border px-2.5 py-1.5 text-xs ${
+                entry.read ? 'border-border/30 opacity-60' : 'border-border/50'
+              }`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded bg-muted px-1 py-0.5 text-[10px] font-medium">
+                    {CATEGORY_LABELS[entry.category] ?? entry.category}
+                  </span>
+                  <span className="font-medium text-foreground">{entry.title}</span>
+                </div>
+                <p className="mt-0.5 truncate text-muted-foreground">{entry.body}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {formatTimeAgo(entry.timestamp)}
+                </p>
+              </div>
+              {!entry.read && (
+                <button
+                  onClick={() => handleMarkRead(entry.id)}
+                  className="ml-2 shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
+                >
+                  읽음
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function NotificationsTab(): React.JSX.Element {
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
@@ -256,6 +369,7 @@ function NotificationsTab(): React.JSX.Element {
           저장됨 ({new Date(savedAt).toLocaleTimeString()})
         </p>
       )}
+      <NotificationHistoryPanel />
     </div>
   );
 }

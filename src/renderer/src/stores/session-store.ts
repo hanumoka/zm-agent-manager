@@ -67,16 +67,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   addNewRecords: (records: JsonlRecord[]) => {
-    const current = get().currentSession;
-    if (!current) return;
+    set((state) => {
+      const current = state.currentSession;
+      if (!current) return state;
 
-    const newMessageCount =
-      current.messageCount +
-      records.filter((r) => r.type === 'user' || r.type === 'assistant').length;
+      const addedMessages = records.filter(
+        (r) => r.type === 'user' || r.type === 'assistant'
+      ).length;
 
-    const newToolCount =
-      current.toolCallCount +
-      records
+      const addedTools = records
         .filter((r) => r.type === 'assistant')
         .reduce((acc, r) => {
           if (r.type === 'assistant' && r.message?.content) {
@@ -85,13 +84,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           return acc;
         }, 0);
 
-    set({
-      currentSession: {
-        ...current,
-        records: [...current.records, ...records],
-        messageCount: newMessageCount,
-        toolCallCount: newToolCount,
-      },
+      return {
+        currentSession: {
+          ...current,
+          records: [...current.records, ...records],
+          messageCount: current.messageCount + addedMessages,
+          toolCallCount: current.toolCallCount + addedTools,
+        },
+      };
     });
   },
 }));

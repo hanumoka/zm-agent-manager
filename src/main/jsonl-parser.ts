@@ -1,6 +1,7 @@
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import { stat } from 'fs/promises';
+import { basename } from 'path';
 import type { JsonlRecord, ParsedSession, ContentBlock } from '@shared/types';
 
 /**
@@ -58,7 +59,7 @@ function toTimestampMs(ts: string | number | undefined): number {
 export async function parseJsonlFile(filePath: string): Promise<ParsedSession> {
   // 파일 존재 및 크기 확인
   const fileStat = await stat(filePath);
-  const sessionId = filePath.split('/').pop()?.replace('.jsonl', '') ?? '';
+  const sessionId = basename(filePath, '.jsonl');
 
   const records: JsonlRecord[] = [];
   let messageCount = 0;

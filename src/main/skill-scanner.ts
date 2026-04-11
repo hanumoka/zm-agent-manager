@@ -1,5 +1,5 @@
 import { readdir, stat, readFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 import type { SkillInfo, SkillScope } from '@shared/types';
 
@@ -66,7 +66,7 @@ async function parseSkillFile(skillMdPath: string, scope: SkillScope): Promise<S
     const frontmatter = parseFrontmatter(content);
     if (!frontmatter) return null;
 
-    const name = frontmatter.name ?? dirname(skillMdPath).split('/').pop() ?? 'unknown';
+    const name = frontmatter.name ?? basename(dirname(skillMdPath));
     const description = frontmatter.description ?? '';
     const model = frontmatter.model;
     const disableModelInvocation = frontmatter['disable-model-invocation'] === 'true';
