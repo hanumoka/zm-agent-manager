@@ -27,6 +27,23 @@
 - Phase 1~3 모두 main 직접 커밋으로 완료 (단독 개발)
 - feature 브랜치 정책은 협업 또는 PR 기반 워크플로우 도입 시 적용
 
+## 배포/설치 이슈 (2026-04-11 발견)
+
+### 미해결 — Medium: TaskBoard 실시간 모니터링 미지원
+- **현상**: Tasks 페이지에서 다른 프로젝트(예: zm-v3)에서 생성된 새 태스크가 실시간 반영 안됨
+- **원인**: TaskBoard가 마운트 시 1회 `getAllTasks()` 호출 후 `onNewRecords` 미구독
+- **병목**: (1) session-watcher가 해당 세션을 감시하지 않음, (2) TaskBoard가 이벤트 구독 안함
+- **해결안**: 주기적 폴링(30초) 또는 활성 세션 자동 감시 + 이벤트 구독
+
+### 미해결 — Medium: 설치된 exe에서 프로젝트 스코프 스킬/에이전트 미발견
+- **현상**: `npm run dev`에서는 스킬/에이전트가 조회되지만, 설치된 exe에서는 0건
+- **원인**: `process.cwd()`가 dev 모드에서는 프로젝트 루트이지만, exe에서는 설치 경로(예: `C:\Program Files\...`)로 변경
+- **영향**: skill-scanner.ts, agent-scanner.ts의 프로젝트 스코프 스캔이 실패
+- **글로벌 스코프**: `~/.claude/skills/`, `~/.claude/agents/`는 `homedir()` 기반이므로 정상
+- **해결안**: 프로젝트 스코프 스캔 시 `process.cwd()` 대신 사용자 선택 프로젝트 경로 사용
+
+---
+
 ## Windows 크로스플랫폼 호환성 (2026-04-11 발견)
 
 macOS에서 개발되어 Unix 경로 구분자(`/`)에 의존하는 코드가 다수 존재. Windows에서 데이터 로딩 실패 원인.

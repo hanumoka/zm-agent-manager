@@ -43,7 +43,16 @@
     - ConfigPage "(향후)" 텍스트 제거
 - **검증**: typecheck / vitest 134 통과
 - **문서 갱신**: ROADMAP Phase 2/3 완료, known-issues 전건 종결, INBOX 전건 완료
-- **다음 할 일**: Q6 GitHub Actions CI (보류)
+  - **CI/CD 배포 자동화**:
+    - GitHub Actions 워크플로우: 태그 푸시 시 Windows/macOS/Linux 자동 빌드
+    - electron-builder 설정: publish → github, macOS Universal, Windows NSIS
+    - v0.1.0-beta.1 → snap 빌드 실패 → v0.1.0-beta.2 성공
+    - 발견 이슈: 설치된 exe에서 프로젝트 스코프 스킬/에이전트 미발견 (process.cwd() 차이)
+  - **발견 이슈 — TaskBoard 실시간 모니터링 미지원**:
+    - Tasks 페이지가 마운트 시 1회 로드 후 실시간 갱신 안됨
+    - 원인: onNewRecords 미구독 + session-watcher 미감시
+    - 해결안: 주기적 폴링(30초) 권장
+- **다음 할 일**: TaskBoard 폴링 추가 + exe 프로젝트 스코프 스캔 수정
 
 ---
 
