@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { FolderOpen, Activity, DollarSign, Zap } from 'lucide-react';
+import { FolderOpen, Activity, DollarSign, Zap, ArrowRight } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
@@ -99,12 +99,19 @@ export function DashboardPage(): React.JSX.Element {
   const { groups, isLoading, error, fetchSessions } = useSessionStore();
   const navigate = useNavigate();
   const [totalCost, setTotalCost] = useState<number | null>(null);
+  const [handoffs, setHandoffs] = useState<
+    { sessionId: string; projectName: string; lastSummary: string; toolsUsed: string[]; endedAt: number; promptCount: number }[]
+  >([]);
 
   useEffect(() => {
     fetchSessions();
     window.api
       ?.getCostSummary?.()
       ?.then((s) => setTotalCost(s.totalCost))
+      ?.catch(() => {});
+    window.api
+      ?.getHandoffs?.()
+      ?.then((h) => setHandoffs((h as typeof handoffs).slice(0, 5)))
       ?.catch(() => {});
   }, [fetchSessions]);
 
@@ -244,6 +251,49 @@ export function DashboardPage(): React.JSX.Element {
           </p>
         )}
       </div>
+
+      {/* Session Handoff */}
+      {handoffs.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold text-foreground mb-2">세션 핸드오프 요약</h2>
+          <div className="space-y-2">
+            {handoffs.map((h) => (
+              <div
+                key={h.sessionId}
+                className="rounded border border-border/50 px-3 py-2 text-xs"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium text-foreground">{h.projectName}</span>
+                  <span className="text-muted-foreground">{h.sessionId.slice(0, 8)}</span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">{h.promptCount}개 프롬프트</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {formatTimeAgo(h.endedAt)}
+                  </span>
+                </div>
+                <p className="text-muted-foreground truncate">{h.lastSummary || '(요약 없음)'}</p>
+                {h.toolsUsed.length > 0 && (
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {h.toolsUsed.slice(0, 6).map((t) => (
+                      <span
+                        key={t}
+                        className="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                    {h.toolsUsed.length > 6 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        +{h.toolsUsed.length - 6}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

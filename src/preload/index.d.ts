@@ -57,6 +57,14 @@ interface AppAPI {
   getFileVersions: (sessionId: string, projectEncoded: string) => Promise<FileVersionInfo[]>;
   getFileContent: (sessionId: string, backupFileName: string) => Promise<string | null>;
   getAllPlans: () => Promise<PlanInfo[]>;
+  lintClaudeMd: (projectPath: string) => Promise<unknown>;
+  getSidebarSettings: () => Promise<{
+    items: { path: string; visible: boolean; order: number }[];
+  }>;
+  setSidebarSettings: (settings: {
+    items: { path: string; visible: boolean; order: number }[];
+  }) => Promise<{ items: { path: string; visible: boolean; order: number }[] }>;
+  getHandoffs: () => Promise<unknown[]>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

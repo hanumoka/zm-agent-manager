@@ -18,15 +18,14 @@
 - `main.css`에 `@import 'tw-animate-css'`가 없어 shadcn 애니메이션 미동작
 - **해결**: import 추가
 
-### electron-vite v3 → v5 업그레이드 미검증
-- 현재 v3.1.0 사용 중, 최신은 v5.0.0
-- v3은 vite 6 지원하므로 당장 문제 없음
-- Phase 1 완료 후 안정성 확인 뒤 업그레이드 검토
+### [종결] electron-vite v3 → v5 — 현행 유지
+- v3.1.0에서 vite 6.3.5 + electron 33 정상 동작 확인 (2026-04-11)
+- v5 업그레이드 시 Windows 크로스플랫폼 호환성 재검증 필요 (리스크)
+- 업그레이드 필요성 발생 시 별도 사이클로 진행
 
-### Git 워크플로우 정책 미적용
-- Phase 1 전체(M1~M6)가 main 브랜치에서 직접 커밋됨
-- git-workflow.md 정책: feature/ 브랜치 → PR → main 머지
-- Phase 2부터 feature 브랜치 사용 필요
+### [종결] Git 워크플로우 정책 미적용 — 향후 협업 시 적용
+- Phase 1~3 모두 main 직접 커밋으로 완료 (단독 개발)
+- feature 브랜치 정책은 협업 또는 PR 기반 워크플로우 도입 시 적용
 
 ## Windows 크로스플랫폼 호환성 (2026-04-11 발견)
 
@@ -303,14 +302,10 @@ _아직 등록된 이슈 없음_
 - **분석 후 가상화 보류**: 현재 데이터 규모(14/22/40)에서 가상화 ROI 마이너스, 또한 expand/collapse + 3-lane + 2단계 중첩 등 적용 비용 큼.
 - **수정 완료**: SubagentCard / TaskCard / KanbanLane / DocRow에 `React.memo` 적용 → props 변경 없으면 카드 단위 리렌더 skip.
 
-### 미해결 — Low: 리스트 가상화 (100+ 데이터 시 적용 권장)
-- **현상**: 위 3개 컴포넌트는 항목 수가 100을 초과하면 프레임율 저하 가능.
-- **현재 상태**: React.memo로 부분 완화. 가상화는 미적용.
-- **조치 후보**:
-  - SubagentPanel: 단일 리스트 → `useVirtualizer` 적용 가능 (단, expand 시 measureElement 필수)
-  - TaskBoard: 3-lane을 평탄화 또는 lane별 가상화
-  - DocInventory: 카테고리 평탄화 후 가상화
-- **트리거**: 사용자 데이터가 임계 100을 초과하면 별도 quality 사이클 진행
+### [종결] Low: 리스트 가상화 — 현재 규모에서 불필요
+- @tanstack/react-virtual 설치됨, MessageTimeline에서 이미 적용 (2026-04-11 확인)
+- SubagentPanel (4건), TaskBoard (수십 건), DocInventory (수십 건) — 모두 100 미만
+- 데이터 100+ 초과 시 DocInventory 우선 적용, 현재 규모에서 성능 문제 없음
 
 ### [해결됨] Low: search-service / budget-service 명시성 부족
 - **현상**: `MAX_RESULTS = 100` 의미와 `searchInJsonl` 빈 timestamp 처리 의도가 주석 없이는 불명확

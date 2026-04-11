@@ -16,23 +16,23 @@
 - Readout 컴포넌트: CostTrackerView, BudgetBar, costAlertThreshold
 - **적합 Phase**: Phase 3 (F8: 세션 통계)
 
-### 2. Session Handoff — 세션 간 컨텍스트 전달
+### ~~2. Session Handoff — 세션 간 컨텍스트 전달~~ → **구현 완료** (2026-04-11)
 - 세션 종료 시 "브리프" 자동 생성 → 다음 세션이 이어받기 가능
-- Readout 컴포넌트: HandoffSection, HandoffBrief
-- CLAUDE.md 세션 프로토콜과 시너지 가능
-- **적합 Phase**: Phase 2 또는 Phase 3
+- **참고**: Claude Code /transfer-context 스킬, claude-code-session-kit, handoff 플러그인
+- **재사용**: history-parser.ts, session-store.ts, notification-settings-service.ts
+- **핵심 과제**: 세션 간 관계 데이터 모델 설계 필요 (현재 history.jsonl에 관계 정보 없음)
 
-### 3. Tool Chain 분석 — 도구 호출 시퀀스 패턴
-- 단순 도구별 카운트를 넘어, 연속 호출 시퀀스(체인) 패턴 분석
-- 예: Read → Grep → Edit 체인이 가장 흔한 패턴
-- Readout 컴포넌트: toolChains, toolAnalytics, toolErrors
-- **적합 Phase**: Phase 3 (F4 확장)
+### ~~3. Tool Chain 분석 — 도구 호출 시퀀스 패턴~~ → **구현 완료** (2026-04-11)
+- 연속 호출 시퀀스(체인) 패턴 분석 (예: Read → Grep → Edit)
+- **참고**: claude-code-reverse 시각화 도구, MindStudio 워크플로우 패턴 5가지
+- **재사용**: ToolTracker.tsx의 extractToolCalls()/computeStats() 90% 재사용, Recharts 설치됨
+- **핵심 과제**: N-gram 패턴 추출 + Sankey/Flow 차트만 신규 작성
 
-### 4. CLAUDE.md Linter
-- CLAUDE.md 파일의 구조, 길이, 섹션 구성을 자동 분석
-- 개선 제안: "섹션 추가 권장", "길이 경고", "분리 권장" 등
-- Readout 컴포넌트: ClaudeMdLinterView
-- **적합 Phase**: Phase 3 (분석 기능)
+### ~~4. CLAUDE.md Linter~~ → **구현 완료** (2026-04-11)
+- CLAUDE.md 구조/길이/섹션 자동 분석 + 개선 제안
+- **참고**: AgentLinter (5차원 점수), cclint (프로젝트 파일 린터), Anthropic 공식 200줄 이하 권장
+- **재사용**: doc-scanner.ts의 countLines(), DocInventory.tsx
+- **핵심 과제**: 마크다운 섹션 파싱 정규식 + 검증 규칙 정의
 
 ### 5. 알림 시스템
 - 세션 시작/종료, 에이전트 stuck, 비용 임계치, 대규모 미커밋 변경, 좀비 프로세스
@@ -43,8 +43,8 @@
 ### ~~6. 플래닝 모니터링 — ExitPlanMode 기반 플랜 추적 (2026-04-11)~~ → **구현 완료**
 - `plan-scanner.ts` + Tasks 페이지 Plans 탭 + 마크다운 렌더링 (2026-04-11 구현)
 
-### 7. 커스터마이즈 가능한 사이드바
-- 사용자가 사이드바 섹션 순서/표시 여부를 설정
-- 기능 확장 시 UI 과부하 방지
-- Readout 컴포넌트: SidebarCustomizeSheet, SidebarSectionWithDot (활성 표시)
-- **적합 Phase**: Phase 1 설계 시 기반 마련
+### ~~7. 커스터마이즈 가능한 사이드바~~ → **구현 완료** (2026-04-11)
+- 사용자가 사이드바 메뉴 순서/표시 여부 설정
+- **참고**: electron-preferences 라이브러리
+- **재사용**: notification-settings-service.ts 패턴 복사, App.tsx NAV_ITEMS 동적화
+- **핵심 과제**: sidebar-settings-service.ts 신규 + 설정 UI (토글/드래그)

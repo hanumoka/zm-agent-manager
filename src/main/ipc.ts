@@ -35,6 +35,10 @@ import {
 } from './notification-history-service';
 import { getFileVersions, getFileBackupContent } from './file-history-service';
 import { scanAllPlans } from './plan-scanner';
+import { lintClaudeMd } from './claude-md-linter';
+import { getSidebarSettings, setSidebarSettings } from './sidebar-settings-service';
+import type { SidebarSettings } from './sidebar-settings-service';
+import { scanHandoffs } from './handoff-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -193,5 +197,24 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_ALL_PLANS, async () => {
     return scanAllPlans();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LINT_CLAUDE_MD, async (_event, projectPath: string) => {
+    return lintClaudeMd(projectPath);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_SIDEBAR_SETTINGS, async () => {
+    return getSidebarSettings();
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.SET_SIDEBAR_SETTINGS,
+    async (_event, settings: SidebarSettings) => {
+      return setSidebarSettings(settings);
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.GET_HANDOFFS, async () => {
+    return scanHandoffs();
   });
 }

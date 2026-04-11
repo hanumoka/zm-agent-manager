@@ -83,6 +83,15 @@ const api = {
   getFileContent: (sessionId: string, backupFileName: string): Promise<string | null> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_FILE_CONTENT, sessionId, backupFileName),
   getAllPlans: (): Promise<PlanInfo[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_PLANS),
+  lintClaudeMd: (projectPath: string): Promise<unknown> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINT_CLAUDE_MD, projectPath),
+  getSidebarSettings: (): Promise<{ items: { path: string; visible: boolean; order: number }[] }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_SIDEBAR_SETTINGS),
+  setSidebarSettings: (
+    settings: { items: { path: string; visible: boolean; order: number }[] }
+  ): Promise<{ items: { path: string; visible: boolean; order: number }[] }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_SIDEBAR_SETTINGS, settings),
+  getHandoffs: (): Promise<unknown[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_HANDOFFS),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

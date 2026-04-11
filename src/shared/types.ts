@@ -47,6 +47,10 @@ export const IPC_CHANNELS = {
   GET_FILE_VERSIONS: 'file-history:get-versions',
   GET_FILE_CONTENT: 'file-history:get-content',
   GET_ALL_PLANS: 'plans:get-all',
+  LINT_CLAUDE_MD: 'lint:claude-md',
+  GET_SIDEBAR_SETTINGS: 'sidebar:get-settings',
+  SET_SIDEBAR_SETTINGS: 'sidebar:set-settings',
+  GET_HANDOFFS: 'handoffs:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───

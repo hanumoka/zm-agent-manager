@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, FolderOpen, Check, X, MessageCircle, History } from 'lucide-react';
+import { FileText, FolderOpen, Check, X, MessageCircle, History, Shield } from 'lucide-react';
 import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { classifyDocImportance, IMPORTANCE_CONFIG } from '@shared/doc-importance';
@@ -324,6 +324,26 @@ export function DocInventory(): React.JSX.Element {
     };
   }, [groups, selectedProject]);
 
+  // CLAUDE.md Lint
+  const [lintResult, setLintResult] = useState<{
+    score: number;
+    rules: { id: string; severity: string; message: string; suggestion?: string }[];
+    totalLines: number;
+    sections: { title: string; lineCount: number }[];
+  } | null>(null);
+  const [showLint, setShowLint] = useState(false);
+
+  const handleLint = useCallback(async () => {
+    if (!selectedProject) return;
+    try {
+      const result = (await window.api?.lintClaudeMd?.(selectedProject)) as typeof lintResult;
+      setLintResult(result);
+      setShowLint(true);
+    } catch {
+      // 무음
+    }
+  }, [selectedProject]);
+
   const stats = useMemo(() => {
     const totalLines = docs.reduce((acc, d) => acc + d.lineCount, 0);
     const totalSize = docs.reduce((acc, d) => acc + d.sizeBytes, 0);
@@ -349,6 +369,29 @@ export function DocInventory(): React.JSX.Element {
           {stats.count}개 · {stats.totalLines.toLocaleString()}줄 · {formatBytes(stats.totalSize)}
         </span>
         <div className="flex-1" />
+
+        {/* CLAUDE.md Lint */}
+        <button
+          onClick={handleLint}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors"
+          title="CLAUDE.md 린트"
+        >
+          <Shield className="h-3 w-3" />
+          Lint
+          {lintResult && (
+            <span
+              className={`ml-1 rounded px-1 py-0.5 text-[10px] font-bold ${
+                lintResult.score >= 80
+                  ? 'bg-green-900/30 text-green-400'
+                  : lintResult.score >= 50
+                    ? 'bg-yellow-900/30 text-yellow-400'
+                    : 'bg-red-900/30 text-red-400'
+              }`}
+            >
+              {lintResult.score}
+            </span>
+          )}
+        </button>
 
         {/* 프로젝트 선택 */}
         <select
@@ -382,6 +425,61 @@ export function DocInventory(): React.JSX.Element {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Lint 결과 */}
+            {showLint && lintResult && (
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">CLAUDE.md 린트</h3>
+                    <span
+                      className={`rounded px-2 py-0.5 text-xs font-bold ${
+                        lintResult.score >= 80
+                          ? 'bg-green-900/30 text-green-400'
+                          : lintResult.score >= 50
+                            ? 'bg-yellow-900/30 text-yellow-400'
+                            : 'bg-red-900/30 text-red-400'
+                      }`}
+                    >
+                      {lintResult.score}/100
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {lintResult.totalLines}줄 · {lintResult.sections?.length ?? 0}개 섹션
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowLint(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    닫기
+                  </button>
+                </div>
+                {lintResult.rules.length === 0 ? (
+                  <p className="text-xs text-green-400">모든 규칙을 통과했습니다</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {lintResult.rules.map((rule, i) => (
+                      <div
+                        key={`${rule.id}-${i}`}
+                        className={`rounded border px-2.5 py-1.5 text-xs ${
+                          rule.severity === 'error'
+                            ? 'border-red-800/50 bg-red-900/20 text-red-300'
+                            : rule.severity === 'warning'
+                              ? 'border-yellow-800/50 bg-yellow-900/20 text-yellow-300'
+                              : 'border-border/50 text-muted-foreground'
+                        }`}
+                      >
+                        <span className="font-medium">{rule.message}</span>
+                        {rule.suggestion && (
+                          <p className="mt-0.5 text-[10px] opacity-70">{rule.suggestion}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* StatCards */}
             <div className="flex gap-4">
               <div className="rounded-lg border border-border bg-card p-3 flex-1">

@@ -290,9 +290,50 @@ const KanbanLane = memo(function KanbanLane({
 
 // ─── PlansPanel ───
 
-const PlanCard = memo(function PlanCard({ plan }: { plan: PlanInfo }): React.JSX.Element {
+/** compact: Tasks 탭 (제목+메타만), full: Plans 탭 (마크다운 펼치기) */
+const PlanCard = memo(function PlanCard({
+  plan,
+  compact = false,
+}: {
+  plan: PlanInfo;
+  compact?: boolean;
+}): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
 
+  // compact 모드: 제목 + 메타 정보만
+  if (compact) {
+    return (
+      <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+        <p className="text-sm font-semibold text-foreground truncate">{plan.title}</p>
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <span>{plan.projectName}</span>
+          <span>·</span>
+          <span>{plan.sessionId.slice(0, 8)}</span>
+          <span>·</span>
+          <span>{formatTimeAgo(plan.timestamp)}</span>
+        </div>
+        {plan.allowedPrompts.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {plan.allowedPrompts.slice(0, 3).map((ap, i) => (
+              <span
+                key={i}
+                className="rounded bg-primary/10 px-1 py-0.5 text-[10px] text-primary"
+              >
+                {ap.prompt}
+              </span>
+            ))}
+            {plan.allowedPrompts.length > 3 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{plan.allowedPrompts.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // full 모드: 펼치기/접기 + 마크다운
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div
@@ -365,7 +406,7 @@ function PlansLane({
       </div>
       <div className="space-y-2">
         {plans.map((plan, i) => (
-          <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} />
+          <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} compact />
         ))}
         {plans.length === 0 && (
           <div className="rounded-md border border-dashed border-border p-4 text-center">
