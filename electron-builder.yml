@@ -12,14 +12,25 @@ files:
   - '!{docs,mock}/**/*'
 asarUnpack:
   - resources/**
+win:
+  target:
+    - nsis
+  artifactName: ${name}-${version}-win.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
 mac:
+  target:
+    - target: dmg
+      arch:
+        - universal
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-mac-universal.${ext}
 linux:
   target:
     - AppImage
@@ -28,8 +39,9 @@ linux:
   maintainer: hanumoka
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-linux.${ext}
 npmRebuild: false
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: hanumoka
+  repo: zm-agent-manager
