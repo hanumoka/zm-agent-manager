@@ -5,6 +5,82 @@
 
 ---
 
+## 2026-04-12 오후 | 남은 이슈 전체 처리 + v0.1.0-beta.3 재배포
+
+- **목표**: 오전 세션에서 남은 이슈 전부 해결 후 새 installer 배포 + 검증
+- **작업 내용**:
+  - **Part A — 프로젝트 선택 UI** (Medium 이슈 해결):
+    - `src/main/project-settings-service.ts` 신규 — `~/.zm-agent-manager/project-settings.json`
+    - `src/main/current-project.ts` 수정 — 사용자 선택 1순위, history.jsonl fallback
+    - IPC 채널 3개(`GET/SET_PROJECT_SETTINGS`, `GET_KNOWN_PROJECTS`), preload API
+    - `ConfigPage` "Projects" 탭 신설 — 드롭다운 + 자동 감지 옵션 + 저장 즉시 캐시 무효화
+  - **Part B — Lint error 2건**:
+    - `ConfigPage.tsx:242` + `FileChangePanel.tsx:89` `react-hooks/set-state-in-effect` 규칙 false positive
+    - 각 위치에 `eslint-disable-next-line` 주석(초기 로드 패턴은 React docs가 명시적으로 허용)
+  - **Part C — INBOX #5 알림 확장**:
+    - `src/main/activity-monitor.ts` 신규 — 60초 간격 setInterval 루프
+    - C1 stuck: 활성 세션 JSONL mtime 15분 경과 시 알림 (`computeStuckCandidates` 순수 함수)
+    - C2 미커밋: `simple-git` 지연 로드, 프로젝트별 50개 이상 + 1시간 debounce (`shouldNotifyUncommitted`)
+    - C3 좀비: `ps-list` 지연 로드, pid 생존 확인 (`computeZombieCandidates`)
+    - `NotificationSettings` 3개 토글 + `NotificationCategory` 3개 추가
+    - `main/index.ts`에서 whenReady에 등록, will-quit에 정리
+  - **Part D — 재배포 준비**:
+    - `package.json` v0.1.0-beta.2 → v0.1.0-beta.3
+    - `simple-git@3.35.2`, `ps-list@9.0.0` dependencies 추가
+- **검증**:
+  - `npm run typecheck` 통과
+  - `npm run test` — 147 → **157 passed** (+10 신규 activity-monitor 테스트)
+  - `npm run lint` — 2 errors → **0 errors**
+  - `npm run build` — 3단계 빌드 성공
+  - `npm run test:e2e` — **Playwright 13/13 통과**
+- **문서 갱신**: `known-issues.md` Medium 이슈 [해결됨], `INBOX.md` #5 완료 표시
+- **다음 할 일**: 커밋 시퀀스 → v0.1.0-beta.3 태그 → GitHub Actions 빌드 → Windows installer 재설치 → CDP 검증
+
+---
+
+## 2026-04-12 | 배포/런타임 이슈 2건 해결 + INBOX #1 비용 추적 확장
+
+- **목표**: 이전 세션에서 발견된 known-issues 2건 종결 + INBOX #1(비용 추적) 확장
+- **작업 내용**:
+  - **이슈 B 해결 — 설치된 exe에서 프로젝트 스코프 스킬/에이전트 미발견**:
+    - `src/main/current-project.ts` 신규 — `history.jsonl`에서 최근 활동 세션의 `project` 필드를 반환하는 헬퍼 (5초 TTL 캐시, fallback: `process.cwd()`)
+    - `isAbsolutePath()` 가드로 인코딩된 디렉토리명 제외
+    - 4개 스캐너 기본값 전환: `skill-scanner`, `agent-scanner`, `config-scanner`, `claude-md-linter`
+    - `options.projectDir/projectRoot` 오버라이드 유지 → 기존 테스트 호환
+  - **이슈 A 해결 — TaskBoard 실시간 모니터링 미지원**:
+    - 30초 `setInterval` 폴링 + `window focus` 이벤트 리스너
+    - `refetch(showSpinner)` 헬퍼로 초기 로드와 백그라운드 갱신 구분
+    - `isMountedRef` 가드로 unmount race 방지
+    - tasks/plans 병렬 재조회 (`Promise.all`)
+  - **doc-watcher 후속 정비**:
+    - `initDocWatcher()` async 전환, `getCurrentProjectPath()` 사용
+    - `main/index.ts`에서 `.catch()` 에러 핸들링 추가 (unhandled rejection 방지)
+  - **INBOX #1 비용 추적 확장** (Plan 모드에서 설계 후 구현):
+    - `src/shared/format.ts` 신규 — `formatCost`, `shortModelName` 공용 유틸
+    - `src/renderer/src/lib/period-comparison.ts` 신규 — `computePeriodComparison` 순수 함수 (주간/월간 계산, `empty`/`insufficient`/`ok` 3단계 status)
+    - `CostTracker.tsx`: `ModelCostBars` (비용 내림차순 막대) + `PeriodComparisonCard` (주간/월간 토글, ▲▼ 증감 아이콘) 추가
+    - `CostTracker.tsx`, `StatsPage.tsx`, `ComparePage.tsx` 로컬 `formatCost`/`shortModelName` 제거
+    - 신규 테스트: `format.test.ts` (7개) + `period-comparison.test.ts` (6개)
+- **검증**:
+  - `npm run typecheck` 통과 (node + web)
+  - `npm run test` — 134 → **147 passed** (+13 신규)
+  - `npm run build` — electron-vite 3단계 빌드 성공
+  - `npm run test:e2e` — **Playwright 13/13 통과** (사이드바 12개 페이지 smoke)
+  - **CDP 실제 앱 검증** (electron-test-mcp connect 9222): ① PeriodComparisonCard 주간/월간 토글 렌더 ② 기간 비교 "데이터 부족" + "신규 활동" 분기 ③ ModelCostBars Opus/Sonnet 내림차순 + 100% 막대 너비 ④ 이슈 B 해결 확인(Skills 페이지 실제 프로젝트 디렉토리 스캔) ⑤ TaskBoard remount 시 `setInterval(30000)` 스파이 캡처 ⑥ Tasks 페이지에 현재 세션 작업 실시간 표시 — **6개 항목 모두 통과**
+  - Lint 2 errors는 이번 세션 무관 (CostTracker:220, FileChangePanel:88 — 세션 시작 전부터 존재)
+- **신규 이슈 발견** — Medium: 멀티 프로젝트 환경 current-project 유동성
+  - Skills 페이지 연속 2회 방문 시 zm-v3 → my-blog로 변함 (5초 캐시 만료)
+  - A안(자동 감지) 설계상 한계. 후속 B안(사용자 선택 드롭다운) 필요
+  - `known-issues.md`에 미해결 Medium으로 등록
+- **문서 갱신**: `known-issues.md` 이슈 A/B [해결됨] 전환 + 신규 이슈 1건 등록, `INBOX.md` #1 완료 표시
+- **설계 선택**:
+  - 이슈 A: 활성 세션 자동 감시(session-watcher 모델 변경)는 범위 확대로 기각, 폴링으로 최소 침습 해결
+  - 이슈 B: 사용자 선택 프로젝트 드롭다운(UI 추가) 대신 최근 활동 세션 자동 감지로 블래스트 반경 최소화
+  - INBOX #1: StatsPage `ModelUsageBars`에 비용 추가 방안은 `stats-service.ts` 수정 필요 → 기각, CostTracker 내 신규 컴포넌트로 집중
+- **다음 할 일**: INBOX #5 알림 확장 (stuck/미커밋/좀비) 또는 기존 Lint error 2건 정리
+
+---
+
 ## 2026-04-11 | Windows 호환성 + Phase 2/3 완료 + INBOX 전건 구현
 
 - **목표**: macOS 개발 프로젝트를 Windows에서 실행 + 잔여 기능 전부 구현

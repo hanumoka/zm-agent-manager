@@ -29,18 +29,27 @@
 
 ## 배포/설치 이슈 (2026-04-11 발견)
 
-### 미해결 — Medium: TaskBoard 실시간 모니터링 미지원
+### [해결됨] Medium: TaskBoard 실시간 모니터링 미지원
 - **현상**: Tasks 페이지에서 다른 프로젝트(예: zm-v3)에서 생성된 새 태스크가 실시간 반영 안됨
 - **원인**: TaskBoard가 마운트 시 1회 `getAllTasks()` 호출 후 `onNewRecords` 미구독
 - **병목**: (1) session-watcher가 해당 세션을 감시하지 않음, (2) TaskBoard가 이벤트 구독 안함
-- **해결안**: 주기적 폴링(30초) 또는 활성 세션 자동 감시 + 이벤트 구독
+- **해결**: TaskBoard에 30초 간격 폴링(`setInterval`) + `window focus` 이벤트 리스너 추가. `refetch()` 헬퍼가 tasks/plans를 병렬 재조회. 활성 세션 자동 감시는 session-watcher 모델 변경이 필요해 이번 범위 밖으로 두고 폴링으로 최소 침습 해결 (2026-04-12)
 
-### 미해결 — Medium: 설치된 exe에서 프로젝트 스코프 스킬/에이전트 미발견
+### [해결됨] Medium: 멀티 프로젝트 환경에서 "현재 프로젝트" 유동적 (2026-04-12 발견)
+- **현상**: 사용자가 여러 프로젝트에서 병렬 Claude Code 세션을 실행 중일 때 Skills/Agents/Config 페이지에 표시되는 프로젝트가 5초마다 바뀔 수 있음
+- **재현**: E2E 검증 중 Skills 페이지를 연속 2회 방문 → 1회차 zm-v3 스킬 11개, 2회차 my-blog 스킬 5개 표시
+- **원인**: `current-project.ts`의 `getCurrentProjectPath()`가 `history.jsonl`의 가장 최근 timestamp를 기준으로 "현재 프로젝트"를 결정하는데, 활성 세션이 history.jsonl에 실시간으로 쓰기 때문에 "최근 활동" 프로젝트가 계속 변함. 5초 TTL 캐시가 만료될 때마다 재평가
+- **영향 범위**: `skill-scanner`, `agent-scanner`, `config-scanner`, `claude-md-linter` 기본 projectDir/projectRoot
+- **설계 맥락**: 2026-04-12 세션에서 이슈 B 해결 시 "A안(자동 감지) vs B안(사용자 선택 UI)" 중 블래스트 반경 최소화 이유로 A안 선택. 이 이슈는 A안의 알려진 한계
+- **해결**: Config 페이지에 "Projects" 탭 신설 — `ProjectsTab` + `current-project-select` 드롭다운. `project-settings-service.ts` 신규(`~/.zm-agent-manager/project-settings.json`). `current-project.ts`가 사용자 선택을 1순위로 사용, 없으면 history.jsonl fallback. 저장 시 `__clearCurrentProjectPathCache()` 호출로 즉시 반영 (2026-04-12 오후)
+
+### [해결됨] Medium: 설치된 exe에서 프로젝트 스코프 스킬/에이전트 미발견
 - **현상**: `npm run dev`에서는 스킬/에이전트가 조회되지만, 설치된 exe에서는 0건
 - **원인**: `process.cwd()`가 dev 모드에서는 프로젝트 루트이지만, exe에서는 설치 경로(예: `C:\Program Files\...`)로 변경
-- **영향**: skill-scanner.ts, agent-scanner.ts의 프로젝트 스코프 스캔이 실패
+- **영향**: skill-scanner.ts, agent-scanner.ts, config-scanner.ts, claude-md-linter.ts의 프로젝트 스코프 스캔이 실패
 - **글로벌 스코프**: `~/.claude/skills/`, `~/.claude/agents/`는 `homedir()` 기반이므로 정상
-- **해결안**: 프로젝트 스코프 스캔 시 `process.cwd()` 대신 사용자 선택 프로젝트 경로 사용
+- **해결**: `current-project.ts` 헬퍼 신설 — `history.jsonl`을 읽어 최근 활동 세션의 `project` 필드를 "현재 프로젝트"로 사용 (5초 TTL 캐시, fallback: `process.cwd()`). 4개 스캐너의 기본 projectDir/projectRoot에 적용 (2026-04-12)
+- **후속**: `doc-watcher.ts`의 `initDocWatcher()`를 async로 전환하여 동일 헬퍼 적용. `main/index.ts`에서 `void initDocWatcher()` fire-and-forget 호출 (2026-04-12)
 
 ---
 

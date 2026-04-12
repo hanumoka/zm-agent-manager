@@ -1,6 +1,6 @@
 {
   "name": "zm-agent-manager",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "Claude Code 세션 모니터링 및 리플레이 데스크톱 앱",
   "main": "./out/main/index.js",
   "author": "hanumoka",
@@ -31,12 +31,14 @@
     "clsx": "^2.1.1",
     "diff": "^8.0.4",
     "lucide-react": "^0.511.0",
+    "ps-list": "^9.0.0",
     "radix-ui": "^1.4.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.1",
     "recharts": "^2.15.3",
+    "simple-git": "^3.35.2",
     "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.5"
   },

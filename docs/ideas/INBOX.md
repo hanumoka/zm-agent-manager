@@ -10,11 +10,11 @@
 > Readout (readout.org) macOS 앱 바이너리 리버스 엔지니어링 + 웹 리서치 결과에서 도출.
 > zm-agent-manager에 적용 가치가 높은 기능 후보.
 
-### 1. 비용 추적 + 예산 알림
-- `stats-cache.json`에 이미 `costUSD` 필드 존재 → 낮은 구현 비용
-- 모델별 비용 분석, 기간 비교, 예산 임계치 알림
-- Readout 컴포넌트: CostTrackerView, BudgetBar, costAlertThreshold
-- **적합 Phase**: Phase 3 (F8: 세션 통계)
+### ~~1. 비용 추적 + 예산 알림~~ → **구현 완료** (2026-04-12)
+- 기본 비용 집계 + 예산 임계 알림: Phase 2 M7에서 구현
+- 모델별 비용 막대 차트 + 기간 비교(주간/월간) + formatCost/shortModelName 중앙화: 2026-04-12 추가 구현
+- **결과물**: `CostTracker.tsx`의 `ModelCostBars` + `PeriodComparisonCard` 컴포넌트, `src/shared/format.ts`, `src/renderer/src/lib/period-comparison.ts`
+- **테스트**: format.test.ts (7개) + period-comparison.test.ts (6개) 추가
 
 ### ~~2. Session Handoff — 세션 간 컨텍스트 전달~~ → **구현 완료** (2026-04-11)
 - 세션 종료 시 "브리프" 자동 생성 → 다음 세션이 이어받기 가능
@@ -34,11 +34,12 @@
 - **재사용**: doc-scanner.ts의 countLines(), DocInventory.tsx
 - **핵심 과제**: 마크다운 섹션 파싱 정규식 + 검증 규칙 정의
 
-### 5. 알림 시스템
-- 세션 시작/종료, 에이전트 stuck, 비용 임계치, 대규모 미커밋 변경, 좀비 프로세스
-- Readout: notifySessionStarted, notifyAgentStuck, notifyCostThreshold, notifyZombieProcesses
-- macOS Notification Center 또는 Electron Notification API 활용
-- **적합 Phase**: Phase 1 이후 (공통 인프라)
+### ~~5. 알림 시스템~~ → **구현 완료** (2026-04-12)
+- 세션 시작/종료/태스크 완료/비용 임계: 이전 세션에서 구현
+- 에이전트 stuck/대규모 미커밋/좀비 프로세스: 2026-04-12 오후 추가 구현
+- **결과물**: `src/main/activity-monitor.ts` — 60초 간격 3개 검사(stuck 15분, 미커밋 50개/1시간, 좀비 pid 확인). `NotificationSettings`에 `agentStuck`/`uncommittedChanges`/`zombieProcess` 토글. Config 페이지 Notifications 탭에 UI 추가
+- **신규 의존성**: `simple-git`, `ps-list`
+- **테스트**: `activity-monitor.test.ts` 10개 (순수 함수 3개 추출)
 
 ### ~~6. 플래닝 모니터링 — ExitPlanMode 기반 플랜 추적 (2026-04-11)~~ → **구현 완료**
 - `plan-scanner.ts` + Tasks 페이지 Plans 탭 + 마크다운 렌더링 (2026-04-11 구현)
