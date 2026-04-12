@@ -5,6 +5,73 @@
 
 ---
 
+## 2026-04-12 저녁 | INBOX #8/#9/#10/#11/#12 일괄 + Workflow 페이지 재설계 + #13 등록
+
+- **목표**: v0.1.0-beta.4 검증 후 추가 사용자 요구(5개 INBOX 아이디어 + Workflow 재설계) 일괄 구현
+- **작업 내용**:
+  - **INBOX #8 — LiveStatus 헤더** (실시간 상태 표시):
+    - `src/renderer/src/components/LiveStatus.tsx` 신규 — 초록 pulse dot + `HH:MM:SS` + "X초 전" (1초 interval로 자체 tick)
+    - TaskBoard + WorkflowPage 헤더에 배치
+  - **INBOX #9 — 파이프라인 시각화** (1차 → 재설계):
+    - 1차: `PipelineView.tsx` 칸반 스타일 (사용자 피드백으로 폐기 → 삭제)
+    - 재설계: `WorkflowGraph.tsx` 신규 — **SVG 노드/엣지 그래프**, 베지어 곡선 + `stroke-dashoffset` marching ants 무한 애니메이션, stage 변경 시 0.5s 가속 + 노드 glow
+  - **INBOX #10 — 프로젝트당 1개 워크플로우 제약**:
+    - TaskCard에 `boundWorkflow`/`boundProjectName` props — 매칭 시 워크플로우 드롭다운 잠금 + "🔒 프로젝트 고정" 배지
+  - **INBOX #11 — 프로젝트 문서 기반 워크플로우 + Claude Code 인식**:
+    - `src/main/workflow-scanner.ts` 신규 — `.claude/workflow.md` YAML frontmatter 파싱 (skill-scanner `parseFrontmatter` 재사용), `ProjectWorkflowResult` 반환 (workflow + projectPath + projectName)
+    - 사용자 선택 프로젝트 파라미터 지원 (`projectPath` 옵션)
+    - IPC `GET_PROJECT_WORKFLOW` + preload `getProjectWorkflow(projectPath?)`
+    - `.claude/rules/workflow-system.md` 정책 문서 신규
+    - `CLAUDE.md`에 "## Workflow" 섹션 추가
+    - 본 프로젝트 `.claude/workflow.md` 작성 (zm-agent-manager 6단계)
+    - 7개 단위 테스트 (workflow-scanner.test.ts)
+  - **INBOX #12 — Completed 태스크 오늘/과거 분리**:
+    - `src/renderer/src/lib/task-utils.ts` (`getCompletedAt`, `isSameLocalDay`)
+    - Completed 레인 헤더에 `[오늘 (N)] [과거 (M)]` 탭 토글
+    - 8개 단위 테스트
+  - **Workflow 전용 페이지 분리** (사용자 후속 요구):
+    - 사이드바 NAV_ITEMS에 **Workflow** 메뉴 신규 (Tasks 위, GitBranch 아이콘)
+    - `src/renderer/src/components/WorkflowPage.tsx` 신규 — Workflow 전용 페이지
+    - 프로젝트 드롭다운 (헤더 우측, "모든 프로젝트" 옵션 **없음** — 프로젝트별 모니터링)
+    - 기본 선택: `getKnownProjects()` 가장 최근 활동 프로젝트
+    - 드롭다운 변경 시 즉시 refetch + 5초 폴링 타이머 재시작
+    - 빈 상태 3단계 (프로젝트 없음 / workflow.md 없음 / 정상)
+  - **TaskBoard 정리**:
+    - Pipeline 탭 제거 (Tasks/Plans 2탭으로 환원)
+    - **POLL_INTERVAL_MS 30s → 5s**
+    - `metadataMap` state 제거 (WorkflowPage로 이전)
+    - `PipelineView.tsx` 삭제
+  - **task-metadata-service 부수 fix**:
+    - `getTaskMetadata`가 `workflowName` 필드를 로드하지 않는 버그 수정 (재조회 시 손실)
+    - `listAllTaskMetadata()` bulk endpoint 신규
+  - **workflow-utils 추출** (PipelineView 폐기 시 로직 이관):
+    - `src/renderer/src/lib/workflow-utils.ts` — `mapTaskToStage`, `groupTasksByStage`
+    - 9개 단위 테스트
+  - **INBOX #13 — 워크플로우 CRUD + DAG/Loop + 프로젝트 전용 폴더** (신규 아이디어 등록):
+    - 사용자가 면밀한 검토 + 작업 계획 요구
+    - 웹 검색 (Symfony/XState/Sismic/GitHub Actions/GCP Workflows/React Flow) + 코드 탐색
+    - 새 폴더 구조 `.claude/zm-agent-manager/workflows/{name}.md` (다중 파일)
+    - Statechart 변형 스키마: start/end + nodes + edges (loop 허용)
+    - 7가지 검증 룰 (workflow-validator)
+    - Form 기반 CRUD UI 설계 (WorkflowList + WorkflowEditor)
+    - 신규 의존성: `yaml` (eemeli)
+    - 마이그레이션: 기존 `.claude/workflow.md` → 새 폴더 자동 변환
+    - 7-step 작업 단계 (P1~P7, ~12-15h, 2-3 세션 권장)
+    - **상태**: 사용자 진행 방식(A/B/C) 선택 대기
+- **검증**:
+  - `npm run typecheck` 통과
+  - `npm run test` — 162 → **186 passed** (+24 신규: workflow-scanner 7, task-utils 8, workflow-utils 9)
+  - `npm run lint` — 0 errors
+  - `npm run build` — 성공
+  - `npm run test:e2e` — **Playwright 14/14 통과** (Workflow 페이지 smoke 추가)
+  - **CDP 실제 앱 검증**: LiveStatus, Completed 탭, Pipeline → Workflow 그래프, 프로젝트 드롭다운, 5개 프로젝트 + zm-agent-manager 6단계 그래프 모두 동작 확인
+- **신규 의존성**: 없음 (P1 전 단계)
+- **gitignore**: `.claude/scheduled_tasks.lock` 추가
+- **문서 갱신**: `INBOX.md` #8/#9/#10/#11/#12 [구현 완료] 전환 + #13 신규 등록, `CLAUDE.md` Workflow 섹션, `.claude/rules/workflow-system.md` 신규
+- **남은 작업**: INBOX #13 진행 방식 결정 + 실제 구현 (다음 세션). 재배포는 사용자가 별도 결정
+
+---
+
 ## 2026-04-12 오후 | 남은 이슈 전체 처리 + v0.1.0-beta.3 재배포
 
 - **목표**: 오전 세션에서 남은 이슈 전부 해결 후 새 installer 배포 + 검증
@@ -49,7 +116,8 @@
   - **테스트**: `plan-utils.test.ts` 5개 (빈/단일/다중/문자열/파싱실패)
   - **검증**: typecheck/lint/build 통과, 전체 테스트 157 → **162 passed**
   - **문서**: `known-issues.md` Low [해결됨] 전환
-- **남은 작업**: TaskBoard 수정분 재배포 여부 사용자 결정 대기 (v0.1.0-beta.4 또는 다음 패치 묶음)
+- **v0.1.0-beta.4 재배포**: 2개 원자 커밋(`2b8fb32` fix + `51122a8` chore) + 태그 `v0.1.0-beta.4` push → GitHub Actions Run #4 3-platform 전부 success (Linux/macOS/Windows)
+- **남은 작업**: 사용자 로컬 재설치 + CDP 재검증 대기 (TaskBoard Plans 레인이 프로젝트 개수만큼 표시되는지 실증 확인)
 
 ---
 
