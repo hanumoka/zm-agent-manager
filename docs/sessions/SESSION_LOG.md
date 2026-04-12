@@ -34,7 +34,22 @@
   - `npm run build` — 3단계 빌드 성공
   - `npm run test:e2e` — **Playwright 13/13 통과**
 - **문서 갱신**: `known-issues.md` Medium 이슈 [해결됨], `INBOX.md` #5 완료 표시
-- **다음 할 일**: 커밋 시퀀스 → v0.1.0-beta.3 태그 → GitHub Actions 빌드 → Windows installer 재설치 → CDP 검증
+- **배포**: 2개 원자 커밋(`d4c9e2d` feat + `5b53d03` chore) + `v0.1.0-beta.3` 태그 push → GitHub Actions 3-platform 빌드 전부 success (Run #3)
+- **설치본 CDP 검증 6개 항목 전부 통과** (mcp__electron-test__connect 9222):
+  1. Config 탭 목록: Hooks/Rules/MCP/Permissions/**Notifications(7)**/**Projects(1)** — 신규 탭 확인
+  2. ProjectsTab 렌더링: 자동감지 + 5개 프로젝트(zm-agent-manager/sonix_docs/my-blog/zm-quant/zm-v3) 드롭다운
+  3. **Medium 이슈 완전 해결 실증**: zm-agent-manager 선택 → Skills 페이지 `zm-analyze-jsonl`, `zm-new-component`, `zm-phase-status`, `zm-session-end`, `zm-session-start`, `zm-validate-req` 정확히 6개 고유 스킬 표시 (이전 검증에서는 zm-v3/my-blog가 유동적으로 나타나던 버그)
+  4. Notifications 7개 토글: 비용/문서/세션/태스크 + **에이전트 stuck/대규모 미커밋/좀비 세션**
+  5. PeriodComparisonCard: 주간/월간 토글, 최근 7일 $1606.42, "데이터 부족" + "신규 활동" 분기 정상
+  6. 일별 비용 차트: Recharts 정상 렌더
+- **검증 중 신규 Low 이슈 발견 + 즉시 수정** (2026-04-12 오후 후반):
+  - **발견**: Tasks 페이지 "모든 프로젝트" 필터 시 Plans 레인에 1개만 표시 (프로젝트별 최신이 아닌 전체 중 1개)
+  - **원인**: `TaskBoard.tsx:523` `activePlan = [filteredPlans[0]]` — 주석("프로젝트별 최신 플랜 1개")과 구현 불일치
+  - **수정**: `src/renderer/src/lib/plan-utils.ts` 신규 — `pickLatestPlanPerProject` 순수 함수 (Map 그룹핑 + timestamp desc 정렬, string/number 혼합 timestamp 정규화). `TaskBoard.tsx`에서 해당 함수 호출로 교체
+  - **테스트**: `plan-utils.test.ts` 5개 (빈/단일/다중/문자열/파싱실패)
+  - **검증**: typecheck/lint/build 통과, 전체 테스트 157 → **162 passed**
+  - **문서**: `known-issues.md` Low [해결됨] 전환
+- **남은 작업**: TaskBoard 수정분 재배포 여부 사용자 결정 대기 (v0.1.0-beta.4 또는 다음 패치 묶음)
 
 ---
 

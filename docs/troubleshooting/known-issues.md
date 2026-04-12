@@ -29,6 +29,12 @@
 
 ## 배포/설치 이슈 (2026-04-11 발견)
 
+### [해결됨] Low: TaskBoard "모든 프로젝트" 필터 시 Plan 1개만 표시 (2026-04-12 오후)
+- **현상**: Tasks 페이지에서 프로젝트 필터를 "모든 프로젝트"로 했을 때, Plans 레인에 플랜 1개만 표시됨 (프로젝트별 최신이 아닌 전체 중 첫 1개)
+- **위치**: `src/renderer/src/components/TaskBoard.tsx:523`
+- **원인**: 주석은 "프로젝트별 최신 플랜 1개"이지만 구현이 `filteredPlans[0]` 하나만 반환 — 의도와 구현 불일치
+- **해결**: `src/renderer/src/lib/plan-utils.ts` 신규 — `pickLatestPlanPerProject` 순수 함수 추출 (Map 그룹핑 + timestamp desc 정렬, string/number 혼합 timestamp 정규화). `TaskBoard.tsx`의 `activePlan`이 해당 함수 호출. 단일 프로젝트 필터 시에도 기존 동작(1개만 표시) 유지. 5개 단위 테스트 신규 (plan-utils.test.ts)
+
 ### [해결됨] Medium: TaskBoard 실시간 모니터링 미지원
 - **현상**: Tasks 페이지에서 다른 프로젝트(예: zm-v3)에서 생성된 새 태스크가 실시간 반영 안됨
 - **원인**: TaskBoard가 마운트 시 1회 `getAllTasks()` 호출 후 `onNewRecords` 미구독
