@@ -3,6 +3,7 @@ import { basename, join } from 'path';
 import { Notification } from 'electron';
 import { classifyDocImportance, type DocImportance } from '@shared/doc-importance';
 import { addNotificationEntry } from './notification-history-service';
+import { getCurrentProjectPath } from './current-project';
 
 /**
  * 문서 변경 감시 (F15).
@@ -52,15 +53,18 @@ function sendDocNotification(filePath: string, eventType: string): void {
 }
 
 /**
- * 문서 감시 시작. 프로젝트 루트의 docs/ + .claude/ 디렉토리를 감시.
- * main/index.ts의 app.whenReady()에서 호출.
+ * 문서 감시 시작. 최근 활동 세션의 projectPath 기준으로 docs/ + .claude/ 디렉토리를 감시.
+ * main/index.ts의 app.whenReady()에서 호출 (await 불필요 — fire-and-forget).
+ *
+ * 설치된 exe 환경에서는 `process.cwd()`가 설치 경로가 되어 잘못된 디렉토리를
+ * 감시하는 이슈를 회피하기 위해 `getCurrentProjectPath()`를 사용한다.
  */
-export function initDocWatcher(): void {
-  const cwd = process.cwd();
+export async function initDocWatcher(): Promise<void> {
+  const projectRoot = await getCurrentProjectPath();
   const watchPaths = [
-    join(cwd, 'docs', '**', '*.md'),
-    join(cwd, '.claude', '**', '*.md'),
-    join(cwd, 'CLAUDE.md'),
+    join(projectRoot, 'docs', '**', '*.md'),
+    join(projectRoot, '.claude', '**', '*.md'),
+    join(projectRoot, 'CLAUDE.md'),
   ];
 
   watcher = watch(watchPaths, {

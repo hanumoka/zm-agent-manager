@@ -4,6 +4,7 @@ import { useSessionStore } from '@/stores/session-store';
 import { formatTimeAgo } from '@/lib/utils';
 import { encodeProjectPath } from '@shared/types';
 import type { ParsedSession, SessionMeta } from '@shared/types';
+import { formatCost } from '@shared/format';
 import { MessageTimeline } from '@/components/MessageTimeline';
 import {
   computeSessionMetrics,
@@ -67,12 +68,6 @@ function formatTokens(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
   return String(count);
-}
-
-function formatCost(cost: number): string {
-  if (cost >= 1) return `$${cost.toFixed(2)}`;
-  if (cost >= 0.01) return `$${cost.toFixed(3)}`;
-  return `$${cost.toFixed(4)}`;
 }
 
 // ─── MetricRow ───

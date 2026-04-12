@@ -10,6 +10,9 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   docChange: true,
   sessionLifecycle: false,
   taskComplete: false,
+  agentStuck: false,
+  uncommittedChanges: false,
+  zombieProcess: false,
 };
 
 export interface NotificationSettingsOptions {
@@ -36,6 +39,18 @@ export async function getNotificationSettings(
         typeof parsed.taskComplete === 'boolean'
           ? parsed.taskComplete
           : DEFAULT_SETTINGS.taskComplete,
+      agentStuck:
+        typeof parsed.agentStuck === 'boolean'
+          ? parsed.agentStuck
+          : DEFAULT_SETTINGS.agentStuck,
+      uncommittedChanges:
+        typeof parsed.uncommittedChanges === 'boolean'
+          ? parsed.uncommittedChanges
+          : DEFAULT_SETTINGS.uncommittedChanges,
+      zombieProcess:
+        typeof parsed.zombieProcess === 'boolean'
+          ? parsed.zombieProcess
+          : DEFAULT_SETTINGS.zombieProcess,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

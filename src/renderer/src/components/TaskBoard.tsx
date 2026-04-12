@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ClipboardList,
   Loader2,
@@ -420,6 +420,10 @@ function PlansLane({
 
 // ─── TaskBoard ───
 
+// 30초 간격 폴링 — 다른 프로젝트(활성 세션이 아닌)에서 생성되는 태스크/플랜을
+// 실시간에 가깝게 반영. session-watcher는 열어본 세션만 감시하므로 폴링이 최소 침습적 해결책.
+const POLL_INTERVAL_MS = 30_000;
+
 export function TaskBoard(): React.JSX.Element {
   const { groups, fetchSessions } = useSessionStore();
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
@@ -429,41 +433,54 @@ export function TaskBoard(): React.JSX.Element {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [activeView, setActiveView] = useState<'tasks' | 'plans'>('tasks');
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function load(): Promise<void> {
-      setIsLoading(true);
+  const refetch = useCallback(async (showSpinner: boolean): Promise<void> => {
+    if (showSpinner) setIsLoading(true);
+    try {
+      const [tasksResult, plansResult] = await Promise.all([
+        window.api?.getAllTasks?.() ?? Promise.resolve(null),
+        window.api?.getAllPlans?.() ?? Promise.resolve(null),
+      ]);
+      if (!isMountedRef.current) return;
+      if (!tasksResult) throw new Error('preload API를 사용할 수 없습니다');
+      setTasks(tasksResult.tasks);
+      if (plansResult) setPlans(plansResult);
       setError(null);
-      try {
-        const result = await window.api?.getAllTasks?.();
-        if (!result) throw new Error('preload API를 사용할 수 없습니다');
-        if (isMounted) setTasks(result.tasks);
-      } catch (err) {
-        if (isMounted) setError(err instanceof Error ? err.message : '태스크 조회 실패');
-      } finally {
-        if (isMounted) setIsLoading(false);
+    } catch (err) {
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : '태스크 조회 실패');
       }
+    } finally {
+      if (showSpinner && isMountedRef.current) setIsLoading(false);
     }
-    load();
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    window.api?.getAllPlans?.()?.then((result) => {
-      if (result && isMounted) setPlans(result);
-    });
-    return () => {
-      isMounted = false;
+    refetch(true);
+    const id = setInterval(() => {
+      refetch(false);
+    }, POLL_INTERVAL_MS);
+    const onFocus = (): void => {
+      refetch(false);
     };
-  }, []);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [refetch]);
 
   // 프로젝트 목록: tasks + sessions 전체 프로젝트 합집합
   const projects = useMemo(() => {

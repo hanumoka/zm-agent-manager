@@ -39,6 +39,10 @@ import { lintClaudeMd } from './claude-md-linter';
 import { getSidebarSettings, setSidebarSettings } from './sidebar-settings-service';
 import type { SidebarSettings } from './sidebar-settings-service';
 import { scanHandoffs } from './handoff-scanner';
+import { getProjectSettings, setProjectSettings } from './project-settings-service';
+import { __clearCurrentProjectPathCache } from './current-project';
+import { parseHistoryFile } from './history-parser';
+import { stat } from 'fs/promises';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -216,5 +220,50 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GET_HANDOFFS, async () => {
     return scanHandoffs();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_PROJECT_SETTINGS, async () => {
+    return getProjectSettings();
+  });
+
+  ipcMain.handle(
+    IPC_CHANNELS.SET_PROJECT_SETTINGS,
+    async (_event, settings: { currentProjectPath: string | null }) => {
+      const saved = await setProjectSettings(settings);
+      __clearCurrentProjectPathCache();
+      return saved;
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.GET_KNOWN_PROJECTS, async () => {
+    // history.jsonl에서 projectPathMap을 얻고, 각 경로의 최근 활동 시각을 계산
+    const { sessionMap, projectPathMap } = await parseHistoryFile();
+    const pathToLatestTs = new Map<string, number>();
+    for (const entries of sessionMap.values()) {
+      for (const e of entries) {
+        if (!e.project) continue;
+        const prev = pathToLatestTs.get(e.project) ?? 0;
+        if (e.timestamp > prev) pathToLatestTs.set(e.project, e.timestamp);
+      }
+    }
+    // projectPathMap의 값(실제 경로)을 사용 — 인코딩된 키는 불필요
+    const uniquePaths = new Set<string>(projectPathMap.values());
+    for (const p of pathToLatestTs.keys()) uniquePaths.add(p);
+    const results: { path: string; lastActivity: number }[] = [];
+    for (const path of uniquePaths) {
+      // 절대 경로만 포함 (인코딩된 디렉토리명 배제)
+      const isAbs = path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path);
+      if (!isAbs) continue;
+      // 경로가 실제로 존재하는지 확인 (선택적 — 삭제된 프로젝트 필터)
+      try {
+        const s = await stat(path);
+        if (!s.isDirectory()) continue;
+      } catch {
+        continue;
+      }
+      results.push({ path, lastActivity: pathToLatestTs.get(path) ?? 0 });
+    }
+    results.sort((a, b) => b.lastActivity - a.lastActivity);
+    return results;
   });
 }

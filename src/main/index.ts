@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { registerIpcHandlers } from './ipc';
 import { initWatcher, stopWatcher } from './session-watcher';
 import { initDocWatcher, stopDocWatcher } from './doc-watcher';
+import { initActivityMonitor, stopActivityMonitor } from './activity-monitor';
 import {
   initSessionLifecycleWatcher,
   stopSessionLifecycleWatcher,
@@ -47,9 +48,12 @@ app.whenReady().then(() => {
 
   registerIpcHandlers();
   initWatcher();
-  initDocWatcher();
+  initDocWatcher().catch((err) => {
+    console.error({ context: 'initDocWatcher', error: err });
+  });
   initSessionLifecycleWatcher();
   initTaskCompleteWatcher();
+  initActivityMonitor();
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -73,4 +77,5 @@ app.on('will-quit', async () => {
   await stopDocWatcher();
   await stopSessionLifecycleWatcher();
   stopTaskCompleteWatcher();
+  stopActivityMonitor();
 });

@@ -3,12 +3,13 @@ import { join, basename } from 'path';
 import { homedir } from 'os';
 import type { AgentInfo, SkillScope } from '@shared/types';
 import { parseFrontmatter } from './skill-scanner';
+import { getCurrentProjectPath } from './current-project';
 
 const DEFAULT_GLOBAL_DIR = join(homedir(), '.claude', 'agents');
 
 /** 테스트에서 fixture 경로 주입. */
 export interface AgentScannerOptions {
-  /** 프로젝트 `.claude/agents/` 경로. 기본값: `process.cwd()/.claude/agents` */
+  /** 프로젝트 `.claude/agents/` 경로. 기본값: 최근 활동 세션의 projectPath + `/.claude/agents` (fallback: `process.cwd()`) */
   projectDir?: string;
   /** 글로벌 에이전트 디렉토리. 기본값: `~/.claude/agents` */
   globalDir?: string;
@@ -68,7 +69,7 @@ async function scanAgentRoot(root: string, scope: SkillScope): Promise<AgentInfo
 
 /** 프로젝트 + 글로벌 에이전트 전체 스캔 */
 export async function scanAgents(options: AgentScannerOptions = {}): Promise<AgentInfo[]> {
-  const projectDir = options.projectDir ?? join(process.cwd(), '.claude', 'agents');
+  const projectDir = options.projectDir ?? join(await getCurrentProjectPath(), '.claude', 'agents');
   const globalDir = options.globalDir ?? DEFAULT_GLOBAL_DIR;
 
   const [projectAgents, globalAgents] = await Promise.all([

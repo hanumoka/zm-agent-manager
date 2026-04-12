@@ -25,6 +25,8 @@ import type {
   NotificationHistoryEntry,
   FileVersionInfo,
   PlanInfo,
+  ProjectSettings,
+  KnownProject,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -92,6 +94,12 @@ const api = {
   ): Promise<{ items: { path: string; visible: boolean; order: number }[] }> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_SIDEBAR_SETTINGS, settings),
   getHandoffs: (): Promise<unknown[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_HANDOFFS),
+  getProjectSettings: (): Promise<ProjectSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_SETTINGS),
+  setProjectSettings: (settings: ProjectSettings): Promise<ProjectSettings> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SET_PROJECT_SETTINGS, settings),
+  getKnownProjects: (): Promise<KnownProject[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_KNOWN_PROJECTS),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

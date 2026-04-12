@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
+import { getCurrentProjectPath } from './current-project';
 
 export interface LintRule {
   id: string;
@@ -218,12 +219,12 @@ export async function lintAllProjects(): Promise<ClaudeMdLintResult[]> {
     }
 
     // 인코딩된 디렉토리명에서 원본 경로 복원은 어려우므로,
-    // 현재 프로젝트(process.cwd())만 린트
+    // 최근 활동 세션의 projectPath만 린트
   }
 
-  // 현재 프로젝트 린트
-  const cwd = process.cwd();
-  results.push(await lintClaudeMd(cwd));
+  // 최근 활동 세션의 projectPath 린트 (fallback: process.cwd())
+  const currentProject = await getCurrentProjectPath();
+  results.push(await lintClaudeMd(currentProject));
 
   return results;
 }

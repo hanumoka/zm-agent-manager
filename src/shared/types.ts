@@ -51,6 +51,9 @@ export const IPC_CHANNELS = {
   GET_SIDEBAR_SETTINGS: 'sidebar:get-settings',
   SET_SIDEBAR_SETTINGS: 'sidebar:set-settings',
   GET_HANDOFFS: 'handoffs:get-all',
+  GET_PROJECT_SETTINGS: 'projects:get-settings',
+  SET_PROJECT_SETTINGS: 'projects:set-settings',
+  GET_KNOWN_PROJECTS: 'projects:get-known',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -360,11 +363,34 @@ export interface NotificationSettings {
   sessionLifecycle: boolean;
   /** 태스크 완료 알림 ON/OFF */
   taskComplete: boolean;
+  /** 에이전트 stuck(15분 이상 무활동) 알림 ON/OFF */
+  agentStuck: boolean;
+  /** 대규모 미커밋 변경(50개 이상) 알림 ON/OFF */
+  uncommittedChanges: boolean;
+  /** 좀비 세션 파일(pid 사망) 알림 ON/OFF */
+  zombieProcess: boolean;
+}
+
+export interface ProjectSettings {
+  /** 사용자가 선택한 현재 프로젝트 경로. null이면 자동 감지 (history.jsonl 기반) */
+  currentProjectPath: string | null;
+}
+
+export interface KnownProject {
+  path: string;
+  lastActivity: number;
 }
 
 // ─── 알림 이력 (F16) ───
 
-export type NotificationCategory = 'budget' | 'doc-change' | 'session-lifecycle' | 'task-complete';
+export type NotificationCategory =
+  | 'budget'
+  | 'doc-change'
+  | 'session-lifecycle'
+  | 'task-complete'
+  | 'agent-stuck'
+  | 'uncommitted-changes'
+  | 'zombie-process';
 
 export interface NotificationHistoryEntry {
   id: string;

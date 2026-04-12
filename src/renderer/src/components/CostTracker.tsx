@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { DollarSign, Cpu, ArrowUpDown, Hash, Wallet } from 'lucide-react';
+import { DollarSign, Cpu, ArrowUpDown, Hash, Wallet, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { CostSummary, ModelCost, BudgetSettings } from '@shared/types';
+import { formatCost, shortModelName } from '@shared/format';
+import { computePeriodComparison, type PeriodKind } from '@/lib/period-comparison';
 
 // ─── 토큰 포맷 ───
 
@@ -9,21 +11,6 @@ function formatTokens(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
   return String(count);
-}
-
-function formatCost(cost: number): string {
-  if (cost >= 1) return `$${cost.toFixed(2)}`;
-  if (cost >= 0.01) return `$${cost.toFixed(3)}`;
-  return `$${cost.toFixed(4)}`;
-}
-
-// ─── 모델명 간소화 ───
-
-function shortModelName(model: string): string {
-  if (model.includes('opus')) return 'Opus';
-  if (model.includes('sonnet')) return 'Sonnet';
-  if (model.includes('haiku')) return 'Haiku';
-  return model;
 }
 
 // ─── StatCard ───
@@ -287,6 +274,155 @@ function ModelRow({ model }: { model: ModelCost }): React.JSX.Element {
   );
 }
 
+// ─── ModelCostBars ───
+
+/**
+ * 모델별 비용 시각화 (막대 차트).
+ * 비용 내림차순 정렬, 최댓값 대비 비율로 바 너비 계산.
+ */
+function ModelCostBars({ byModel }: { byModel: ModelCost[] }): React.JSX.Element {
+  const sorted = useMemo(() => [...byModel].sort((a, b) => b.cost - a.cost), [byModel]);
+  const maxCost = sorted[0]?.cost ?? 0;
+
+  if (sorted.length === 0) {
+    return <p className="text-xs text-muted-foreground">모델 데이터가 없습니다</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {sorted.map((m) => (
+        <div key={m.model}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-medium text-foreground">{shortModelName(m.model)}</span>
+              <span className="text-xs text-muted-foreground font-mono truncate">{m.model}</span>
+            </div>
+            <span className="text-sm font-semibold text-foreground shrink-0">
+              {formatCost(m.cost)}
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-accent-green transition-all"
+              style={{ width: `${maxCost > 0 ? (m.cost / maxCost) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+            <span>{m.requestCount.toLocaleString()}회</span>
+            <span>입력: {formatTokens(m.inputTokens)}</span>
+            <span>출력: {formatTokens(m.outputTokens)}</span>
+            <span>캐시R: {formatTokens(m.cacheReadTokens)}</span>
+            <span>캐시W: {formatTokens(m.cacheWriteTokens)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── PeriodComparisonCard ───
+
+function PeriodComparisonCard({ summary }: { summary: CostSummary }): React.JSX.Element {
+  const [period, setPeriod] = useState<PeriodKind>('week');
+  const comparison = useMemo(() => computePeriodComparison(summary.byDay, period), [summary.byDay, period]);
+
+  const periodLabels: Record<PeriodKind, { current: string; previous: string }> = {
+    week: { current: '최근 7일', previous: '이전 7일' },
+    month: { current: '최근 30일', previous: '이전 30일' },
+  };
+  const labels = periodLabels[period];
+
+  // 변화 방향 결정
+  const { costChangePercent, previousCost, currentCost, status } = comparison;
+  const isNewActivity = previousCost === 0 && currentCost > 0;
+  const direction: 'up' | 'down' | 'same' =
+    isNewActivity || costChangePercent > 0
+      ? 'up'
+      : costChangePercent < 0
+        ? 'down'
+        : 'same';
+
+  const directionColor =
+    direction === 'up'
+      ? 'text-destructive'
+      : direction === 'down'
+        ? 'text-accent-green'
+        : 'text-muted-foreground';
+  const DirectionIcon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
+
+  const changeLabel = isNewActivity
+    ? '신규 활동'
+    : status === 'empty'
+      ? '—'
+      : `${costChangePercent >= 0 ? '+' : ''}${costChangePercent.toFixed(1)}%`;
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-foreground">기간 비교</h2>
+        <div className="flex gap-1 rounded-md border border-border p-0.5">
+          {(['week', 'month'] as PeriodKind[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+                period === p
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid={`period-toggle-${p}`}
+            >
+              {p === 'week' ? '주간' : '월간'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {status === 'empty' ? (
+        <p className="text-xs text-muted-foreground">비용 데이터가 없습니다</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">{labels.current}</p>
+            <p className="text-lg font-semibold text-foreground mt-1">{formatCost(currentCost)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {comparison.currentRequests.toLocaleString()}회
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{labels.previous}</p>
+            <p className="text-lg font-semibold text-foreground mt-1">
+              {status === 'insufficient' ? (
+                <span className="text-sm text-muted-foreground">데이터 부족</span>
+              ) : (
+                formatCost(previousCost)
+              )}
+            </p>
+            {status === 'ok' && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {comparison.previousRequests.toLocaleString()}회
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">변화</p>
+            <div className={`flex items-center gap-1 mt-1 ${directionColor}`}>
+              <DirectionIcon className="h-4 w-4" />
+              <p className="text-lg font-semibold">{changeLabel}</p>
+            </div>
+            {!isNewActivity && status === 'ok' && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {currentCost - previousCost >= 0 ? '+' : '-'}
+                {formatCost(Math.abs(currentCost - previousCost))}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── CostTracker ───
 
 export function CostTracker(): React.JSX.Element {
@@ -387,6 +523,9 @@ export function CostTracker(): React.JSX.Element {
         />
       </div>
 
+      {/* 기간 비교 */}
+      <PeriodComparisonCard summary={summary} />
+
       {/* 일별 비용 차트 */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold text-foreground mb-3">일별 비용 추이</h2>
@@ -435,13 +574,16 @@ export function CostTracker(): React.JSX.Element {
       <BudgetCard summary={summary} />
 
       {/* 모델별 비용 */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold text-foreground mb-2">모델별 비용</h2>
-        <div className="divide-y divide-border/50">
-          {summary.byModel.map((model) => (
-            <ModelRow key={model.model} model={model} />
-          ))}
-        </div>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <h2 className="text-sm font-semibold text-foreground">모델별 비용</h2>
+        <ModelCostBars byModel={summary.byModel} />
+        {summary.byModel.length > 0 && (
+          <div className="divide-y divide-border/50 border-t border-border/50 pt-2">
+            {summary.byModel.map((model) => (
+              <ModelRow key={model.model} model={model} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

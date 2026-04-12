@@ -2,12 +2,13 @@ import { readdir, stat, readFile } from 'fs/promises';
 import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 import type { SkillInfo, SkillScope } from '@shared/types';
+import { getCurrentProjectPath } from './current-project';
 
 const DEFAULT_GLOBAL_DIR = join(homedir(), '.claude', 'skills');
 
 /** 테스트에서 fixture 경로 주입. */
 export interface SkillScannerOptions {
-  /** 프로젝트 `.claude/skills/` 경로. 기본값: `process.cwd()/.claude/skills` */
+  /** 프로젝트 `.claude/skills/` 경로. 기본값: 최근 활동 세션의 projectPath + `/.claude/skills` (fallback: `process.cwd()`) */
   projectDir?: string;
   /** 글로벌 스킬 디렉토리. 기본값: `~/.claude/skills` */
   globalDir?: string;
@@ -121,7 +122,7 @@ async function scanSkillRoot(root: string, scope: SkillScope): Promise<SkillInfo
 
 /** 프로젝트 + 글로벌 스킬 전체 스캔 */
 export async function scanSkills(options: SkillScannerOptions = {}): Promise<SkillInfo[]> {
-  const projectDir = options.projectDir ?? join(process.cwd(), '.claude', 'skills');
+  const projectDir = options.projectDir ?? join(await getCurrentProjectPath(), '.claude', 'skills');
   const globalDir = options.globalDir ?? DEFAULT_GLOBAL_DIR;
 
   const [projectSkills, globalSkills] = await Promise.all([

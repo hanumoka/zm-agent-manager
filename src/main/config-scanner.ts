@@ -1,10 +1,11 @@
 import { readFile, readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import type { ConfigSummary, HookEntry, RuleFile, McpServer } from '@shared/types';
+import { getCurrentProjectPath } from './current-project';
 
 /** 테스트에서 fixture 경로 주입. */
 export interface ConfigScannerOptions {
-  /** 프로젝트 루트 경로 (.claude/settings.json, .mcp.json 위치) */
+  /** 프로젝트 루트 경로. 기본값: 최근 활동 세션의 projectPath (fallback: `process.cwd()`) */
   projectRoot?: string;
 }
 
@@ -15,7 +16,7 @@ export interface ConfigScannerOptions {
 export async function scanConfigSummary(
   options: ConfigScannerOptions = {}
 ): Promise<ConfigSummary> {
-  const projectRoot = options.projectRoot ?? process.cwd();
+  const projectRoot = options.projectRoot ?? (await getCurrentProjectPath());
 
   const [hooks, rules, mcpServers, permissions] = await Promise.all([
     scanHooks(projectRoot),

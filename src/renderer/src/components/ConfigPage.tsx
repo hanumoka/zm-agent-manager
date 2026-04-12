@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Settings, Shield, FileCode, Plug, Lock, Bell } from 'lucide-react';
+import { Settings, Shield, FileCode, Plug, Lock, Bell, FolderOpen } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
 import type {
   ConfigSummary,
@@ -8,6 +8,8 @@ import type {
   McpServer,
   NotificationSettings,
   NotificationHistoryEntry,
+  ProjectSettings,
+  KnownProject,
 } from '@shared/types';
 
 // ─── 포맷 ───
@@ -19,7 +21,7 @@ function formatBytes(bytes: number): string {
 
 // ─── Tabs ───
 
-type TabId = 'hooks' | 'rules' | 'mcp' | 'permissions' | 'notifications';
+type TabId = 'hooks' | 'rules' | 'mcp' | 'permissions' | 'notifications' | 'projects';
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'hooks', label: 'Hooks', icon: Shield },
@@ -27,6 +29,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'mcp', label: 'MCP', icon: Plug },
   { id: 'permissions', label: 'Permissions', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'projects', label: 'Projects', icon: FolderOpen },
 ];
 
 // ─── HooksTab ───
@@ -186,6 +189,21 @@ const NOTIFICATION_TRIGGERS: {
     label: '태스크 완료',
     description: '태스크 상태가 completed로 변경 시 알림',
   },
+  {
+    key: 'agentStuck',
+    label: '에이전트 stuck',
+    description: '활성 세션이 15분 이상 무활동 상태일 때 알림',
+  },
+  {
+    key: 'uncommittedChanges',
+    label: '대규모 미커밋',
+    description: '프로젝트에 50개 이상 미커밋 변경이 있을 때 알림 (1시간당 1회)',
+  },
+  {
+    key: 'zombieProcess',
+    label: '좀비 세션',
+    description: '세션 json 파일은 있으나 pid 프로세스가 종료된 경우 알림',
+  },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -193,6 +211,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   'doc-change': '문서',
   'session-lifecycle': '세션',
   'task-complete': '태스크',
+  'agent-stuck': 'Stuck',
+  'uncommitted-changes': '미커밋',
+  'zombie-process': '좀비',
 };
 
 function NotificationHistoryPanel(): React.JSX.Element {
@@ -217,6 +238,7 @@ function NotificationHistoryPanel(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadHistory();
   }, [loadHistory]);
 
@@ -374,6 +396,99 @@ function NotificationsTab(): React.JSX.Element {
   );
 }
 
+// ─── ProjectsTab ───
+
+function ProjectsTab(): React.JSX.Element {
+  const [settings, setSettings] = useState<ProjectSettings | null>(null);
+  const [known, setKnown] = useState<KnownProject[] | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      window.api?.getProjectSettings?.() ?? Promise.resolve(null),
+      window.api?.getKnownProjects?.() ?? Promise.resolve([]),
+    ])
+      .then(([s, k]) => {
+        if (!isMountedRef.current) return;
+        setSettings(s);
+        setKnown(k);
+      })
+      .catch((e) => {
+        if (isMountedRef.current) {
+          setError(e instanceof Error ? e.message : '프로젝트 설정 로드 실패');
+        }
+      });
+  }, []);
+
+  const handleChange = useCallback(
+    async (value: string) => {
+      const next: ProjectSettings = {
+        currentProjectPath: value === '' ? null : value,
+      };
+      try {
+        const saved = await window.api?.setProjectSettings?.(next);
+        if (!isMountedRef.current) return;
+        if (saved) {
+          setSettings(saved);
+          setSavedAt(Date.now());
+          setError(null);
+        }
+      } catch (e) {
+        if (isMountedRef.current) {
+          setError(e instanceof Error ? e.message : '저장 실패');
+        }
+      }
+    },
+    []
+  );
+
+  if (!settings || !known) {
+    return <p className="text-xs text-muted-foreground">프로젝트 설정을 불러오는 중...</p>;
+  }
+
+  return (
+    <div className="space-y-4" data-testid="config-projects-tab">
+      <div className="rounded-md border border-border/50 p-3 space-y-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">현재 프로젝트</p>
+          <p className="text-xs text-muted-foreground">
+            Skills/Agents/Config 페이지가 스캔할 프로젝트를 선택합니다. "자동 감지"를 선택하면
+            history.jsonl의 가장 최근 활동 프로젝트를 사용합니다.
+          </p>
+        </div>
+        <select
+          data-testid="current-project-select"
+          value={settings.currentProjectPath ?? ''}
+          onChange={(e) => handleChange(e.target.value)}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
+        >
+          <option value="">— 자동 감지 (history.jsonl 최신) —</option>
+          {known.map((p) => (
+            <option key={p.path} value={p.path}>
+              {p.path}
+            </option>
+          ))}
+        </select>
+        {savedAt && (
+          <p className="text-xs text-accent-green">
+            저장됨 ({new Date(savedAt).toLocaleTimeString()})
+          </p>
+        )}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── ConfigPage ───
 
 export function ConfigPage(): React.JSX.Element {
@@ -432,7 +547,8 @@ export function ConfigPage(): React.JSX.Element {
     rules: config.rules.length,
     mcp: config.mcpServers.length,
     permissions: config.permissionsAllow.length + config.permissionsDeny.length,
-    notifications: 4,
+    notifications: 7,
+    projects: 1,
   };
 
   return (
@@ -472,6 +588,7 @@ export function ConfigPage(): React.JSX.Element {
           <PermissionsTab allow={config.permissionsAllow} deny={config.permissionsDeny} />
         )}
         {activeTab === 'notifications' && <NotificationsTab />}
+        {activeTab === 'projects' && <ProjectsTab />}
       </div>
     </div>
   );

@@ -23,6 +23,8 @@ import type {
   NotificationHistoryEntry,
   FileVersionInfo,
   PlanInfo,
+  ProjectSettings,
+  KnownProject,
 } from '@shared/types';
 
 interface AppAPI {
@@ -65,6 +67,9 @@ interface AppAPI {
     items: { path: string; visible: boolean; order: number }[];
   }) => Promise<{ items: { path: string; visible: boolean; order: number }[] }>;
   getHandoffs: () => Promise<unknown[]>;
+  getProjectSettings: () => Promise<ProjectSettings>;
+  setProjectSettings: (settings: ProjectSettings) => Promise<ProjectSettings>;
+  getKnownProjects: () => Promise<KnownProject[]>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

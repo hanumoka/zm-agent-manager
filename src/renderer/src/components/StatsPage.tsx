@@ -8,6 +8,7 @@ import type {
   ProjectStats,
   ModelTokenUsage,
 } from '@shared/types';
+import { formatCost, shortModelName } from '@shared/format';
 
 // ─── 포맷 ───
 
@@ -20,19 +21,6 @@ function formatTokens(count: number): string {
 
 function formatNumber(n: number): string {
   return n.toLocaleString();
-}
-
-function formatCost(cost: number): string {
-  if (cost >= 1) return `$${cost.toFixed(2)}`;
-  if (cost >= 0.01) return `$${cost.toFixed(3)}`;
-  return `$${cost.toFixed(4)}`;
-}
-
-function shortModelName(model: string): string {
-  if (model.includes('opus')) return 'Opus';
-  if (model.includes('sonnet')) return 'Sonnet';
-  if (model.includes('haiku')) return 'Haiku';
-  return model;
 }
 
 // ─── StatCard ───

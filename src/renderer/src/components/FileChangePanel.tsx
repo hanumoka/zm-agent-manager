@@ -85,6 +85,7 @@ function FileRow({
   // 확장 시 버전 목록 로드
   useEffect(() => {
     if (!isExpanded || versions || !sessionId || !projectEncoded) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     window.api
       ?.getFileVersions?.(sessionId, projectEncoded)
