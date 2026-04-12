@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { pickLatestPlanPerProject } from '@/lib/plan-utils';
 import {
   ClipboardList,
   Loader2,
@@ -519,8 +520,8 @@ export function TaskBoard(): React.JSX.Element {
     [plans, selectedProject]
   );
 
-  // 칸반 보드용: 프로젝트별 최신 플랜 1개만
-  const activePlan = useMemo(() => (filteredPlans.length > 0 ? [filteredPlans[0]] : []), [filteredPlans]);
+  // 칸반 보드용: 프로젝트별 최신 플랜 1개씩 (all 필터 시 프로젝트 개수만큼, 특정 프로젝트 필터 시 1개)
+  const activePlan = useMemo(() => pickLatestPlanPerProject(filteredPlans), [filteredPlans]);
 
   const deletedCount = useMemo(() => tasks.filter((t) => t.status === 'deleted').length, [tasks]);
 
