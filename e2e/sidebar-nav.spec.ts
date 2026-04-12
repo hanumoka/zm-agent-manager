@@ -46,6 +46,11 @@ test('Sessions 페이지로 이동한다', async () => {
   await expect(window.getByTestId('page-sessions')).toBeVisible({ timeout: 10_000 });
 });
 
+test('Workflow 페이지로 이동한다', async () => {
+  await window.getByTestId('nav-workflow').click();
+  await expect(window.getByTestId('page-workflow')).toBeVisible({ timeout: 15_000 });
+});
+
 test('Tasks 페이지로 이동한다', async () => {
   await window.getByTestId('nav-tasks').click();
   await expect(window.getByTestId('page-tasks')).toBeVisible({ timeout: 15_000 });

@@ -13,6 +13,7 @@ import {
   Brain,
   Users,
   Settings,
+  GitBranch,
 } from 'lucide-react';
 import { SessionList } from '@/components/SessionList';
 import { TimelinePage } from '@/components/TimelinePage';
@@ -27,6 +28,7 @@ import { SkillsPage } from '@/components/SkillsPage';
 import { MemoryPage } from '@/components/MemoryPage';
 import { AgentsPage } from '@/components/AgentsPage';
 import { ConfigPage } from '@/components/ConfigPage';
+import { WorkflowPage } from '@/components/WorkflowPage';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, matchPaths: ['/'] },
@@ -36,6 +38,7 @@ const NAV_ITEMS = [
     icon: MessageSquare,
     matchPaths: ['/sessions', '/timeline'],
   },
+  { path: '/workflow', label: 'Workflow', icon: GitBranch, matchPaths: ['/workflow'] },
   { path: '/tasks', label: 'Tasks', icon: ClipboardList, matchPaths: ['/tasks'] },
   { path: '/stats', label: 'Stats', icon: BarChart3, matchPaths: ['/stats'] },
   { path: '/compare', label: 'Compare', icon: GitCompare, matchPaths: ['/compare'] },
@@ -185,6 +188,7 @@ function App(): React.JSX.Element {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/sessions" element={<SessionList />} />
               <Route path="/timeline/:projectEncoded/:sessionId" element={<TimelinePage />} />
+              <Route path="/workflow" element={<WorkflowPage />} />
               <Route path="/tasks" element={<TaskBoard />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/compare" element={<ComparePage />} />

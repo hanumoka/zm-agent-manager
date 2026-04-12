@@ -54,6 +54,8 @@ export const IPC_CHANNELS = {
   GET_PROJECT_SETTINGS: 'projects:get-settings',
   SET_PROJECT_SETTINGS: 'projects:set-settings',
   GET_KNOWN_PROJECTS: 'projects:get-known',
+  GET_PROJECT_WORKFLOW: 'workflows:get-project',
+  GET_ALL_TASK_METADATA: 'task-meta:get-all',
 } as const;
 
 // ─── history.jsonl 레코드 ───
@@ -379,6 +381,15 @@ export interface ProjectSettings {
 export interface KnownProject {
   path: string;
   lastActivity: number;
+}
+
+export interface ProjectWorkflowResult {
+  /** 프로젝트 `.claude/workflow.md`에서 파싱된 워크플로우. 파일 없으면 null */
+  workflow: WorkflowDefinition | null;
+  /** 스캔한 프로젝트 루트 절대 경로 */
+  projectPath: string;
+  /** `basename(projectPath)` — TaskInfo.projectName과 매칭 용도 */
+  projectName: string;
 }
 
 // ─── 알림 이력 (F16) ───

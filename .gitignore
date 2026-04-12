@@ -23,6 +23,7 @@ Thumbs.db
 
 # Claude Code local settings (user-specific, not shared)
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Temp docs (keep .gitkeep)
 docs/temp/*

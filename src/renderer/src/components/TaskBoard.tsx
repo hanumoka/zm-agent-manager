@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pickLatestPlanPerProject } from '@/lib/plan-utils';
+import { getCompletedAt, isSameLocalDay } from '@/lib/task-utils';
+import { LiveStatus } from '@/components/LiveStatus';
 import {
   ClipboardList,
   Loader2,
@@ -20,6 +22,7 @@ import type {
   TaskType,
   TaskMetadata,
   WorkflowDefinition,
+  ProjectWorkflowResult,
 } from '@shared/types';
 
 // ─── 상수 ───
@@ -35,6 +38,10 @@ const LANE_CONFIG: { status: TaskStatus; label: string; color: string; icon: Rea
 
 interface TaskCardProps {
   task: TaskInfo;
+  /** 프로젝트 공식 워크플로우 (프로젝트 이름 매칭 시 적용) */
+  boundWorkflow?: WorkflowDefinition | null;
+  /** boundWorkflow가 적용되는 프로젝트 이름 */
+  boundProjectName?: string | null;
 }
 
 // ─── 심각도/유형 배지 + 셀렉트 ───
@@ -75,11 +82,19 @@ function TypeBadge({ type }: { type?: TaskType }): React.JSX.Element | null {
 /**
  * 칸반 카드 — 심각도/유형 메타데이터 지원.
  */
-const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Element {
+const TaskCard = memo(function TaskCard({
+  task,
+  boundWorkflow,
+  boundProjectName,
+}: TaskCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [meta, setMeta] = useState<TaskMetadata | null>(null);
 
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
+
+  // 프로젝트 고정 상태: bound workflow가 있고 태스크의 projectName이 일치
+  const isProjectBound =
+    boundWorkflow != null && boundProjectName != null && task.projectName === boundProjectName;
 
   // expanded 될 때 메타데이터 + 워크플로우 목록 로드
   useEffect(() => {
@@ -119,7 +134,10 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
   );
 
   // 선택된 워크플로우의 단계 목록
-  const selectedWorkflow = workflows.find((w) => w.name === meta?.workflowName);
+  // 프로젝트 고정 시 boundWorkflow가 최우선, 그 외에는 meta.workflowName 기준 조회
+  const selectedWorkflow = isProjectBound
+    ? boundWorkflow
+    : workflows.find((w) => w.name === meta?.workflowName);
 
   return (
     <div className="rounded-md border border-border bg-card p-3">
@@ -140,6 +158,15 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
             {meta?.workflowStage && (
               <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium text-primary bg-primary/10">
                 {meta.workflowStage}
+              </span>
+            )}
+            {isProjectBound && (
+              <span
+                className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium text-accent-green bg-accent-green/10"
+                title={`프로젝트 워크플로우 "${boundWorkflow?.displayName}" 고정`}
+                data-testid="task-project-bound-badge"
+              >
+                🔒 프로젝트 고정
               </span>
             )}
           </div>
@@ -182,18 +209,27 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps): React.JSX.Elem
           </div>
           {/* 워크플로우/단계 */}
           <div className="flex gap-2 text-xs">
-            <select
-              value={meta?.workflowName ?? ''}
-              onChange={(e) => handleMetaChange('workflowName', e.target.value)}
-              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
-            >
-              <option value="">워크플로우 —</option>
-              {workflows.map((w) => (
-                <option key={w.name} value={w.name}>
-                  {w.displayName}
-                </option>
-              ))}
-            </select>
+            {isProjectBound ? (
+              <div
+                className="rounded border border-accent-green/30 bg-accent-green/10 px-1.5 py-0.5 text-xs text-accent-green"
+                title="프로젝트 .claude/workflow.md에서 자동 할당됨 (변경 불가)"
+              >
+                {boundWorkflow?.displayName}
+              </div>
+            ) : (
+              <select
+                value={meta?.workflowName ?? ''}
+                onChange={(e) => handleMetaChange('workflowName', e.target.value)}
+                className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground outline-none"
+              >
+                <option value="">워크플로우 —</option>
+                {workflows.map((w) => (
+                  <option key={w.name} value={w.name}>
+                    {w.displayName}
+                  </option>
+                ))}
+              </select>
+            )}
             {selectedWorkflow && (
               <select
                 value={meta?.workflowStage ?? ''}
@@ -259,6 +295,8 @@ interface KanbanLaneProps {
   icon: React.ElementType;
   tasks: TaskInfo[];
   count: number;
+  boundWorkflow?: WorkflowDefinition | null;
+  boundProjectName?: string | null;
 }
 
 const KanbanLane = memo(function KanbanLane({
@@ -267,6 +305,8 @@ const KanbanLane = memo(function KanbanLane({
   icon: Icon,
   tasks,
   count,
+  boundWorkflow,
+  boundProjectName,
 }: KanbanLaneProps): React.JSX.Element {
   return (
     <div className="flex-1 min-w-0">
@@ -277,7 +317,12 @@ const KanbanLane = memo(function KanbanLane({
       </div>
       <div className="space-y-2">
         {tasks.map((task) => (
-          <TaskCard key={task.taskId} task={task} />
+          <TaskCard
+            key={task.taskId}
+            task={task}
+            boundWorkflow={boundWorkflow}
+            boundProjectName={boundProjectName}
+          />
         ))}
         {tasks.length === 0 && (
           <div className="rounded-md border border-dashed border-border p-4 text-center">
@@ -421,9 +466,9 @@ function PlansLane({
 
 // ─── TaskBoard ───
 
-// 30초 간격 폴링 — 다른 프로젝트(활성 세션이 아닌)에서 생성되는 태스크/플랜을
+// 5초 간격 폴링 — 다른 프로젝트(활성 세션이 아닌)에서 생성되는 태스크/플랜을
 // 실시간에 가깝게 반영. session-watcher는 열어본 세션만 감시하므로 폴링이 최소 침습적 해결책.
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 5_000;
 
 export function TaskBoard(): React.JSX.Element {
   const { groups, fetchSessions } = useSessionStore();
@@ -434,6 +479,9 @@ export function TaskBoard(): React.JSX.Element {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [activeView, setActiveView] = useState<'tasks' | 'plans'>('tasks');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<'today' | 'past'>('today');
+  const [projectWorkflow, setProjectWorkflow] = useState<ProjectWorkflowResult | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -450,15 +498,18 @@ export function TaskBoard(): React.JSX.Element {
   const refetch = useCallback(async (showSpinner: boolean): Promise<void> => {
     if (showSpinner) setIsLoading(true);
     try {
-      const [tasksResult, plansResult] = await Promise.all([
+      const [tasksResult, plansResult, pwResult] = await Promise.all([
         window.api?.getAllTasks?.() ?? Promise.resolve(null),
         window.api?.getAllPlans?.() ?? Promise.resolve(null),
+        window.api?.getProjectWorkflow?.() ?? Promise.resolve(null),
       ]);
       if (!isMountedRef.current) return;
       if (!tasksResult) throw new Error('preload API를 사용할 수 없습니다');
       setTasks(tasksResult.tasks);
       if (plansResult) setPlans(plansResult);
+      if (pwResult) setProjectWorkflow(pwResult);
       setError(null);
+      setLastUpdatedAt(Date.now());
     } catch (err) {
       if (isMountedRef.current) {
         setError(err instanceof Error ? err.message : '태스크 조회 실패');
@@ -502,15 +553,41 @@ export function TaskBoard(): React.JSX.Element {
     return result;
   }, [tasks, selectedProject, showDeleted]);
 
-  // 레인별 분류
-  const lanes = useMemo(
-    () =>
-      LANE_CONFIG.map((lane) => ({
-        ...lane,
-        tasks: filteredTasks.filter((t) => t.status === lane.status),
-      })),
-    [filteredTasks]
-  );
+  // 레인별 분류 — Completed 레인은 completedFilter('today'|'past')에 따라 추가 필터링
+  const lanes = useMemo(() => {
+    const now = Date.now();
+    return LANE_CONFIG.map((lane) => {
+      let laneTasks = filteredTasks.filter((t) => t.status === lane.status);
+      if (lane.status === 'completed') {
+        laneTasks = laneTasks.filter((t) => {
+          const completedMs = getCompletedAt(t);
+          // events에 completed 기록 없는 엣지 케이스 → 'past'로 분류 (노이즈 감소)
+          if (completedMs === null) return completedFilter === 'past';
+          const today = isSameLocalDay(completedMs, now);
+          return completedFilter === 'today' ? today : !today;
+        });
+      }
+      return { ...lane, tasks: laneTasks };
+    });
+  }, [filteredTasks, completedFilter]);
+
+  // Completed 탭 배지용 카운트
+  const completedCounts = useMemo(() => {
+    const now = Date.now();
+    let today = 0;
+    let past = 0;
+    for (const t of filteredTasks) {
+      if (t.status !== 'completed') continue;
+      const completedMs = getCompletedAt(t);
+      if (completedMs === null) {
+        past++;
+        continue;
+      }
+      if (isSameLocalDay(completedMs, now)) today++;
+      else past++;
+    }
+    return { today, past };
+  }, [filteredTasks]);
 
   const filteredPlans = useMemo(
     () =>
@@ -593,6 +670,7 @@ export function TaskBoard(): React.JSX.Element {
             {filteredPlans.length}개 플랜
           </span>
         )}
+        <LiveStatus lastUpdatedAt={lastUpdatedAt} intervalMs={POLL_INTERVAL_MS} />
         <div className="flex-1" />
 
         {/* 프로젝트 필터 */}
@@ -630,29 +708,83 @@ export function TaskBoard(): React.JSX.Element {
         {activeView === 'tasks' ? (
           <div className="flex gap-4">
             <PlansLane plans={activePlan} />
-            {lanes.map((lane) => (
-              <KanbanLane
-                key={lane.status}
-                label={lane.label}
-                color={lane.color}
-                icon={lane.icon}
-                tasks={lane.tasks}
-                count={lane.tasks.length}
-              />
-            ))}
+            {lanes.map((lane) => {
+              if (lane.status !== 'completed') {
+                return (
+                  <KanbanLane
+                    key={lane.status}
+                    label={lane.label}
+                    color={lane.color}
+                    icon={lane.icon}
+                    tasks={lane.tasks}
+                    count={lane.tasks.length}
+                    boundWorkflow={projectWorkflow?.workflow}
+                    boundProjectName={projectWorkflow?.projectName}
+                  />
+                );
+              }
+              // Completed 레인: 오늘/과거 탭 토글 포함
+              const LaneIcon = lane.icon;
+              return (
+                <div key={lane.status} className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <LaneIcon className={`h-4 w-4 ${lane.color}`} />
+                    <h3 className="text-sm font-semibold text-foreground">{lane.label}</h3>
+                    <span className="text-xs text-muted-foreground">({lane.tasks.length})</span>
+                    <div className="flex gap-0.5 rounded-md border border-border p-0.5 ml-auto">
+                      <button
+                        onClick={() => setCompletedFilter('today')}
+                        data-testid="completed-tab-today"
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                          completedFilter === 'today'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        오늘 ({completedCounts.today})
+                      </button>
+                      <button
+                        onClick={() => setCompletedFilter('past')}
+                        data-testid="completed-tab-past"
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                          completedFilter === 'past'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        과거 ({completedCounts.past})
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {lane.tasks.map((task) => (
+                      <TaskCard
+                        key={task.taskId}
+                        task={task}
+                        boundWorkflow={projectWorkflow?.workflow}
+                        boundProjectName={projectWorkflow?.projectName}
+                      />
+                    ))}
+                    {lane.tasks.length === 0 && (
+                      <div className="rounded-md border border-dashed border-border p-4 text-center">
+                        <p className="text-xs text-muted-foreground">없음</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : filteredPlans.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p>플랜 히스토리가 없습니다</p>
           </div>
         ) : (
-          filteredPlans.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>플랜 히스토리가 없습니다</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredPlans.map((plan, i) => (
-                <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} />
-              ))}
-            </div>
-          )
+          <div className="space-y-3">
+            {filteredPlans.map((plan, i) => (
+              <PlanCard key={`${plan.sessionId}-${i}`} plan={plan} />
+            ))}
+          </div>
         )}
       </div>
     </div>

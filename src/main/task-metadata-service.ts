@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import type { TaskMetadata } from '@shared/types';
@@ -33,12 +33,49 @@ export async function getTaskMetadata(
       taskId,
       severity: parsed.severity,
       type: parsed.type,
+      workflowName: parsed.workflowName,
       workflowStage: parsed.workflowStage,
       updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0,
     };
   } catch {
     return { taskId, updatedAt: 0 };
   }
+}
+
+/**
+ * 디렉토리 내 모든 메타데이터를 일괄 로드. 파이프라인 뷰 등에서 N+1 요청을 피하기 위해 사용.
+ * 디렉토리가 없거나 파일이 없으면 빈 배열.
+ */
+export async function listAllTaskMetadata(
+  options: TaskMetadataOptions = {}
+): Promise<TaskMetadata[]> {
+  const dir = resolveDir(options);
+  const results: TaskMetadata[] = [];
+  let files: string[];
+  try {
+    files = await readdir(dir);
+  } catch {
+    return [];
+  }
+  for (const f of files) {
+    if (!f.endsWith('.json')) continue;
+    try {
+      const raw = await readFile(join(dir, f), 'utf-8');
+      const parsed = JSON.parse(raw) as Partial<TaskMetadata>;
+      if (!parsed.taskId) continue;
+      results.push({
+        taskId: parsed.taskId,
+        severity: parsed.severity,
+        type: parsed.type,
+        workflowName: parsed.workflowName,
+        workflowStage: parsed.workflowStage,
+        updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0,
+      });
+    } catch {
+      // 파싱 실패 스킵
+    }
+  }
+  return results;
 }
 
 /** 단일 태스크의 메타데이터 저장. 디렉토리가 없으면 생성. */

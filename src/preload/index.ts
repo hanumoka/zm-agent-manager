@@ -27,6 +27,7 @@ import type {
   PlanInfo,
   ProjectSettings,
   KnownProject,
+  ProjectWorkflowResult,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -57,6 +58,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_METADATA, taskId),
   setTaskMetadata: (metadata: TaskMetadata): Promise<TaskMetadata> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_TASK_METADATA, metadata),
+  getAllTaskMetadata: (): Promise<TaskMetadata[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_ALL_TASK_METADATA),
   getWorkflows: (): Promise<WorkflowDefinition[]> => ipcRenderer.invoke(IPC_CHANNELS.GET_WORKFLOWS),
   setWorkflow: (workflow: WorkflowDefinition): Promise<WorkflowDefinition> =>
     ipcRenderer.invoke(IPC_CHANNELS.SET_WORKFLOW, workflow),
@@ -100,6 +103,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SET_PROJECT_SETTINGS, settings),
   getKnownProjects: (): Promise<KnownProject[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_KNOWN_PROJECTS),
+  getProjectWorkflow: (projectPath?: string): Promise<ProjectWorkflowResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_WORKFLOW, projectPath),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

@@ -25,6 +25,7 @@ import type {
   PlanInfo,
   ProjectSettings,
   KnownProject,
+  ProjectWorkflowResult,
 } from '@shared/types';
 
 interface AppAPI {
@@ -44,6 +45,7 @@ interface AppAPI {
   getConfigSummary: () => Promise<ConfigSummary>;
   getTaskMetadata: (taskId: string) => Promise<TaskMetadata>;
   setTaskMetadata: (metadata: TaskMetadata) => Promise<TaskMetadata>;
+  getAllTaskMetadata: () => Promise<TaskMetadata[]>;
   getWorkflows: () => Promise<WorkflowDefinition[]>;
   setWorkflow: (workflow: WorkflowDefinition) => Promise<WorkflowDefinition>;
   deleteWorkflow: (name: string) => Promise<void>;
@@ -70,6 +72,7 @@ interface AppAPI {
   getProjectSettings: () => Promise<ProjectSettings>;
   setProjectSettings: (settings: ProjectSettings) => Promise<ProjectSettings>;
   getKnownProjects: () => Promise<KnownProject[]>;
+  getProjectWorkflow: (projectPath?: string) => Promise<ProjectWorkflowResult>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;

@@ -24,7 +24,11 @@ import { scanSkills } from './skill-scanner';
 import { readMemoryContent } from './memory-reader';
 import { scanAgents } from './agent-scanner';
 import { scanConfigSummary } from './config-scanner';
-import { getTaskMetadata, setTaskMetadata } from './task-metadata-service';
+import {
+  getTaskMetadata,
+  setTaskMetadata,
+  listAllTaskMetadata,
+} from './task-metadata-service';
 import { listWorkflows, saveWorkflow, deleteWorkflow } from './workflow-service';
 import { getDocReview, setDocReview } from './doc-review-service';
 import { getNotificationSettings, setNotificationSettings } from './notification-settings-service';
@@ -43,6 +47,7 @@ import { getProjectSettings, setProjectSettings } from './project-settings-servi
 import { __clearCurrentProjectPathCache } from './current-project';
 import { parseHistoryFile } from './history-parser';
 import { stat } from 'fs/promises';
+import { scanProjectWorkflow } from './workflow-scanner';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -234,6 +239,17 @@ export function registerIpcHandlers(): void {
       return saved;
     }
   );
+
+  ipcMain.handle(
+    IPC_CHANNELS.GET_PROJECT_WORKFLOW,
+    async (_event, projectPath?: string) => {
+      return scanProjectWorkflow(projectPath ? { projectPath } : {});
+    }
+  );
+
+  ipcMain.handle(IPC_CHANNELS.GET_ALL_TASK_METADATA, async () => {
+    return listAllTaskMetadata();
+  });
 
   ipcMain.handle(IPC_CHANNELS.GET_KNOWN_PROJECTS, async () => {
     // history.jsonl에서 projectPathMap을 얻고, 각 경로의 최근 활동 시각을 계산
