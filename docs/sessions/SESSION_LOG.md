@@ -5,6 +5,57 @@
 
 ---
 
+## 2026-04-13 | INBOX #13 전체 구현 (P1~P7) + Workflow E2E 보강
+
+- **목표**: 사용자 진행 방식 A 선택 — INBOX #13(워크플로우 CRUD + DAG/Loop + 프로젝트 전용 폴더)을 P1~P7 전 단계 일괄 구현
+- **작업 내용**:
+  - **P1 — Statechart 스키마 + 파서 + validator**:
+    - `yaml@^2.8.3` (eemeli) 의존성 추가 — 기존 line-based `parseFrontmatter`는 nested 구조 미지원
+    - `src/shared/types.ts` 확장 — `WorkflowNode`, `WorkflowEdge`, `WorkflowValidationError/Result`, `ProjectWorkflowListResult` 추가. `WorkflowDefinition`에 optional `start`/`end`/`nodes`/`edges`/`filePath`/`body` 필드 확장
+    - `src/main/workflow-scanner.ts` 리라이트 — `parseWorkflowContent` 신규 (Statechart 우선, Linear fallback), `deriveStagesFromGraph` (BFS level order), `listProjectWorkflows` + `saveProjectWorkflow` + `deleteProjectWorkflow` + `scanProjectWorkflowList` + `serializeWorkflow`
+    - `src/main/workflow-validator.ts` 신규 — 7가지 검증 룰: name-required / start-required+exists / end-required+exists / unique-ids / edge-from/to 참조 / unreachable (BFS) / dead-end (역방향 BFS) + end-no-outgoing. **Loop 허용 (DAG 강제 안 함)**
+    - 테스트: `workflow-statechart.test.ts` 신규 24개 (파싱 2, deriveStages 3, validator 12, CRUD/마이그레이션 7)
+  - **P2 — IPC 채널 확장**:
+    - 4개 신규 채널: `LIST_PROJECT_WORKFLOWS`, `SAVE_PROJECT_WORKFLOW`, `DELETE_PROJECT_WORKFLOW`, `VALIDATE_PROJECT_WORKFLOW`
+    - `GET_PROJECT_WORKFLOW`에 workflowName 파라미터 확장
+    - `src/main/ipc.ts` 핸들러 추가 — `SAVE_PROJECT_WORKFLOW`는 검증 실패 시 에러 throw (저장 거부)
+    - preload `index.ts` + `index.d.ts` 동기화
+  - **P3 — 레거시 마이그레이션**: `listProjectWorkflows()` 내장 — 새 폴더 비어 있고 `.claude/workflow.md` 존재 시 `default.md`로 자동 복사. 이후 재-list
+  - **P4 — WorkflowGraph loop + BFS 레이아웃**:
+    - `src/renderer/src/lib/workflow-graph-layout.ts` 신규 — `computeLevels` (BFS), `computeGraphLayout` (level별 컬럼 + same-level vertical stack), `edgePath` (forward bezier / loop 위쪽 arc / self 작은 원)
+    - `WorkflowGraph.tsx` 리라이트 — nodes/edges 우선 렌더, linear fallback은 stages→chain 변환, loop 엣지는 destructive 색상 + arc, edge label 표시
+    - 테스트: `workflow-graph-layout.test.ts` 신규 12개
+  - **P5 — WorkflowPage 다중 워크플로우 통합**:
+    - 워크플로우 드롭다운 추가 (프로젝트 드롭다운과 별개), default 우선 선택
+    - "Manage" 버튼으로 CRUD 모달 오픈
+    - `listProjectWorkflows` 호출로 전환, 5초 폴링은 `isManaging`일 때 중지
+  - **P6 — CRUD UI**:
+    - `src/renderer/src/components/WorkflowManager.tsx` 신규 — 2-pane 모달 (좌: 목록 + New, 우: form 에디터)
+    - Form 필드: name / displayName / start / end(comma split) / nodes 테이블 / edges 테이블 (from/to/label)
+    - 저장 시 `validateProjectWorkflow` 호출 → 실패 시 `workflow-editor-errors` 인라인 표시
+    - 삭제 시 confirm 다이얼로그
+    - linear → graph 자동 변환 (`toEditorState`)
+  - **P7 — 문서 갱신**:
+    - `.claude/rules/workflow-system.md` 리라이트 — Statechart/Linear 2가지 스키마, 7가지 검증 룰, 마이그레이션 동작, IPC 매핑 표
+    - `CLAUDE.md` "## Workflow" 섹션 업데이트 — 경로 변경(`.claude/zm-agent-manager/workflows/`)
+    - `INBOX.md` #13 완료 체크 + 결과물/테스트/의존성 기록
+  - **E2E 보강** (사용자 후속 요구):
+    - `e2e/workflow-manager.spec.ts` 신규 — 5개 smoke test (페이지 렌더 / Manage 오픈 / New 초기화 / 검증 실패 인라인 표시 / 닫기)
+    - 알려진 프로젝트 없는 환경은 `test.skip`로 방어
+- **검증**:
+  - `npm run typecheck` 통과 (node + web)
+  - `npm run test` — 186 → **222 passed** (+36: statechart 24 + graph-layout 12)
+  - `npm run lint` — 0 errors (CRLF warning은 Windows 환경 기존 상태)
+  - `npm run build` — 3단계 성공
+  - `npm run test:e2e` — 14 → **19 passed** (+5 workflow-manager)
+- **신규 의존성**: `yaml@^2.8.3`
+- **문서 갱신**: `.claude/rules/workflow-system.md`, `CLAUDE.md`, `docs/ideas/INBOX.md` #13
+- **남은 작업**:
+  - v0.1.0-beta.4 로컬 재설치 + Plans 레인 CDP 재검증 (이전 세션 이월)
+  - v0.1.0-beta.5 재배포 (INBOX #13 Statechart/CRUD 설치본 검증)
+
+---
+
 ## 2026-04-12 저녁 | INBOX #8/#9/#10/#11/#12 일괄 + Workflow 페이지 재설계 + #13 등록
 
 - **목표**: v0.1.0-beta.4 검증 후 추가 사용자 요구(5개 INBOX 아이디어 + Workflow 재설계) 일괄 구현

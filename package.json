@@ -1,6 +1,6 @@
 {
   "name": "zm-agent-manager",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "Claude Code 세션 모니터링 및 리플레이 데스크톱 앱",
   "main": "./out/main/index.js",
   "author": "hanumoka",
