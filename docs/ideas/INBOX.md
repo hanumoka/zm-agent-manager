@@ -111,7 +111,7 @@
 
 ## 워크플로우 관리 시스템 확장 (2026-04-12 오후 사용자 요구)
 
-### 13. 워크플로우 CRUD + DAG/Loop 지원 + 프로젝트 전용 폴더
+### ~~13. 워크플로우 CRUD + DAG/Loop 지원 + 프로젝트 전용 폴더~~ → **구현 완료** (2026-04-13)
 - **배경**: 현재 프로젝트당 1개 워크플로우(`.claude/workflow.md`)는 linear stages만 지원. 사용자는 (a) 다중 워크플로우, (b) DAG + Loop (예: 검증 실패 → 구현 재작업), (c) 앱 내 CRUD UI 요구
 - **새 폴더 구조**: `<project-root>/.claude/zm-agent-manager/workflows/{name}.md` — 앱 전용 namespace, 다중 파일
 - **새 스키마** (Statechart 변형 — XState/Sismic 패턴 참고):
@@ -148,5 +148,18 @@
   - [Sismic YAML statechart](https://sismic.readthedocs.io/en/latest/format.html)
   - [GCP Workflows](https://cloud.google.com/workflows) — branches + loops
   - [React Flow workflow editor](https://reactflow.dev/ui/templates/workflow-editor) — 후속 visual editor 후보
-- **작업 단계**: P1(스키마+파서) → P2(IPC) → P3(마이그레이션) → P4(그래프 loop 렌더) → P5(WorkflowPage 통합) → P6(CRUD UI) → P7(검증). 총 ~12-15h, 2-3 세션 분할 권장
-- **상태**: **사용자 진행 방식(A/B/C) 선택 대기**
+- **작업 단계**: P1(스키마+파서) → P2(IPC) → P3(마이그레이션) → P4(그래프 loop 렌더) → P5(WorkflowPage 통합) → P6(CRUD UI) → P7(검증)
+- **결과물**:
+  - `src/main/workflow-scanner.ts` 리라이트 — `yaml` 라이브러리 사용, Statechart/Linear 양쪽 스키마 파싱, `listProjectWorkflows` + `saveProjectWorkflow` + `deleteProjectWorkflow` + `scanProjectWorkflowList` 신규
+  - `src/main/workflow-validator.ts` 신규 — 7가지 검증 룰 + loop 허용
+  - `src/renderer/src/lib/workflow-graph-layout.ts` 신규 — BFS level 레이아웃 + forward/loop/self 엣지 분류 + `edgePath` 헬퍼
+  - `WorkflowGraph.tsx` 리라이트 — 신규 레이아웃 사용, loop는 위쪽 arc, label 렌더
+  - `WorkflowPage.tsx` 확장 — 워크플로우 드롭다운 + Manage 버튼
+  - `WorkflowManager.tsx` 신규 — CRUD 모달 (목록 + form 에디터 + 검증 에러 표시)
+  - IPC: `LIST_PROJECT_WORKFLOWS` / `SAVE_PROJECT_WORKFLOW` / `DELETE_PROJECT_WORKFLOW` / `VALIDATE_PROJECT_WORKFLOW` 4개 신규 + `GET_PROJECT_WORKFLOW` 확장 (workflowName 파라미터)
+  - 레거시 `.claude/workflow.md` 자동 마이그레이션 — listProjectWorkflows 첫 호출 시 `default.md`로 복사
+  - `.claude/rules/workflow-system.md` 리라이트 — 신규 스키마 + 검증 룰 + 마이그레이션 정책
+  - `CLAUDE.md` "## Workflow" 섹션 업데이트
+- **신규 의존성**: `yaml@^2.8.3` (eemeli)
+- **테스트**: 36개 신규 (statechart 24 + graph-layout 12). 전체 186 → **222 passed**
+- **검증**: typecheck/lint(0 errors)/build 통과

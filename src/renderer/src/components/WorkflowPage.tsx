@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Settings } from 'lucide-react';
 import { LiveStatus } from '@/components/LiveStatus';
 import { WorkflowGraph } from '@/components/WorkflowGraph';
+import { WorkflowManager } from '@/components/WorkflowManager';
 import type {
   KnownProject,
-  ProjectWorkflowResult,
+  ProjectWorkflowListResult,
   TaskInfo,
   TaskMetadata,
+  WorkflowDefinition,
 } from '@shared/types';
 
 /**
- * 워크플로우 실시간 모니터링 페이지.
+ * 워크플로우 실시간 모니터링 페이지 (INBOX #13 확장).
  *
- * - **프로젝트 드롭다운 필수** — "모든 프로젝트" 선택지 없음 (프로젝트별 워크플로우 모니터링)
- * - 5초 간격 폴링 + window focus 이벤트
- * - 선택된 프로젝트의 `.claude/workflow.md`를 SVG 그래프로 시각화
- * - 태스크가 파이프라인을 "물처럼 흐르는" 효과 (marching ants 애니메이션)
+ * - 프로젝트 드롭다운 + 워크플로우 드롭다운 (프로젝트당 다중 워크플로우)
+ * - 5초 간격 폴링
+ * - "Manage" 버튼으로 CRUD 에디터 모달 전환
  */
 
 const POLL_INTERVAL_MS = 5_000;
@@ -23,12 +24,14 @@ const POLL_INTERVAL_MS = 5_000;
 export function WorkflowPage(): React.JSX.Element {
   const [knownProjects, setKnownProjects] = useState<KnownProject[]>([]);
   const [selectedProjectPath, setSelectedProjectPath] = useState<string | null>(null);
-  const [projectWorkflow, setProjectWorkflow] = useState<ProjectWorkflowResult | null>(null);
+  const [workflowList, setWorkflowList] = useState<ProjectWorkflowListResult | null>(null);
+  const [selectedWorkflowName, setSelectedWorkflowName] = useState<string | null>(null);
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [metadataMap, setMetadataMap] = useState<Map<string, TaskMetadata>>(new Map());
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isManaging, setIsManaging] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function WorkflowPage(): React.JSX.Element {
     };
   }, []);
 
-  // 초기 1회: 프로젝트 목록 + 기본 선택 결정 (가장 최근 활동 프로젝트)
+  // 초기 1회: 프로젝트 목록
   useEffect(() => {
     let cancelled = false;
     async function bootstrap(): Promise<void> {
@@ -47,7 +50,6 @@ export function WorkflowPage(): React.JSX.Element {
         if (cancelled || !isMountedRef.current) return;
         setKnownProjects(projects);
         if (projects.length > 0) {
-          // 기본 선택: 가장 최근 활동 (KnownProject는 lastActivity desc로 정렬됨)
           setSelectedProjectPath(projects[0].path);
         } else {
           setIsInitialLoading(false);
@@ -65,19 +67,25 @@ export function WorkflowPage(): React.JSX.Element {
     };
   }, []);
 
-  // refetch: 선택된 프로젝트 기준으로 workflow/tasks/metadata 재조회
   const refetch = useCallback(
     async (projectPath: string): Promise<void> => {
       try {
-        const [tasksResult, pwResult, metaResult] = await Promise.all([
+        const [tasksResult, listResult, metaResult] = await Promise.all([
           window.api?.getAllTasks?.() ?? Promise.resolve(null),
-          window.api?.getProjectWorkflow?.(projectPath) ?? Promise.resolve(null),
+          window.api?.listProjectWorkflows?.(projectPath) ?? Promise.resolve(null),
           window.api?.getAllTaskMetadata?.() ?? Promise.resolve([]),
         ]);
         if (!isMountedRef.current) return;
         if (!tasksResult) throw new Error('preload API를 사용할 수 없습니다');
         setTasks(tasksResult.tasks);
-        if (pwResult) setProjectWorkflow(pwResult);
+        if (listResult) {
+          setWorkflowList(listResult);
+          setSelectedWorkflowName((prev) => {
+            if (prev && listResult.workflows.some((w) => w.name === prev)) return prev;
+            const def = listResult.workflows.find((w) => w.name === 'default');
+            return def?.name ?? listResult.workflows[0]?.name ?? null;
+          });
+        }
         if (metaResult) {
           const map = new Map<string, TaskMetadata>();
           for (const m of metaResult) map.set(m.taskId, m);
@@ -96,14 +104,13 @@ export function WorkflowPage(): React.JSX.Element {
     []
   );
 
-  // selectedProjectPath 변경 시 즉시 refetch + 5초 폴링 시작
   useEffect(() => {
     if (!selectedProjectPath) return;
-    // 프로젝트 변경 시 이전 workflow 초기화 (flash 방지)
-    setProjectWorkflow(null);
+    setWorkflowList(null);
+    setSelectedWorkflowName(null);
     refetch(selectedProjectPath);
     const id = setInterval(() => {
-      refetch(selectedProjectPath);
+      if (!isManaging) refetch(selectedProjectPath);
     }, POLL_INTERVAL_MS);
     const onFocus = (): void => {
       refetch(selectedProjectPath);
@@ -113,33 +120,59 @@ export function WorkflowPage(): React.JSX.Element {
       clearInterval(id);
       window.removeEventListener('focus', onFocus);
     };
-  }, [selectedProjectPath, refetch]);
+  }, [selectedProjectPath, refetch, isManaging]);
 
-  const workflow = projectWorkflow?.workflow ?? null;
-  const projectName = projectWorkflow?.projectName ?? null;
+  const workflows = workflowList?.workflows ?? [];
+  const selectedWorkflow: WorkflowDefinition | null =
+    workflows.find((w) => w.name === selectedWorkflowName) ?? null;
+  const projectName = workflowList?.projectName ?? null;
 
-  // 프로젝트 내 태스크만 + deleted 제외
   const scopedTasks = projectName
     ? tasks.filter((t) => t.projectName === projectName && t.status !== 'deleted')
     : [];
 
+  const handleManagerClose = async (changed: boolean): Promise<void> => {
+    setIsManaging(false);
+    if (changed && selectedProjectPath) {
+      await refetch(selectedProjectPath);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col" data-testid="page-workflow">
       {/* 헤더 */}
-      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3 flex-wrap">
         <GitBranch className="h-4 w-4 text-primary" />
         <h1 className="text-sm font-semibold text-foreground">Workflow</h1>
-        {workflow && (
+        {selectedWorkflow && (
           <>
             <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-foreground">{workflow.displayName}</span>
-            <span className="text-xs text-muted-foreground font-mono">{workflow.name}</span>
+            <span className="text-xs text-foreground">{selectedWorkflow.displayName}</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              {selectedWorkflow.name}
+            </span>
             <span className="text-xs text-muted-foreground">· 총 {scopedTasks.length}개</span>
           </>
         )}
         <div className="flex-1" />
 
-        {/* 프로젝트 드롭다운 — "모든 프로젝트" 옵션 없음 */}
+        {/* 워크플로우 드롭다운 */}
+        {workflows.length > 0 && (
+          <select
+            value={selectedWorkflowName ?? ''}
+            onChange={(e) => setSelectedWorkflowName(e.target.value || null)}
+            data-testid="workflow-name-select"
+            className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none max-w-[200px]"
+          >
+            {workflows.map((w) => (
+              <option key={w.name} value={w.name}>
+                {w.displayName} ({w.name})
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* 프로젝트 드롭다운 */}
         <select
           value={selectedProjectPath ?? ''}
           onChange={(e) => setSelectedProjectPath(e.target.value || null)}
@@ -157,6 +190,18 @@ export function WorkflowPage(): React.JSX.Element {
           )}
         </select>
 
+        {selectedProjectPath && (
+          <button
+            type="button"
+            onClick={() => setIsManaging(true)}
+            data-testid="workflow-manage-button"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-muted"
+          >
+            <Settings className="h-3 w-3" />
+            Manage
+          </button>
+        )}
+
         <LiveStatus lastUpdatedAt={lastUpdatedAt} intervalMs={POLL_INTERVAL_MS} />
       </div>
 
@@ -172,38 +217,54 @@ export function WorkflowPage(): React.JSX.Element {
             <p>워크플로우 데이터를 불러올 수 없습니다: {error}</p>
           </div>
         ) : knownProjects.length === 0 ? (
+          <EmptyState
+            title="알려진 프로젝트가 없습니다"
+            body="Claude Code를 사용하여 세션을 생성하면 여기에 프로젝트가 나타납니다."
+          />
+        ) : !selectedWorkflow ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center max-w-md px-6">
               <GitBranch className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">알려진 프로젝트가 없습니다</p>
-              <p className="text-xs mt-2 text-muted-foreground">
-                Claude Code를 사용하여 세션을 생성하면 여기에 프로젝트가 나타납니다.
-              </p>
-            </div>
-          </div>
-        ) : !workflow ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center max-w-md px-6">
-              <GitBranch className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">이 프로젝트에 워크플로우가 정의되지 않았습니다</p>
+              <p className="text-sm font-medium">이 프로젝트에 워크플로우가 없습니다</p>
               <p className="text-xs mt-2 text-muted-foreground break-all">
                 {selectedProjectPath}
               </p>
               <p className="text-xs mt-2 text-muted-foreground">
-                해당 프로젝트 루트에 <code>.claude/workflow.md</code>를 생성하세요.
+                위 <strong>Manage</strong> 버튼으로 워크플로우를 생성하세요.
               </p>
               <p className="text-xs mt-1 text-muted-foreground">
-                형식 안내: <code>.claude/rules/workflow-system.md</code>
+                파일 위치: <code>.claude/zm-agent-manager/workflows/</code>
               </p>
             </div>
           </div>
         ) : (
           <WorkflowGraph
-            workflow={workflow}
+            workflow={selectedWorkflow}
             tasks={scopedTasks}
             metadataMap={metadataMap}
           />
         )}
+      </div>
+
+      {/* Manage 모달 */}
+      {isManaging && selectedProjectPath && (
+        <WorkflowManager
+          projectPath={selectedProjectPath}
+          workflows={workflows}
+          onClose={handleManagerClose}
+        />
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ title, body }: { title: string; body: string }): React.JSX.Element {
+  return (
+    <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="text-center max-w-md px-6">
+        <GitBranch className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs mt-2 text-muted-foreground">{body}</p>
       </div>
     </div>
   );

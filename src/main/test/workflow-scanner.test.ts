@@ -51,7 +51,7 @@ describe('scanProjectWorkflow', () => {
     const file = join(testRoot, 'minimal.md');
     await writeFile(file, '---\nname: my-flow\nstages: a b c\n---\n', 'utf-8');
     const result = await scanProjectWorkflow({ workflowFile: file });
-    expect(result.workflow).toEqual({
+    expect(result.workflow).toMatchObject({
       name: 'my-flow',
       displayName: 'my-flow',
       stages: ['a', 'b', 'c'],

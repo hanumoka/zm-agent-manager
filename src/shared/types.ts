@@ -55,6 +55,10 @@ export const IPC_CHANNELS = {
   SET_PROJECT_SETTINGS: 'projects:set-settings',
   GET_KNOWN_PROJECTS: 'projects:get-known',
   GET_PROJECT_WORKFLOW: 'workflows:get-project',
+  LIST_PROJECT_WORKFLOWS: 'workflows:list-project',
+  SAVE_PROJECT_WORKFLOW: 'workflows:save-project',
+  DELETE_PROJECT_WORKFLOW: 'workflows:delete-project',
+  VALIDATE_PROJECT_WORKFLOW: 'workflows:validate-project',
   GET_ALL_TASK_METADATA: 'task-meta:get-all',
 } as const;
 
@@ -330,15 +334,59 @@ export interface TaskMetadata {
   updatedAt: number;
 }
 
+export interface WorkflowNode {
+  id: string;
+  description?: string;
+}
+
+export interface WorkflowEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
 export interface WorkflowDefinition {
   /** 워크플로우 고유 이름 (파일명으로도 사용) */
   name: string;
   /** 표시명 */
   displayName: string;
-  /** 순서가 있는 단계 목록 */
+  /** 순서가 있는 단계 목록 (statechart의 경우 start에서 BFS로 derive) */
   stages: string[];
   /** 생성 시각 */
   createdAt: number;
+  // ─── Statechart 확장 (INBOX #13) ───
+  /** start 노드 id (statechart 스키마) */
+  start?: string;
+  /** end 노드 id 목록 (statechart 스키마, 1개 이상) */
+  end?: string[];
+  /** 노드 정의 */
+  nodes?: WorkflowNode[];
+  /** 엣지 정의 (loop 허용) */
+  edges?: WorkflowEdge[];
+  /** 저장 파일 절대 경로 (scanner가 주입) */
+  filePath?: string;
+  /** 프론트매터 이외의 마크다운 본문 (에디터에서 보존용) */
+  body?: string;
+}
+
+/** 워크플로우 유효성 검증 결과 */
+export interface WorkflowValidationError {
+  rule: string;
+  message: string;
+}
+
+export interface WorkflowValidationResult {
+  valid: boolean;
+  errors: WorkflowValidationError[];
+}
+
+/** 프로젝트의 모든 워크플로우 목록 결과 */
+export interface ProjectWorkflowListResult {
+  workflows: WorkflowDefinition[];
+  projectPath: string;
+  projectName: string;
+  /** 레거시 `.claude/workflow.md`를 migrate 했는지 여부 */
+  migrated: boolean;
 }
 
 // ─── 문서 리뷰 상태 (F15) ───

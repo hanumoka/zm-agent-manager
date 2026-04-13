@@ -119,11 +119,12 @@ npm run test
 
 ## Workflow
 
-이 프로젝트는 `.claude/workflow.md`에 정의된 워크플로우를 따른다. 세션 시작 시 해당 파일을 반드시 읽고 현재 작업이 어느 단계에 속하는지 파악할 것. zm-agent-manager 앱도 동일 파일을 source of truth로 사용하여 프로젝트당 1개의 파이프라인 시각화를 제공한다.
+이 프로젝트는 `.claude/zm-agent-manager/workflows/` 폴더의 워크플로우 정의를 따른다 (INBOX #13). 세션 시작 시 해당 폴더를 반드시 읽고 현재 작업이 어느 단계에 속하는지 파악할 것. zm-agent-manager 앱도 동일 폴더를 source of truth로 사용하여 프로젝트당 다중 워크플로우 + DAG/Loop 시각화를 제공한다.
 
-- 스키마 + 작성법: [`.claude/rules/workflow-system.md`](.claude/rules/workflow-system.md)
-- 파일 위치: `<project-root>/.claude/workflow.md`
-- 앱 스캐너: `src/main/workflow-scanner.ts`
+- 스키마 + 검증 룰 + 마이그레이션: [`.claude/rules/workflow-system.md`](.claude/rules/workflow-system.md)
+- 신규 파일 위치: `<project-root>/.claude/zm-agent-manager/workflows/{name}.md`
+- 레거시 fallback: `<project-root>/.claude/workflow.md` (자동 마이그레이션됨)
+- 앱 스캐너: `src/main/workflow-scanner.ts`, validator: `src/main/workflow-validator.ts`
 
 ### 관리 규칙
 - SESSION_LOG.md: 최근 10개 세션만 유지, 초과분은 `sessions/archive/YYYY-MM.md`로 이동

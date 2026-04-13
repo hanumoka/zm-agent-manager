@@ -47,7 +47,13 @@ import { getProjectSettings, setProjectSettings } from './project-settings-servi
 import { __clearCurrentProjectPathCache } from './current-project';
 import { parseHistoryFile } from './history-parser';
 import { stat } from 'fs/promises';
-import { scanProjectWorkflow } from './workflow-scanner';
+import {
+  scanProjectWorkflow,
+  scanProjectWorkflowList,
+  saveProjectWorkflow,
+  deleteProjectWorkflow,
+} from './workflow-scanner';
+import { validateWorkflow } from './workflow-validator';
 
 const CLAUDE_DIR = join(homedir(), '.claude');
 
@@ -242,8 +248,44 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.GET_PROJECT_WORKFLOW,
+    async (_event, projectPath?: string, workflowName?: string) => {
+      const options: { projectPath?: string; workflowName?: string } = {};
+      if (projectPath) options.projectPath = projectPath;
+      if (workflowName) options.workflowName = workflowName;
+      return scanProjectWorkflow(options);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.LIST_PROJECT_WORKFLOWS,
     async (_event, projectPath?: string) => {
-      return scanProjectWorkflow(projectPath ? { projectPath } : {});
+      return scanProjectWorkflowList(projectPath);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SAVE_PROJECT_WORKFLOW,
+    async (_event, projectPath: string, workflow: WorkflowDefinition) => {
+      const validation = validateWorkflow(workflow);
+      if (!validation.valid) {
+        const msg = validation.errors.map((e) => `[${e.rule}] ${e.message}`).join('\n');
+        throw new Error(`워크플로우 검증 실패:\n${msg}`);
+      }
+      return saveProjectWorkflow(projectPath, workflow);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.DELETE_PROJECT_WORKFLOW,
+    async (_event, projectPath: string, name: string) => {
+      return deleteProjectWorkflow(projectPath, name);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.VALIDATE_PROJECT_WORKFLOW,
+    async (_event, workflow: WorkflowDefinition) => {
+      return validateWorkflow(workflow);
     }
   );
 

@@ -28,6 +28,8 @@ import type {
   ProjectSettings,
   KnownProject,
   ProjectWorkflowResult,
+  ProjectWorkflowListResult,
+  WorkflowValidationResult,
 } from '@shared/types';
 
 // 앱 전용 API
@@ -103,8 +105,24 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SET_PROJECT_SETTINGS, settings),
   getKnownProjects: (): Promise<KnownProject[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.GET_KNOWN_PROJECTS),
-  getProjectWorkflow: (projectPath?: string): Promise<ProjectWorkflowResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_WORKFLOW, projectPath),
+  getProjectWorkflow: (
+    projectPath?: string,
+    workflowName?: string
+  ): Promise<ProjectWorkflowResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GET_PROJECT_WORKFLOW, projectPath, workflowName),
+  listProjectWorkflows: (projectPath?: string): Promise<ProjectWorkflowListResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LIST_PROJECT_WORKFLOWS, projectPath),
+  saveProjectWorkflow: (
+    projectPath: string,
+    workflow: WorkflowDefinition
+  ): Promise<WorkflowDefinition> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SAVE_PROJECT_WORKFLOW, projectPath, workflow),
+  deleteProjectWorkflow: (projectPath: string, name: string): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DELETE_PROJECT_WORKFLOW, projectPath, name),
+  validateProjectWorkflow: (
+    workflow: WorkflowDefinition
+  ): Promise<WorkflowValidationResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.VALIDATE_PROJECT_WORKFLOW, workflow),
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ): (() => void) => {

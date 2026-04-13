@@ -26,6 +26,8 @@ import type {
   ProjectSettings,
   KnownProject,
   ProjectWorkflowResult,
+  ProjectWorkflowListResult,
+  WorkflowValidationResult,
 } from '@shared/types';
 
 interface AppAPI {
@@ -72,7 +74,17 @@ interface AppAPI {
   getProjectSettings: () => Promise<ProjectSettings>;
   setProjectSettings: (settings: ProjectSettings) => Promise<ProjectSettings>;
   getKnownProjects: () => Promise<KnownProject[]>;
-  getProjectWorkflow: (projectPath?: string) => Promise<ProjectWorkflowResult>;
+  getProjectWorkflow: (
+    projectPath?: string,
+    workflowName?: string
+  ) => Promise<ProjectWorkflowResult>;
+  listProjectWorkflows: (projectPath?: string) => Promise<ProjectWorkflowListResult>;
+  saveProjectWorkflow: (
+    projectPath: string,
+    workflow: WorkflowDefinition
+  ) => Promise<WorkflowDefinition>;
+  deleteProjectWorkflow: (projectPath: string, name: string) => Promise<void>;
+  validateProjectWorkflow: (workflow: WorkflowDefinition) => Promise<WorkflowValidationResult>;
   onNewRecords: (
     callback: (data: { sessionId: string; records: JsonlRecord[] }) => void
   ) => () => void;
