@@ -163,3 +163,24 @@
 - **신규 의존성**: `yaml@^2.8.3` (eemeli)
 - **테스트**: 36개 신규 (statechart 24 + graph-layout 12). 전체 186 → **222 passed**
 - **검증**: typecheck/lint(0 errors)/build 통과
+
+---
+
+## 워크플로우 노드 본문 마크다운 (2026-04-13 사용자 요구)
+
+### 14. 노드별 본문 마크다운 + Claude 인식 프로토콜
+- **배경**: INBOX #13으로 CRUD UI까지 마련됐지만, 노드는 `id`+`description`(한 줄)만 저장 가능해 "단계 제목"에 그친다. 사용자 지적: "노드 제목만 설정하면 의미가 없지 않는가? 노드의 본문을 md로 작성하고 이것을 클로드가 인식해야 하는데?"
+- **목표**: 각 노드에 상세 마크다운 본문(행동 지침/체크리스트/예시)을 저장·편집하고, Claude Code가 현재 단계의 본문을 읽어 행동 근거로 삼도록 한다
+- **설계 결정** (사용자 합의):
+  1. **저장 형식**: H2 섹션 컨벤션 — frontmatter는 메타만, 본문에 `## {node.id}` H2 섹션으로 노드별 마크다운 저장. 파서가 H2 제목↔node id 매칭하여 `WorkflowNode.body`에 주입. 첫 H2 이전 자유 텍스트는 intro로 `WorkflowDefinition.body`에 보존
+  2. **UI**: `WorkflowManager` 모달을 2-column 레이아웃으로 확장 — 좌측 노드 목록, 우측 선택된 노드의 마크다운 textarea 패널
+  3. **Claude 연결**: `CLAUDE.md` "## Workflow" 섹션에 "작업 시작 시 현재 workflowStage에 해당하는 `## {stage}` H2 섹션을 Read로 읽어 지침으로 삼으라"는 프로토콜 추가
+- **변경 대상**:
+  - `src/shared/types.ts` — `WorkflowNode.body?: string` 필드 추가
+  - `src/main/workflow-scanner.ts` — `splitBodyIntoNodeSections` 헬퍼 신규, `parseWorkflowContent`/`serializeWorkflow` 확장 (H2 섹션 파싱/직렬화, 미매칭 H2는 intro 뒤에 append로 손실 방지)
+  - `src/renderer/src/components/WorkflowManager.tsx` — `selectedNodeIdx` 상태 + 우측 본문 편집 패널 (textarea + description 입력)
+  - `CLAUDE.md` "## Workflow" 섹션 — 노드 본문 참조 프로토콜 추가
+  - `.claude/rules/workflow-system.md` — 스키마 예시에 H2 섹션 포함 형태로 갱신
+- **범위 외**: Task ↔ 노드 자동 프롬프트 주입, 노드별 파일 분리, WYSIWYG 에디터
+- **계획 파일**: `C:\Users\amagr\.claude\plans\spicy-humming-summit.md` (사용자 승인 완료)
+- **상태**: 계획 승인 완료, 구현 대기 (로드맵 Phase 배치 결정 필요)
